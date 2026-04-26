@@ -11,12 +11,13 @@ public class CreateStationLabels
             if (t.gameObject.name.StartsWith("Label_"))
                 Undo.DestroyObjectImmediate(t.gameObject);
 
+        // Labels float 0.3 units off each wall, facing inward
         var stations = new (string text, Vector3 pos, float rotY)[]
         {
-            ("ENGINE TERMINAL",  new Vector3( 7.75f, 2.6f,  0f   ), 270f),
-            ("NAVIGATION DECK",  new Vector3( 0f,    2.6f,  7.75f), 180f),
-            ("COMMS HUB",        new Vector3(-7.75f, 2.6f,  0f   ),  90f),
-            ("LIFE SUPPORT",     new Vector3( 0f,    2.6f, -7.75f),   0f),
+            ("ENGINE TERMINAL",  new Vector3( 7.45f, 2.8f,  0f   ),  90f),
+            ("NAVIGATION DECK",  new Vector3( 0f,    2.8f,  7.45f),   0f),
+            ("COMMS HUB",        new Vector3(-7.45f, 2.8f,  0f   ), 270f),
+            ("LIFE SUPPORT",     new Vector3( 0f,    2.8f, -7.45f), 180f),
         };
 
         foreach (var s in stations)
@@ -28,12 +29,13 @@ public class CreateStationLabels
 
             var tmp = go.AddComponent<TextMeshPro>();
             tmp.text = s.text;
-            tmp.fontSize = 2.8f;
+            tmp.fontSize = 1.8f;
             tmp.fontStyle = FontStyles.Bold;
             tmp.color = new Color(0.1f, 1f, 0.45f);
             tmp.alignment = TextAlignmentOptions.Center;
             tmp.enableWordWrapping = false;
-            tmp.rectTransform.sizeDelta = new Vector2(6f, 1f);
+            tmp.overflowMode = TextOverflowModes.Overflow;
+            tmp.rectTransform.sizeDelta = new Vector2(10f, 2.5f);
 
             if (tmp.fontSharedMaterial != null)
             {
