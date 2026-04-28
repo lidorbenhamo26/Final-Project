@@ -58,22 +58,22 @@ public class GameManager : MonoBehaviour
             if (pick == 0 && engineStation != null && !engineStation.HasActiveTask())
             {
                 GameObject go = new GameObject("EngineTask");
-                engineStation.AssignTask(go.AddComponent<EngineTask>());
+                engineStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, engineStation.stationName));
             }
             else if (pick == 1 && navigationStation != null && !navigationStation.HasActiveTask())
             {
                 GameObject go = new GameObject("NavigationTask");
-                navigationStation.AssignTask(go.AddComponent<NavigationTask>());
+                navigationStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, navigationStation.stationName));
             }
             else if (pick == 2 && commsStation != null && !commsStation.HasActiveTask())
             {
                 GameObject go = new GameObject("CommsTask");
-                commsStation.AssignTask(go.AddComponent<CommsTask>());
+                commsStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, commsStation.stationName));
             }
             else if (pick == 3 && lifeSupportStation != null && !lifeSupportStation.HasActiveTask())
             {
                 GameObject go = new GameObject("LifeSupportTask");
-                lifeSupportStation.AssignTask(go.AddComponent<LifeSupportTask>());
+                lifeSupportStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, lifeSupportStation.stationName));
             }
 
             yield return new WaitForSeconds(eventFrequency);
