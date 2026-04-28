@@ -17,6 +17,10 @@ public class AstronautController : MonoBehaviour
     [SerializeField, Tooltip("Max horizontal speed the astronaut can have while airborne. Stops sprint-jumps from carrying full Run speed forward.")]
     private float airSpeedMax = 2.5f;
 
+    [Header("Lock")]
+    [Tooltip("When false, movement input is ignored (used by station dock).")]
+    public bool ControlsEnabled = true;
+
     [Header("Jump")]
     [SerializeField] private float jumpForce = 6.5f;
     [SerializeField, Tooltip("Time after pressing jump that the input stays valid (seconds)")]
@@ -85,6 +89,8 @@ public class AstronautController : MonoBehaviour
         if (moveAction   != null) moveInput  = moveAction.ReadValue<Vector2>();
         if (sprintAction != null) sprintHeld = sprintAction.IsPressed();
         if (jumpAction != null && jumpAction.WasPressedThisFrame()) jumpBufferTimer = jumpBuffer;
+
+        if (!ControlsEnabled) { moveInput = Vector2.zero; sprintHeld = false; jumpBufferTimer = 0f; }
 
         if (jumpBufferTimer > 0f) jumpBufferTimer -= Time.deltaTime;
         if (coyoteTimer    > 0f) coyoteTimer    -= Time.deltaTime;

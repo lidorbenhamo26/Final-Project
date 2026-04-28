@@ -46,4 +46,6 @@ public class TaskStation : MonoBehaviour
     }
 
     public bool HasActiveTask() => currentTask != null && currentTask.IsActive;
+
+    public MissionTask CurrentTask => currentTask;
 }
