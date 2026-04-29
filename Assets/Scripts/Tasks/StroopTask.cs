@@ -56,6 +56,8 @@ public class StroopTask : CognitiveTaskBase
         StationUI?.SetInstruction("STROOP TASK: dock to respond");
         ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
 
+        if (buttonsParent == null) return;
+
         // Build central stimulus text once; mutate it per round.
         GameObject stim = new GameObject("Stimulus", typeof(RectTransform));
         stim.transform.SetParent(buttonsParent, false);
@@ -81,6 +83,22 @@ public class StroopTask : CognitiveTaskBase
     {
         if (started) return;
         started = true;
+        ShowReadyGate();
+    }
+
+    private void ShowReadyGate()
+    {
+        if (buttonsParent == null) return;
+        ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
+        ClearButtons();
+        SpawnButton(new Vector2(0f, -130f), new Vector2(280f, 100f), "READY",
+            new Color(0.2f, 0.8f, 0.4f), OnStartReadyClicked);
+    }
+
+    private void OnStartReadyClicked()
+    {
+        if (flowCo != null) return;
+        ClearButtons();
         flowCo = StartCoroutine(CoRunRounds());
     }
 

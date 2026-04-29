@@ -50,6 +50,22 @@ public class PatternMatchTask : CognitiveTaskBase
     {
         if (started) return;
         started = true;
+        ShowReadyGate();
+    }
+
+    private void ShowReadyGate()
+    {
+        if (buttonsParent == null) return;
+        ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
+        ClearButtons();
+        SpawnButton(Vector2.zero, new Vector2(280f, 100f), "READY",
+            new Color(0.2f, 0.8f, 0.4f), OnStartReadyClicked);
+    }
+
+    private void OnStartReadyClicked()
+    {
+        if (flowCo != null) return;
+        ClearButtons();
         flowCo = StartCoroutine(CoFlow());
     }
 
@@ -118,6 +134,7 @@ public class PatternMatchTask : CognitiveTaskBase
 
     private IEnumerator CoFlow()
     {
+        if (buttonsParent == null) yield break;
         // Countdown.
         phase = Phase.Countdown;
         ShowMessage("READY?", new Color(0.9f, 0.95f, 1f));

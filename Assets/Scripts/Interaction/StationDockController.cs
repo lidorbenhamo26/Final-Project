@@ -24,6 +24,10 @@ public class StationDockController : MonoBehaviour
     private TaskStation _currentStation;
     private InputAction _interactAction;
     private bool _subscribed;
+    // While docked, we disable the console's solid BoxCollider so PhysicsRaycaster
+    // (used for clicking world-space UI) doesn't intercept the click before it
+    // reaches the cognitive Canvas's GraphicRaycaster. Restored on undock.
+    private Collider _suspendedConsoleCollider;
 
     public bool IsDocked => _state == State.Docked;
     public TaskStation CurrentStation => _currentStation;
@@ -144,6 +148,21 @@ public class StationDockController : MonoBehaviour
         EnsureEventSystem();
         EnsurePhysicsRaycaster();
 
+        // Disable the console's solid BoxCollider so it doesn't block UI clicks.
+        // The astronaut is also frozen via ControlsEnabled=false, so collision
+        // doesn't matter for the duration of the dock.
+        _suspendedConsoleCollider = null;
+        var visualT = station.transform.Find("Visual");
+        if (visualT != null)
+        {
+            var col = visualT.GetComponent<BoxCollider>();
+            if (col != null && col.enabled && !col.isTrigger)
+            {
+                col.enabled = false;
+                _suspendedConsoleCollider = col;
+            }
+        }
+
         station.CurrentTask?.OnPlayerEnter();
     }
 
@@ -161,6 +180,13 @@ public class StationDockController : MonoBehaviour
         if (player != null) player.ControlsEnabled = true;
         if (tpCam != null) tpCam.enabled = true;
         if (fpCam != null) fpCam.enabled = false;
+
+        // Restore the console's solid collider so the player can't walk through it.
+        if (_suspendedConsoleCollider != null)
+        {
+            _suspendedConsoleCollider.enabled = true;
+            _suspendedConsoleCollider = null;
+        }
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
