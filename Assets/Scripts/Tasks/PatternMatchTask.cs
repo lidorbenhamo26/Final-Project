@@ -5,41 +5,52 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Navigation cognitive task: Star Constellation Match.
-/// Show a 5-dot pattern on a 4x4 grid for 1.5s. Then show 3 candidates
-/// (1 identical, 2 with one dot moved by a single grid cell). User picks
-/// within 6s.
+/// Flow (begins after the player docks):
+///   1. "READY?" -> 3-2-1 -> "GO!"
+///   2. Show 5-dot reference pattern for 1.8s
+///   3. Show 3 candidates (1 identical, 2 with one star moved). User picks
+///      within 8s.
+///   4. Splash CORRECT!/WRONG!, then Resolve.
 /// </summary>
 public class PatternMatchTask : CognitiveTaskBase
 {
-    private enum Phase { Showing, Choosing, Done }
+    private enum Phase { Idle, Countdown, Showing, Choosing, Done }
 
     private const int GridSize = 4;
     private const int DotCount = 5;
-    private const float ShowDuration = 1.5f;
-    private const float ChooseDuration = 6f;
+    private const float ShowDuration = 1.8f;
+    private const float ChooseDuration = 8f;
 
     private List<Vector2Int> reference;
     private List<List<Vector2Int>> candidates;
     private int correctIndex;
 
-    private Phase phase = Phase.Showing;
+    private Phase phase = Phase.Idle;
     private GameObject referencePanel;
     private float chooseStartTime = -1f;
+    private bool started;
+    private Coroutine flowCo;
 
     private void Awake()
     {
         TaskName = "Pattern Match";
         priority = TaskPriority.NonCritical;
-        timeLimit = 30f;
+        timeLimit = 45f;
     }
 
     public override void Activate()
     {
         base.Activate();
         BuildPatterns();
-        ShowMessage("MEMORIZE THE STAR PATTERN", Color.white);
+        ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
         StationUI?.SetInstruction("PATTERN MATCH: dock to begin");
-        StartCoroutine(CoFlow());
+    }
+
+    protected override void OnDocked()
+    {
+        if (started) return;
+        started = true;
+        flowCo = StartCoroutine(CoFlow());
     }
 
     private void BuildPatterns()
@@ -77,12 +88,9 @@ public class PatternMatchTask : CognitiveTaskBase
 
     private static List<Vector2Int> MakeWrongVariant(List<Vector2Int> src)
     {
-        // Copy and move exactly one dot to a neighbouring (orthogonal) cell that
-        // is in-bounds and not already occupied.
         HashSet<Vector2Int> set = new HashSet<Vector2Int>(src);
         List<Vector2Int> copy = new List<Vector2Int>(src);
 
-        // Try a number of times to find a valid move.
         Vector2Int[] dirs =
         {
             new Vector2Int(1, 0), new Vector2Int(-1, 0),
@@ -92,7 +100,6 @@ public class PatternMatchTask : CognitiveTaskBase
         {
             int idx = Random.Range(0, copy.Count);
             Vector2Int original = copy[idx];
-            // Shuffle directions.
             for (int s = 0; s < 4; s++)
             {
                 Vector2Int d = dirs[Random.Range(0, dirs.Length)];
@@ -105,15 +112,28 @@ public class PatternMatchTask : CognitiveTaskBase
                 return copy;
             }
         }
-        // Fallback: change first dot's column.
         copy[0] = new Vector2Int((copy[0].x + 1) % GridSize, copy[0].y);
         return copy;
     }
 
     private IEnumerator CoFlow()
     {
+        // Countdown.
+        phase = Phase.Countdown;
+        ShowMessage("READY?", new Color(0.9f, 0.95f, 1f));
+        yield return new WaitForSeconds(0.7f);
+        for (int n = 3; n >= 1 && IsActive; n--)
+        {
+            ShowMessage(n.ToString(), new Color(1f, 0.9f, 0.4f));
+            yield return new WaitForSeconds(0.45f);
+        }
+        if (!IsActive) yield break;
+        ShowMessage("GO!", new Color(0.4f, 1f, 0.5f));
+        yield return new WaitForSeconds(0.35f);
+
         // Phase 1: show reference centered.
-        referencePanel = BuildPatternPanel(reference, Vector2.zero, 220f);
+        ShowMessage("MEMORIZE THE STAR PATTERN", Color.white);
+        referencePanel = BuildPatternPanel(reference, Vector2.zero, 260f);
         phase = Phase.Showing;
         yield return new WaitForSeconds(ShowDuration);
         if (!IsActive) yield break;
@@ -121,20 +141,20 @@ public class PatternMatchTask : CognitiveTaskBase
         if (referencePanel != null) Destroy(referencePanel);
         referencePanel = null;
 
-        // Phase 2: show 3 candidates.
+        // Phase 2: candidates.
         ShowMessage("WHICH ONE MATCHES?", new Color(0.9f, 0.95f, 1f));
         StationUI?.SetInstruction("Pick the matching pattern");
         ClearButtons();
         phase = Phase.Choosing;
         chooseStartTime = Time.time;
 
-        float panelSize = 200f;
-        float gap = 30f;
+        float panelSize = 220f;
+        float gap = 36f;
         float totalW = 3 * panelSize + 2 * gap;
         float startX = -totalW * 0.5f + panelSize * 0.5f;
         for (int i = 0; i < 3; i++)
         {
-            int idx = i; // capture
+            int idx = i;
             Vector2 pos = new Vector2(startX + i * (panelSize + gap), -20f);
             BuildCandidateButton(candidates[i], pos, panelSize, () => OnCandidatePicked(idx));
         }
@@ -150,7 +170,7 @@ public class PatternMatchTask : CognitiveTaskBase
         rt.anchoredPosition = anchorPos;
         rt.sizeDelta = new Vector2(size, size);
         Image img = panel.GetComponent<Image>();
-        img.color = new Color(0.05f, 0.10f, 0.30f, 1f); // dark blue
+        img.color = new Color(0.05f, 0.10f, 0.30f, 1f);
 
         float cell = size / GridSize;
         foreach (Vector2Int d in dots)
@@ -163,7 +183,7 @@ public class PatternMatchTask : CognitiveTaskBase
             float px = (d.x + 0.5f) * cell;
             float py = (d.y + 0.5f) * cell;
             drt.anchoredPosition = new Vector2(px, py);
-            drt.sizeDelta = new Vector2(30f, 30f);
+            drt.sizeDelta = new Vector2(34f, 34f);
             Image dImg = dot.GetComponent<Image>();
             dImg.color = Color.white;
         }
@@ -180,9 +200,25 @@ public class PatternMatchTask : CognitiveTaskBase
     private void OnCandidatePicked(int idx)
     {
         if (phase != Phase.Choosing || !IsActive) return;
+        if (!IsDocked) return;
         phase = Phase.Done;
-        if (idx == correctIndex) Resolve(TaskResult.Success);
-        else Resolve(TaskResult.Commission);
+        ClearButtons();
+        if (idx == correctIndex)
+            StartCoroutine(CoFinish(TaskResult.Success));
+        else
+            StartCoroutine(CoFinish(TaskResult.Commission));
+    }
+
+    private IEnumerator CoFinish(TaskResult result)
+    {
+        if (result == TaskResult.Success)
+            ShowSplash("CORRECT!", new Color(0.3f, 1f, 0.4f), 1.0f);
+        else if (result == TaskResult.Omission)
+            ShowSplash("TIMEOUT", new Color(1f, 0.6f, 0.2f), 1.0f);
+        else
+            ShowSplash("WRONG!", new Color(1f, 0.3f, 0.3f), 1.0f);
+        yield return new WaitForSeconds(1.0f);
+        Resolve(result);
     }
 
     protected override void Update()
@@ -194,7 +230,14 @@ public class PatternMatchTask : CognitiveTaskBase
         if (Time.time - chooseStartTime >= ChooseDuration)
         {
             phase = Phase.Done;
-            Resolve(TaskResult.Omission);
+            ClearButtons();
+            StartCoroutine(CoFinish(TaskResult.Omission));
         }
+    }
+
+    protected override void OnDestroy()
+    {
+        if (flowCo != null) { StopCoroutine(flowCo); flowCo = null; }
+        base.OnDestroy();
     }
 }

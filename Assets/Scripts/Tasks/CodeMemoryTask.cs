@@ -4,14 +4,17 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Engine-room cognitive task: Sequence Recall.
-/// 1. Show 4 colored squares one-at-a-time (Showing).
-/// 2. Wait for the player to press READY (Waiting).
-/// 3. Player reproduces the sequence in 10s (Recalling).
+/// Engine-room cognitive task: Sequence Recall (Simon-says style).
+/// Flow (only begins after the player docks for the first time):
+///   1. "READY?" -> "3" -> "2" -> "1" -> "GO!" countdown.
+///   2. Show 5 colored squares one-at-a-time (Showing).
+///   3. Player presses READY (Waiting).
+///   4. Player reproduces the sequence in 12s (Recalling).
+///   5. Splash CORRECT/WRONG, then Resolve.
 /// </summary>
 public class CodeMemoryTask : CognitiveTaskBase
 {
-    private enum Phase { Showing, Waiting, Recalling, Done }
+    private enum Phase { Idle, Countdown, Showing, Waiting, Recalling, Done }
 
     private static readonly Color[] Palette =
     {
@@ -22,22 +25,24 @@ public class CodeMemoryTask : CognitiveTaskBase
     };
     private static readonly string[] PaletteNames = { "RED", "YELLOW", "BLUE", "GREEN" };
 
-    private const int SequenceLength = 4;
+    private const int SequenceLength = 5;
+    private const float RecallDeadline = 12f;
 
-    private Phase phase = Phase.Showing;
+    private Phase phase = Phase.Idle;
     private readonly List<int> sequence = new List<int>(SequenceLength);
     private readonly List<int> input = new List<int>(SequenceLength);
 
     private GameObject showSquare;
     private float recallStartTime = -1f;
     private float recallTimeUsedWhileUndocked;
-    private float recallDeadline = 10f;
+    private Coroutine flowCo;
+    private bool started;
 
     private void Awake()
     {
         TaskName = "Code Memory";
         priority = TaskPriority.NonCritical;
-        timeLimit = 30f;
+        timeLimit = 45f;
     }
 
     public override void Activate()
@@ -46,43 +51,85 @@ public class CodeMemoryTask : CognitiveTaskBase
         for (int i = 0; i < SequenceLength; i++)
             sequence.Add(Random.Range(0, Palette.Length));
         StationUI?.SetInstruction("CODE MEMORY: dock to begin");
-        ShowMessage("MEMORIZE THIS SEQUENCE", Color.white);
-        StartCoroutine(CoShowSequence());
+        ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
     }
 
-    private IEnumerator CoShowSequence()
+    protected override void OnDocked()
     {
-        // Build a single square placeholder.
+        // Start the flow on first dock. Subsequent re-docks do nothing here.
+        if (!started)
+        {
+            started = true;
+            flowCo = StartCoroutine(CoFullFlow());
+        }
+        // Resume recall countdown.
+        if (phase == Phase.Recalling && recallStartTime > 0f)
+        {
+            recallStartTime = Time.time - recallTimeUsedWhileUndocked;
+        }
+    }
+
+    protected override void OnUndocked()
+    {
+        if (phase == Phase.Recalling && recallStartTime > 0f)
+        {
+            recallTimeUsedWhileUndocked = Time.time - recallStartTime;
+        }
+    }
+
+    private IEnumerator CoFullFlow()
+    {
+        // 1) Ready/Go countdown.
+        phase = Phase.Countdown;
+        ShowMessage("READY?", new Color(0.9f, 0.95f, 1f));
+        yield return new WaitForSeconds(0.8f);
+        for (int n = 3; n >= 1 && IsActive; n--)
+        {
+            ShowMessage(n.ToString(), new Color(1f, 0.9f, 0.4f));
+            yield return new WaitForSeconds(0.5f);
+        }
+        if (!IsActive) yield break;
+        ShowMessage("GO!", new Color(0.4f, 1f, 0.5f));
+        yield return new WaitForSeconds(0.4f);
+
+        // 2) Show sequence.
+        phase = Phase.Showing;
+        ShowMessage("MEMORIZE THE SEQUENCE", Color.white);
+        StationUI?.SetInstruction("Memorize the colored sequence");
+
         showSquare = new GameObject("ShowSquare", typeof(RectTransform), typeof(Image));
         showSquare.transform.SetParent(buttonsParent, false);
         RectTransform rt = showSquare.GetComponent<RectTransform>();
         rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
         rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.sizeDelta = new Vector2(180f, 180f);
+        rt.sizeDelta = new Vector2(220f, 220f);
         rt.anchoredPosition = Vector2.zero;
         Image img = showSquare.GetComponent<Image>();
         img.color = new Color(0.1f, 0.1f, 0.1f, 1f);
 
-        // ~2.5s total: 4 flashes -> ~0.5s on, ~0.1s off
+        TMPro.TMP_Text caption = SpawnLabel(new Vector2(0f, -160f), new Vector2(400f, 60f),
+            "", new Color(0.85f, 0.9f, 1f), 36f);
+
         float onTime = 0.5f;
         float offTime = 0.12f;
         for (int i = 0; i < sequence.Count && IsActive; i++)
         {
             img.color = Palette[sequence[i]];
+            if (caption != null) caption.text = (i + 1) + " / " + sequence.Count;
             yield return new WaitForSeconds(onTime);
             img.color = new Color(0.1f, 0.1f, 0.1f, 1f);
             yield return new WaitForSeconds(offTime);
         }
         if (showSquare != null) Destroy(showSquare);
-
+        if (caption != null && caption.gameObject != null) Destroy(caption.gameObject);
         if (!IsActive) yield break;
 
-        // Phase 2: Waiting for READY click.
+        // 3) READY click.
         phase = Phase.Waiting;
         ShowMessage("PRESS WHEN READY", new Color(0.9f, 0.95f, 1f));
         StationUI?.SetInstruction("Recall the colored sequence");
         ClearButtons();
-        SpawnButton(Vector2.zero, new Vector2(220f, 80f), "READY",
+        SpawnButton(Vector2.zero, new Vector2(260f, 90f), "READY",
             new Color(0.2f, 0.8f, 0.4f), OnReadyClicked);
     }
 
@@ -95,39 +142,54 @@ public class CodeMemoryTask : CognitiveTaskBase
         ShowMessage("REPEAT THE SEQUENCE", Color.white);
         ClearButtons();
 
-        float btnW = 110f, btnH = 110f, gap = 20f;
+        // Larger, more visible buttons.
+        float btnW = 150f, btnH = 130f, gap = 24f;
         float totalW = Palette.Length * btnW + (Palette.Length - 1) * gap;
         float startX = -totalW * 0.5f + btnW * 0.5f;
         for (int i = 0; i < Palette.Length; i++)
         {
-            int colorIdx = i; // capture
-            Vector2 pos = new Vector2(startX + i * (btnW + gap), 0f);
+            int colorIdx = i;
+            Vector2 pos = new Vector2(startX + i * (btnW + gap), -10f);
             SpawnButton(pos, new Vector2(btnW, btnH), PaletteNames[i], Palette[i],
                 () => OnColorPressed(colorIdx));
         }
+
     }
 
     private void OnColorPressed(int colorIdx)
     {
         if (phase != Phase.Recalling || !IsActive) return;
-        if (!IsDocked) return; // freeze input when undocked
+        if (!IsDocked) return;
         input.Add(colorIdx);
 
+        // Update progress label (the most recent label is the count one).
+        ShowMessage("REPEAT THE SEQUENCE  (" + input.Count + " / " + sequence.Count + ")", Color.white);
+
+        // Early-fail: wrong press.
+        if (input[input.Count - 1] != sequence[input.Count - 1])
+        {
+            phase = Phase.Done;
+            StartCoroutine(CoFinish(TaskResult.Fail));
+            return;
+        }
         if (input.Count >= sequence.Count)
         {
-            // Compare.
-            for (int i = 0; i < sequence.Count; i++)
-            {
-                if (input[i] != sequence[i])
-                {
-                    phase = Phase.Done;
-                    Resolve(TaskResult.Fail);
-                    return;
-                }
-            }
             phase = Phase.Done;
-            Resolve(TaskResult.Success);
+            StartCoroutine(CoFinish(TaskResult.Success));
         }
+    }
+
+    private IEnumerator CoFinish(TaskResult result)
+    {
+        ClearButtons();
+        if (result == TaskResult.Success)
+            ShowSplash("CORRECT!", new Color(0.3f, 1f, 0.4f), 1.0f);
+        else if (result == TaskResult.Omission)
+            ShowSplash("TIMEOUT", new Color(1f, 0.6f, 0.2f), 1.0f);
+        else
+            ShowSplash("WRONG!", new Color(1f, 0.3f, 0.3f), 1.0f);
+        yield return new WaitForSeconds(1.0f);
+        Resolve(result);
     }
 
     protected override void Update()
@@ -135,32 +197,19 @@ public class CodeMemoryTask : CognitiveTaskBase
         base.Update();
         if (!IsActive) return;
         if (phase != Phase.Recalling) return;
-
-        // Recall window only counts down while docked.
         if (!IsDocked) return;
+
         float elapsed = Time.time - recallStartTime;
-        if (elapsed >= recallDeadline)
+        if (elapsed >= RecallDeadline)
         {
             phase = Phase.Done;
-            Resolve(TaskResult.Omission);
+            StartCoroutine(CoFinish(TaskResult.Omission));
         }
     }
 
-    protected override void OnUndocked()
+    protected override void OnDestroy()
     {
-        // Pause the recall countdown by snapshotting elapsed and bumping start time on re-dock.
-        if (phase == Phase.Recalling && recallStartTime > 0f)
-        {
-            recallTimeUsedWhileUndocked = Time.time - recallStartTime;
-        }
-    }
-
-    protected override void OnDocked()
-    {
-        if (phase == Phase.Recalling && recallStartTime > 0f)
-        {
-            // Resume: shift start time so that "elapsed" stays where it was at undock.
-            recallStartTime = Time.time - recallTimeUsedWhileUndocked;
-        }
+        if (flowCo != null) { StopCoroutine(flowCo); flowCo = null; }
+        base.OnDestroy();
     }
 }
