@@ -47,6 +47,8 @@ public class NBackTask : CognitiveTaskBase
         StationUI?.SetInstruction("LIFE SUPPORT: 2-back vigilance");
         ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
 
+        if (buttonsParent == null) return;
+
         // Big central symbol display.
         GameObject stim = new GameObject("Symbol", typeof(RectTransform));
         stim.transform.SetParent(buttonsParent, false);
@@ -67,18 +69,38 @@ public class NBackTask : CognitiveTaskBase
             "Trial 0 / " + TrialCount, new Color(0.85f, 0.9f, 1f), 28f);
         scoreLabel = SpawnLabel(new Vector2(280f, 170f), new Vector2(240f, 50f),
             "Hits 0  FA 0", new Color(0.85f, 0.9f, 1f), 28f);
-
-        // Big red ALERT button — always present.
-        Button alertBtn = SpawnButton(new Vector2(0f, -150f), new Vector2(320f, 110f), "ALERT",
-            new Color(0.85f, 0.15f, 0.15f), OnAlert);
-        if (alertBtn != null) alertFlash = alertBtn.GetComponent<Image>();
     }
 
     protected override void OnDocked()
     {
         if (started) return;
         started = true;
+        ShowReadyGate();
+    }
+
+    private void ShowReadyGate()
+    {
+        if (buttonsParent == null) return;
+        ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
+        ClearButtons();
+        SpawnButton(new Vector2(0f, -150f), new Vector2(280f, 100f), "READY",
+            new Color(0.2f, 0.8f, 0.4f), OnStartReadyClicked);
+    }
+
+    private void OnStartReadyClicked()
+    {
+        if (flowCo != null) return;
+        ClearButtons();
+        SpawnAlertButton();
         flowCo = StartCoroutine(CoRun());
+    }
+
+    private void SpawnAlertButton()
+    {
+        // Big red ALERT button — always present during trials.
+        Button alertBtn = SpawnButton(new Vector2(0f, -150f), new Vector2(320f, 110f), "ALERT",
+            new Color(0.85f, 0.15f, 0.15f), OnAlert);
+        if (alertBtn != null) alertFlash = alertBtn.GetComponent<Image>();
     }
 
     /// <summary>Build a 12-trial sequence with exactly 4 two-back hits.</summary>

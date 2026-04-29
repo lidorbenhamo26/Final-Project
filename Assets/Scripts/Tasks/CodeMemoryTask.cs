@@ -60,13 +60,29 @@ public class CodeMemoryTask : CognitiveTaskBase
         if (!started)
         {
             started = true;
-            flowCo = StartCoroutine(CoFullFlow());
+            ShowReadyGate();
         }
         // Resume recall countdown.
         if (phase == Phase.Recalling && recallStartTime > 0f)
         {
             recallStartTime = Time.time - recallTimeUsedWhileUndocked;
         }
+    }
+
+    private void ShowReadyGate()
+    {
+        if (buttonsParent == null) return;
+        ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
+        ClearButtons();
+        SpawnButton(Vector2.zero, new Vector2(280f, 100f), "READY",
+            new Color(0.2f, 0.8f, 0.4f), OnStartReadyClicked);
+    }
+
+    private void OnStartReadyClicked()
+    {
+        if (started == false || flowCo != null) return;
+        ClearButtons();
+        flowCo = StartCoroutine(CoFullFlow());
     }
 
     protected override void OnUndocked()
@@ -79,6 +95,7 @@ public class CodeMemoryTask : CognitiveTaskBase
 
     private IEnumerator CoFullFlow()
     {
+        if (buttonsParent == null) yield break;
         // 1) Ready/Go countdown.
         phase = Phase.Countdown;
         ShowMessage("READY?", new Color(0.9f, 0.95f, 1f));

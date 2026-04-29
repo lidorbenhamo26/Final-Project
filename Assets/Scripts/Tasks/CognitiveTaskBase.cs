@@ -71,10 +71,13 @@ public abstract class CognitiveTaskBase : MissionTask
         taskCanvasRoot.transform.SetParent(parent, false);
 
         // The docked first-person camera sits between the station and the world
-        // hub (world origin) and looks BACK toward the station. So the canvas
-        // must face the hub: its +forward should point from the station toward
-        // world origin on the XZ plane. Compute this in world space so the
-        // station's arbitrary world rotation does not flip the text.
+        // hub (world origin) and looks BACK toward the station. Unity world-space
+        // UI reads correctly only when the canvas's +forward points AWAY from
+        // the camera (i.e. toward the station/wall, the OPPOSITE of toHub), so
+        // the camera sits on the canvas's +Z side and sees non-mirrored text.
+        // This matches StationProximityPrompt.cs (fwd = canvas - cam). Compute
+        // toHub in world space so the station's arbitrary world rotation does
+        // not flip the text.
         Vector3 stationPos = parent.position;
         Vector3 toHub = -new Vector3(stationPos.x, 0f, stationPos.z);
         if (toHub.sqrMagnitude < 0.0001f) toHub = -parent.forward; // fallback
@@ -87,8 +90,10 @@ public abstract class CognitiveTaskBase : MissionTask
         Vector3 pos = stationPos + toHub * 0.4f + Vector3.up * 1.3f;
         taskCanvasRoot.transform.position = pos;
 
-        // Set rotation in WORLD space so the canvas front faces the camera.
-        taskCanvasRoot.transform.rotation = Quaternion.LookRotation(toHub, Vector3.up);
+        // Set rotation in WORLD space: canvas forward = -toHub (toward the
+        // station/wall, AWAY from the docked camera at the hub side) so the
+        // camera, sitting on the +Z side of the canvas, sees readable text.
+        taskCanvasRoot.transform.rotation = Quaternion.LookRotation(-toHub, Vector3.up);
 
         Canvas canvas = taskCanvasRoot.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
