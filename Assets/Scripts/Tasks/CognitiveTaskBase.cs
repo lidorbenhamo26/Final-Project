@@ -70,13 +70,25 @@ public abstract class CognitiveTaskBase : MissionTask
         taskCanvasRoot = new GameObject("CognitiveCanvas");
         taskCanvasRoot.transform.SetParent(parent, false);
 
-        // Position: 0.6m forward, 1.4m up from station origin.
-        Vector3 pos = parent.position + parent.forward * 0.6f + parent.up * 1.4f;
+        // The docked first-person camera sits between the station and the world
+        // hub (world origin) and looks BACK toward the station. So the canvas
+        // must face the hub: its +forward should point from the station toward
+        // world origin on the XZ plane. Compute this in world space so the
+        // station's arbitrary world rotation does not flip the text.
+        Vector3 stationPos = parent.position;
+        Vector3 toHub = -new Vector3(stationPos.x, 0f, stationPos.z);
+        if (toHub.sqrMagnitude < 0.0001f) toHub = -parent.forward; // fallback
+        toHub.y = 0f;
+        toHub.Normalize();
+
+        // Position the canvas slightly toward the hub from the console at
+        // mid-console height so it sits between the docked camera and the
+        // console body (clearly visible, not clipped by the console mesh).
+        Vector3 pos = stationPos + toHub * 0.4f + Vector3.up * 1.3f;
         taskCanvasRoot.transform.position = pos;
 
-        // Face away from the station's forward (so the canvas reads when
-        // the player walks up to the station from the front).
-        taskCanvasRoot.transform.rotation = Quaternion.LookRotation(parent.forward, parent.up);
+        // Set rotation in WORLD space so the canvas front faces the camera.
+        taskCanvasRoot.transform.rotation = Quaternion.LookRotation(toHub, Vector3.up);
 
         Canvas canvas = taskCanvasRoot.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.WorldSpace;
@@ -198,5 +210,61 @@ public abstract class CognitiveTaskBase : MissionTask
     protected virtual void OnDestroy()
     {
         if (taskCanvasRoot != null) Destroy(taskCanvasRoot);
+    }
+
+    // --------------------------------------------------------------- helpers
+
+    /// <summary>
+    /// Spawns a transient overlay text that auto-destroys after `duration`
+    /// seconds. Useful for "CORRECT!" / "WRONG!" splashes between rounds.
+    /// Safe even if the canvas isn't built yet (returns null).
+    /// </summary>
+    protected GameObject ShowSplash(string text, Color color, float duration = 0.9f, float fontSize = 90f)
+    {
+        if (taskCanvasRoot == null || buttonsParent == null) return null;
+
+        GameObject splash = new GameObject("Splash", typeof(RectTransform));
+        splash.transform.SetParent(buttonsParent, false);
+        TextMeshProUGUI tmp = splash.AddComponent<TextMeshProUGUI>();
+        tmp.text = text;
+        tmp.color = color;
+        tmp.fontSize = fontSize;
+        tmp.fontStyle = FontStyles.Bold;
+        tmp.alignment = TextAlignmentOptions.Center;
+
+        RectTransform rt = splash.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = Vector2.zero;
+        rt.sizeDelta = new Vector2(700f, 200f);
+
+        if (duration > 0f) Destroy(splash, duration);
+        return splash;
+    }
+
+    /// <summary>
+    /// Spawns a small label (non-interactive text) attached to buttonsParent.
+    /// Returns the TextMeshProUGUI for further mutation. Safe to call before
+    /// canvas is ready (returns null).
+    /// </summary>
+    protected TMP_Text SpawnLabel(Vector2 anchorPos, Vector2 size, string text, Color color, float fontSize = 32f)
+    {
+        if (buttonsParent == null) return null;
+
+        GameObject lbl = new GameObject("Label", typeof(RectTransform));
+        lbl.transform.SetParent(buttonsParent, false);
+        TextMeshProUGUI tmp = lbl.AddComponent<TextMeshProUGUI>();
+        tmp.text = text;
+        tmp.color = color;
+        tmp.fontSize = fontSize;
+        tmp.alignment = TextAlignmentOptions.Center;
+
+        RectTransform rt = lbl.GetComponent<RectTransform>();
+        rt.anchorMin = rt.anchorMax = new Vector2(0.5f, 0.5f);
+        rt.pivot = new Vector2(0.5f, 0.5f);
+        rt.anchoredPosition = anchorPos;
+        rt.sizeDelta = size;
+
+        return tmp;
     }
 }

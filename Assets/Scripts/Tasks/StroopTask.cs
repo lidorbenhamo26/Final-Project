@@ -4,13 +4,16 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Comms cognitive task: Color-Word Stroop.
-/// 6 rounds of conflict trials. Header alternates between "MATCH THE INK COLOR"
-/// and "MATCH THE WORD MEANING". Answer within 4s/round.
-/// Pass threshold: >= 4/6 correct -> Success, else Fail.
+/// Flow (begins after the player docks):
+///   - 6 rounds. Each round shows a colored word and the header alternates
+///     between "MATCH THE INK COLOR" and "MATCH THE WORD MEANING".
+///   - 4s per round. A small round counter and live score are visible.
+///   - Round-end splash flashes CORRECT! / WRONG! / TIME!
+///   - Pass threshold: >= 4/6 correct -> Success, else Fail.
 /// </summary>
 public class StroopTask : CognitiveTaskBase
 {
-    private enum Phase { Idle, Trial, Done }
+    private enum Phase { Idle, Countdown, Trial, Done }
 
     private static readonly string[] WordNames = { "RED", "BLUE", "GREEN", "YELLOW" };
     private static readonly Color[] Inks =
@@ -22,6 +25,7 @@ public class StroopTask : CognitiveTaskBase
     };
 
     private const int RoundCount = 6;
+    private const int PassThreshold = 4;
     private const float RoundLimit = 4f;
 
     private Phase phase = Phase.Idle;
@@ -29,83 +33,133 @@ public class StroopTask : CognitiveTaskBase
     private int correct;
     private int currentWordIdx;
     private int currentInkIdx;
-    private bool matchInk; // true: answer = ink color, false: answer = word meaning
-    private float roundStartTime;
+    private bool matchInk;
     private bool answered;
+    private bool wasCorrect;
 
     private TMPro.TextMeshProUGUI stimulusText;
+    private TMPro.TMP_Text roundLabel;
+    private TMPro.TMP_Text scoreLabel;
+    private bool started;
+    private Coroutine flowCo;
 
     private void Awake()
     {
         TaskName = "Stroop";
         priority = TaskPriority.Critical;
-        timeLimit = 60f;
+        timeLimit = 90f;
     }
 
     public override void Activate()
     {
         base.Activate();
         StationUI?.SetInstruction("STROOP TASK: dock to respond");
-        ShowMessage("COMMS CALIBRATION", Color.white);
+        ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
 
-        // Build the central stimulus text once; we'll mutate it per round.
+        // Build central stimulus text once; mutate it per round.
         GameObject stim = new GameObject("Stimulus", typeof(RectTransform));
         stim.transform.SetParent(buttonsParent, false);
         stimulusText = stim.AddComponent<TMPro.TextMeshProUGUI>();
         stimulusText.alignment = TMPro.TextAlignmentOptions.Center;
-        stimulusText.fontSize = 80f;
+        stimulusText.fontSize = 90f;
         stimulusText.fontStyle = TMPro.FontStyles.Bold;
         stimulusText.text = "";
         RectTransform srt = stim.GetComponent<RectTransform>();
         srt.anchorMin = srt.anchorMax = new Vector2(0.5f, 0.5f);
         srt.pivot = new Vector2(0.5f, 0.5f);
-        srt.anchoredPosition = new Vector2(0f, 80f);
-        srt.sizeDelta = new Vector2(600f, 160f);
+        srt.anchoredPosition = new Vector2(0f, 60f);
+        srt.sizeDelta = new Vector2(700f, 180f);
 
-        StartCoroutine(CoRunRounds());
+        // Round / score HUD labels (top corners of button area).
+        roundLabel = SpawnLabel(new Vector2(-280f, 170f), new Vector2(220f, 50f),
+            "Round 0 / " + RoundCount, new Color(0.85f, 0.9f, 1f), 28f);
+        scoreLabel = SpawnLabel(new Vector2(280f, 170f), new Vector2(220f, 50f),
+            "Score 0", new Color(0.85f, 0.9f, 1f), 28f);
+    }
+
+    protected override void OnDocked()
+    {
+        if (started) return;
+        started = true;
+        flowCo = StartCoroutine(CoRunRounds());
     }
 
     private IEnumerator CoRunRounds()
     {
-        // Wait one frame so canvas is laid out.
-        yield return null;
+        // Countdown.
+        phase = Phase.Countdown;
+        ShowMessage("READY?", new Color(0.9f, 0.95f, 1f));
+        yield return new WaitForSeconds(0.7f);
+        for (int n = 3; n >= 1 && IsActive; n--)
+        {
+            ShowMessage(n.ToString(), new Color(1f, 0.9f, 0.4f));
+            yield return new WaitForSeconds(0.45f);
+        }
+        if (!IsActive) yield break;
+        ShowMessage("GO!", new Color(0.4f, 1f, 0.5f));
+        yield return new WaitForSeconds(0.35f);
+
         for (round = 0; round < RoundCount && IsActive; round++)
         {
             StartRound(round);
-            // Wait for the round to end (answered or 4s timeout).
+
             float t0 = Time.time;
             while (IsActive && phase == Phase.Trial && !answered && (Time.time - t0) < RoundLimit)
             {
                 yield return null;
             }
+
+            // Round-end feedback splash.
+            ClearTrialButtons();
             if (!answered)
             {
-                // Treated as miss -> contributes to fail count (Omission contribution).
-                // Nothing additional to record beyond "not correct".
+                ShowSplash("TIME!", new Color(1f, 0.6f, 0.2f), 0.7f);
             }
-            // Brief pause between rounds.
-            yield return new WaitForSeconds(0.4f);
+            else if (wasCorrect)
+            {
+                ShowSplash("CORRECT!", new Color(0.3f, 1f, 0.4f), 0.7f);
+            }
+            else
+            {
+                ShowSplash("WRONG!", new Color(1f, 0.3f, 0.3f), 0.7f);
+            }
+            UpdateHud();
+            yield return new WaitForSeconds(0.75f);
         }
 
         if (!IsActive) yield break;
 
         phase = Phase.Done;
-        if (correct >= 4) Resolve(TaskResult.Success);
-        else Resolve(TaskResult.Fail);
+        if (stimulusText != null) stimulusText.text = "";
+        if (correct >= PassThreshold)
+        {
+            ShowMessage("MISSION COMPLETE  " + correct + " / " + RoundCount,
+                new Color(0.4f, 1f, 0.5f));
+            ShowSplash("PASS!", new Color(0.3f, 1f, 0.4f), 1.2f);
+            yield return new WaitForSeconds(1.2f);
+            Resolve(TaskResult.Success);
+        }
+        else
+        {
+            ShowMessage("INSUFFICIENT  " + correct + " / " + RoundCount,
+                new Color(1f, 0.5f, 0.3f));
+            ShowSplash("FAIL", new Color(1f, 0.3f, 0.3f), 1.2f);
+            yield return new WaitForSeconds(1.2f);
+            Resolve(TaskResult.Fail);
+        }
     }
 
     private void StartRound(int idx)
     {
         phase = Phase.Trial;
         answered = false;
-        roundStartTime = Time.time;
+        wasCorrect = false;
 
         currentWordIdx = Random.Range(0, WordNames.Length);
-        // 50% same / 50% conflict.
         if (Random.value < 0.5f) currentInkIdx = currentWordIdx;
         else currentInkIdx = (currentWordIdx + Random.Range(1, WordNames.Length)) % WordNames.Length;
 
-        matchInk = (idx % 2 == 0); // alternate
+        matchInk = (idx % 2 == 0);
         ShowMessage(matchInk ? "MATCH THE INK COLOR" : "MATCH THE WORD MEANING", Color.white);
 
         if (stimulusText != null)
@@ -114,18 +168,36 @@ public class StroopTask : CognitiveTaskBase
             stimulusText.color = Inks[currentInkIdx];
         }
 
-        // Rebuild the 4 answer buttons.
-        ClearButtons();
-        float btnW = 130f, btnH = 80f, gap = 16f;
+        UpdateHud();
+
+        // Rebuild only the answer buttons, not the HUD labels.
+        ClearTrialButtons();
+        float btnW = 150f, btnH = 90f, gap = 18f;
         float totalW = WordNames.Length * btnW + (WordNames.Length - 1) * gap;
         float startX = -totalW * 0.5f + btnW * 0.5f;
         for (int i = 0; i < WordNames.Length; i++)
         {
             int captured = i;
-            Vector2 pos = new Vector2(startX + i * (btnW + gap), -120f);
+            Vector2 pos = new Vector2(startX + i * (btnW + gap), -130f);
             SpawnButton(pos, new Vector2(btnW, btnH), WordNames[i], Inks[i],
                 () => OnAnswer(captured));
         }
+    }
+
+    private void ClearTrialButtons()
+    {
+        // ClearButtons() removes everything spawned via SpawnButton, which is
+        // exactly what we want — the HUD/Stimulus were created via
+        // SpawnLabel/AddComponent and aren't tracked.
+        ClearButtons();
+    }
+
+    private void UpdateHud()
+    {
+        if (roundLabel != null)
+            roundLabel.text = "Round " + Mathf.Min(round + 1, RoundCount) + " / " + RoundCount;
+        if (scoreLabel != null)
+            scoreLabel.text = "Score " + correct;
     }
 
     private void OnAnswer(int answerIdx)
@@ -134,6 +206,14 @@ public class StroopTask : CognitiveTaskBase
         if (!IsDocked) return;
         answered = true;
         int target = matchInk ? currentInkIdx : currentWordIdx;
-        if (answerIdx == target) correct++;
+        wasCorrect = (answerIdx == target);
+        if (wasCorrect) correct++;
+        UpdateHud();
+    }
+
+    protected override void OnDestroy()
+    {
+        if (flowCo != null) { StopCoroutine(flowCo); flowCo = null; }
+        base.OnDestroy();
     }
 }
