@@ -111,6 +111,52 @@ namespace SpaceStation.EditorSetup
         }
 
         // ─────────────────────────────────────────────────────────────────────
+        // Setup/17b — Add solid colliders so the astronaut can't walk through
+        // ─────────────────────────────────────────────────────────────────────
+
+        [MenuItem("Setup/17b - Add Solid Colliders to Consoles")]
+        public static void AddSolidColliders()
+        {
+            int added = 0;
+            foreach (var spec in Specs)
+            {
+                var stationGO = GameObject.Find(spec.StationName);
+                if (stationGO == null) continue;
+                var visualT = stationGO.transform.Find("Visual");
+                if (visualT == null) continue;
+                var visual = visualT.gameObject;
+
+                // Remove any existing solid collider so re-running is idempotent.
+                foreach (var bc in visual.GetComponentsInChildren<BoxCollider>())
+                    Object.DestroyImmediate(bc);
+
+                // Compute combined renderer bounds in world space, then convert to
+                // visual-local space for a tight box collider.
+                var rends = visual.GetComponentsInChildren<Renderer>(includeInactive: true);
+                if (rends.Length == 0) continue;
+                Bounds worldB = rends[0].bounds;
+                for (int i = 1; i < rends.Length; i++) worldB.Encapsulate(rends[i].bounds);
+
+                // Place the collider on the visual itself so it scales naturally.
+                var box = visual.AddComponent<BoxCollider>();
+                box.isTrigger = false;
+
+                // Convert world-space bounds to local-space size + center
+                Vector3 localCenter = visual.transform.InverseTransformPoint(worldB.center);
+                Vector3 localExtents = visual.transform.InverseTransformVector(worldB.extents);
+                box.center = localCenter;
+                box.size = new Vector3(
+                    Mathf.Abs(localExtents.x) * 2f,
+                    Mathf.Abs(localExtents.y) * 2f,
+                    Mathf.Abs(localExtents.z) * 2f);
+                added++;
+            }
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene());
+            Debug.Log($"[InstallCognitive] Added solid BoxColliders to {added}/{Specs.Length} console visuals.");
+        }
+
+        // ─────────────────────────────────────────────────────────────────────
         // Setup/18 — Wire StationProximityPrompt
         // ─────────────────────────────────────────────────────────────────────
 

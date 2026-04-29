@@ -94,8 +94,19 @@ public class StationDockController : MonoBehaviour
                 if (current != null && current.IsPlayerInRange())
                 {
                     var station = current.GetComponent<TaskStation>();
-                    if (station != null && station.HasActiveTask())
+                    if (station != null)
+                    {
+                        // If the random TaskSpawnLoop hasn't yet picked this station,
+                        // spawn a cognitive task on demand so docking always shows
+                        // a working minigame instead of an empty console.
+                        if (!station.HasActiveTask())
+                        {
+                            var taskGO = new GameObject(station.stationName + "_Task");
+                            var task = CognitiveTaskCatalog.CreateTaskForStation(taskGO, station.stationName);
+                            station.AssignTask(task);
+                        }
                         EnterDock(station);
+                    }
                 }
             }
         }

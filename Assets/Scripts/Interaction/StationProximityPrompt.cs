@@ -65,9 +65,11 @@ public class StationProximityPrompt : MonoBehaviour
 
         bool inRange = IsPlayerInRange();
         bool stationDocked = StationDockController.Instance != null && StationDockController.Instance.IsDocked;
-        bool hasTask = _station != null && _station.HasActiveTask();
 
-        bool shouldPrompt = inRange && !stationDocked && hasTask;
+        // Player can dock at any time — if no task is active, the dock controller
+        // spawns a fresh cognitive task on entry. This makes every station
+        // interactive on demand instead of waiting for the random spawn loop.
+        bool shouldPrompt = inRange && !stationDocked;
 
         if (shouldPrompt)
         {
