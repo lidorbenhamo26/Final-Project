@@ -31,6 +31,13 @@ public abstract class CognitiveTaskBase : MissionTask
     // Track buttons we created so ClearButtons can remove only those.
     private readonly List<GameObject> spawnedButtons = new List<GameObject>();
 
+    public void SetCanvasCamera(Camera cam)
+    {
+        if (taskCanvasRoot == null) return;
+        var canvas = taskCanvasRoot.GetComponent<Canvas>();
+        if (canvas != null) canvas.worldCamera = cam;
+    }
+
     public override void Activate()
     {
         base.Activate();

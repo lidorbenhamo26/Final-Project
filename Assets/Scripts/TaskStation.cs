@@ -33,19 +33,9 @@ public class TaskStation : MonoBehaviour
         stationUI?.SetIdle();
     }
 
-    private void OnTriggerEnter(Collider other)
-    {
-        if (!other.CompareTag("Player")) return;
-        currentTask?.OnPlayerEnter();
-    }
-
-    private void OnTriggerExit(Collider other)
-    {
-        if (!other.CompareTag("Player")) return;
-        currentTask?.OnPlayerExit();
-    }
-
     public bool HasActiveTask() => currentTask != null && currentTask.IsActive;
 
     public MissionTask CurrentTask => currentTask;
+
+    public StationUI UI => stationUI;
 }

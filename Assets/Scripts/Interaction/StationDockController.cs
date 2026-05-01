@@ -24,10 +24,14 @@ public class StationDockController : MonoBehaviour
     private TaskStation _currentStation;
     private InputAction _interactAction;
     private bool _subscribed;
-    // While docked, we disable the console's solid BoxCollider so PhysicsRaycaster
-    // (used for clicking world-space UI) doesn't intercept the click before it
-    // reaches the cognitive Canvas's GraphicRaycaster. Restored on undock.
+    // While docked, we disable the console's solid BoxCollider so the docked
+    // player's clicks pass through to the cognitive Canvas's GraphicRaycaster
+    // instead of hitting the console mesh. Restored on undock.
     private Collider _suspendedConsoleCollider;
+    // The scene's PhysicsRaycaster on Camera.main intercepts UI clicks because
+    // its eventMask includes the station's mesh colliders (FBX import adds
+    // them automatically). Disable while docked, re-enable on undock.
+    private PhysicsRaycaster _suspendedPhysicsRaycaster;
 
     public bool IsDocked => _state == State.Docked;
     public TaskStation CurrentStation => _currentStation;
@@ -142,11 +146,26 @@ public class StationDockController : MonoBehaviour
             fpCam.SetDockTarget(station.transform);
         }
 
+        station.UI?.Hide();
+
+        var fpCamera = fpCam != null ? fpCam.GetComponent<Camera>() : null;
+        (station.CurrentTask as CognitiveTaskBase)?.SetCanvasCamera(fpCamera);
+
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
         EnsureEventSystem();
-        EnsurePhysicsRaycaster();
+
+        _suspendedPhysicsRaycaster = null;
+        if (mainCamera != null)
+        {
+            var pr = mainCamera.GetComponent<PhysicsRaycaster>();
+            if (pr != null && pr.enabled)
+            {
+                pr.enabled = false;
+                _suspendedPhysicsRaycaster = pr;
+            }
+        }
 
         // Disable the console's solid BoxCollider so it doesn't block UI clicks.
         // The astronaut is also frozen via ControlsEnabled=false, so collision
@@ -171,8 +190,9 @@ public class StationDockController : MonoBehaviour
     {
         if (_state != State.Docked) return;
 
-        if (_currentStation != null && _currentStation.CurrentTask != null)
-            _currentStation.CurrentTask.OnPlayerExit();
+        var station = _currentStation;
+        if (station != null && station.CurrentTask != null)
+            station.CurrentTask.OnPlayerExit();
 
         _currentStation = null;
         _state = State.Free;
@@ -180,6 +200,14 @@ public class StationDockController : MonoBehaviour
         if (player != null) player.ControlsEnabled = true;
         if (tpCam != null) tpCam.enabled = true;
         if (fpCam != null) fpCam.enabled = false;
+
+        station?.UI?.Show();
+
+        if (_suspendedPhysicsRaycaster != null)
+        {
+            _suspendedPhysicsRaycaster.enabled = true;
+            _suspendedPhysicsRaycaster = null;
+        }
 
         // Restore the console's solid collider so the player can't walk through it.
         if (_suspendedConsoleCollider != null)
@@ -209,12 +237,5 @@ public class StationDockController : MonoBehaviour
         var go = new GameObject("EventSystem");
         go.AddComponent<EventSystem>();
         go.AddComponent<StandaloneInputModule>();
-    }
-
-    private void EnsurePhysicsRaycaster()
-    {
-        if (mainCamera == null) return;
-        var raycaster = mainCamera.GetComponent<PhysicsRaycaster>();
-        if (raycaster == null) mainCamera.gameObject.AddComponent<PhysicsRaycaster>();
     }
 }
