@@ -53,4 +53,16 @@ public class StationUI : MonoBehaviour
         if (statusLight) statusLight.color = idleColor;
         if (progressBar) progressBar.value = 0f;
     }
+
+    public void Hide()
+    {
+        if (stationNameText == null || stationNameText.transform.parent == null) return;
+        stationNameText.transform.parent.gameObject.SetActive(false);
+    }
+
+    public void Show()
+    {
+        if (stationNameText == null || stationNameText.transform.parent == null) return;
+        stationNameText.transform.parent.gameObject.SetActive(true);
+    }
 }
