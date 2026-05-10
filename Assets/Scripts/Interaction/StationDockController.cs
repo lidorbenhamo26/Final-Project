@@ -63,16 +63,18 @@ public class StationDockController : MonoBehaviour
         }
     }
 
+    private float _nextResolveAttemptTime;
+
     private void ResolveRefs()
     {
         if (mainCamera == null) mainCamera = Camera.main;
-        if (tpCam == null) tpCam = FindObjectOfType<ThirdPersonCamera>();
+        if (tpCam == null) tpCam = FindAnyObjectByType<ThirdPersonCamera>();
         if (fpCam == null && mainCamera != null)
         {
             fpCam = mainCamera.GetComponent<FirstPersonStationCamera>();
-            if (fpCam == null) fpCam = FindObjectOfType<FirstPersonStationCamera>(true);
+            if (fpCam == null) fpCam = FindAnyObjectByType<FirstPersonStationCamera>(FindObjectsInactive.Include);
         }
-        if (player == null) player = FindObjectOfType<AstronautController>();
+        if (player == null) player = FindAnyObjectByType<AstronautController>();
 
         // Resolve Interact action from the player's PlayerInput
         if (_interactAction == null && player != null)
@@ -88,7 +90,13 @@ public class StationDockController : MonoBehaviour
 
     private void Update()
     {
-        if (_interactAction == null) ResolveRefs();
+        // Throttle re-resolution to once per second when refs are still missing,
+        // instead of hammering FindAnyObjectByType every frame.
+        if (_interactAction == null && Time.unscaledTime >= _nextResolveAttemptTime)
+        {
+            ResolveRefs();
+            _nextResolveAttemptTime = Time.unscaledTime + 1f;
+        }
 
         bool interactPressed =
             (_interactAction != null && _interactAction.WasPressedThisFrame())

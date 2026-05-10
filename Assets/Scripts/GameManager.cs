@@ -10,6 +10,12 @@ public class GameManager : MonoBehaviour
     [SerializeField, Tooltip("Seconds between task spawns — lower = harder")]
     private float eventFrequency = 15f;
 
+    [Header("Debug / Quick Test")]
+    [SerializeField, Tooltip("If checked, mission uses Quick Test Duration instead of Mission Duration. Leave OFF for normal 10-min runs.")]
+    private bool quickTestMode = false;
+    [SerializeField, Tooltip("Mission length when Quick Test Mode is enabled.")]
+    private float quickTestDuration = 30f;
+
     [Header("Stations")]
     [SerializeField] private TaskStation engineStation;
     [SerializeField] private TaskStation navigationStation;
@@ -27,7 +33,8 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
-        MissionTimeRemaining = missionDuration;
+        if (quickTestMode) Application.runInBackground = true;
+        MissionTimeRemaining = quickTestMode ? quickTestDuration : missionDuration;
         MissionActive = true;
         if (SessionManager.Instance != null)
             SessionManager.Instance.LogCustomEvent("Mission_Start", "System", "Begin");
