@@ -108,8 +108,6 @@ public static class WireAstronautScene
         var cam = GameObject.Find("Main Camera");
         if (cam != null)
         {
-            var dbg = cam.GetComponent<DebugCamera>();
-            if (dbg != null) Object.DestroyImmediate(dbg);
             // The camera was acting as the trigger-collider "Player"; that role moves to the astronaut
             var camRb = cam.GetComponent<Rigidbody>();
             if (camRb != null) Object.DestroyImmediate(camRb);
