@@ -55,12 +55,17 @@ public class StationProximityPrompt : MonoBehaviour
         if (CurrentPrompt == this) CurrentPrompt = null;
     }
 
+    private float _nextPlayerLookupTime;
+
     private void Update()
     {
-        if (_player == null)
+        // Throttle the tag lookup to once per second until we cache the player,
+        // so it doesn't run every frame for prompts that load before the player.
+        if (_player == null && Time.unscaledTime >= _nextPlayerLookupTime)
         {
             var go = GameObject.FindGameObjectWithTag("Player");
             if (go != null) _player = go.transform;
+            _nextPlayerLookupTime = Time.unscaledTime + 1f;
         }
 
         bool inRange = IsPlayerInRange();
@@ -135,7 +140,7 @@ public class StationProximityPrompt : MonoBehaviour
         hintLabel.alignment = TextAlignmentOptions.Center;
         hintLabel.fontSize = 36f;
         hintLabel.color = new Color(1f, 1f, 1f, 0f);
-        hintLabel.enableWordWrapping = false;
+        hintLabel.textWrappingMode = TextWrappingModes.NoWrap;
     }
 
     private void SetHintAlpha(float a)
