@@ -29,6 +29,16 @@ public class ThirdPersonCamera : MonoBehaviour
     {
         yaw = transform.eulerAngles.y;
         SetCursorLock(true);
+        SnapToTarget();
+    }
+
+    private void SnapToTarget()
+    {
+        if (target == null) return;
+        Vector3 focus = target.position + targetOffset;
+        Quaternion rot = Quaternion.Euler(pitch, yaw, 0f);
+        transform.position = focus + rot * (Vector3.back * distance);
+        transform.LookAt(focus);
     }
 
     public void SetTarget(Transform t) => target = t;
