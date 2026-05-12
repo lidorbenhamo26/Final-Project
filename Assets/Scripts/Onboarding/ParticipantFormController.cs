@@ -25,9 +25,8 @@ public class ParticipantFormController : MonoBehaviour
 
     public RectTransform BuildUI(Transform parent)
     {
-        var panel = NewRect("FormPanel", parent, new Vector2(640f, 800f), Vector2.zero);
-        var panelImg = panel.gameObject.AddComponent<Image>();
-        panelImg.color = new Color(0.08f, 0.10f, 0.14f, 0.92f);
+        var panel = UIChrome.BuildScifiPanel(parent, new Vector2(640f, 800f), Vector2.zero);
+        panel.gameObject.name = "FormPanel";
 
         SpawnLabel(panel, "PARTICIPANT INFO", 28, FontStyles.Bold,
             TextAlignmentOptions.Center, new Vector2(0f, 360f), new Vector2(600f, 40f), Color.white);
