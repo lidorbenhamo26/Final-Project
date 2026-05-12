@@ -8877,6 +8877,7 @@ MonoBehaviour:
   mainCamera: {fileID: 0}
   tpCam: {fileID: 0}
   fpCam: {fileID: 0}
+  handsView: {fileID: 1931350628}
   player: {fileID: 0}
 --- !u!4 &880885616
 Transform:
@@ -24243,6 +24244,7 @@ GameObject:
   - component: {fileID: 1931350625}
   - component: {fileID: 1931350627}
   - component: {fileID: 1931350626}
+  - component: {fileID: 1931350628}
   m_Layer: 0
   m_Name: Main Camera
   m_TagString: MainCamera
@@ -24428,6 +24430,22 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 4294967295
   m_MaxRayIntersections: 0
+--- !u!114 &1931350628
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1931350620}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1b7eb4ccb185d2f488709aad0ebc7d5a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::FirstPersonHandsView
+  handsPrefab: {fileID: 254933853697436021, guid: ed67a0bcec93dd54fa8d69dd46cbf693, type: 3}
+  localPosition: {x: 0, y: -0.62, z: 0.85}
+  localEulerAngles: {x: 6, y: 0, z: 0}
+  localScale: {x: 0.44531903, y: 0.44531903, z: 0.44531903}
 --- !u!1 &1935856907 stripped
 GameObject:
   m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 59a96eb9f4cd26142a15d19e1072e0c0, type: 3}

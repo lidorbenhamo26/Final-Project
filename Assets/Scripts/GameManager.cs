@@ -76,6 +76,9 @@ public class GameManager : MonoBehaviour
         MissionActive = true;
         if (SessionManager.Instance != null)
             SessionManager.Instance.LogCustomEvent("Mission_Start", "System", "Begin");
+        AudioManager.Instance.PlayMusic("gameplay_loop");
+        AudioManager.Instance.PlayAmbient("station_hum");
+        AudioManager.Instance.PlayVoice("mission_start");
         StartCoroutine(MissionCountdown());
         StartCoroutine(TaskSpawnLoop());
     }
@@ -130,6 +133,8 @@ public class GameManager : MonoBehaviour
         MissionActive = false;
         if (SessionManager.Instance != null)
             SessionManager.Instance.LogCustomEvent("Mission_End", "System", "Complete");
+        AudioManager.Instance.StopMusic();
+        AudioManager.Instance.StopAmbient();
         Debug.Log("[GameManager] Mission complete. Logs at: " + Application.persistentDataPath);
     }
 

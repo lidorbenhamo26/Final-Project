@@ -55,6 +55,11 @@ public class AstronautController : MonoBehaviour
     private float jumpBufferTimer;
     private float coyoteTimer;
     private bool grounded;
+    private float footstepTimer;
+    private const float FootstepWalkInterval = 0.5f;
+    private const float FootstepRunInterval = 0.3f;
+    private const float FootstepSpeedThreshold = 0.5f;
+    private const float FootstepVolume = 0.7f;
 
     private static readonly int SpeedHash = Animator.StringToHash("Speed");
     private static readonly int GroundedHash = Animator.StringToHash("Grounded");
@@ -102,6 +107,7 @@ public class AstronautController : MonoBehaviour
         grounded = Physics.CheckSphere(transform.position + groundCheckOffset, groundCheckRadius, groundLayer, QueryTriggerInteraction.Ignore);
         if (grounded) coyoteTimer = coyoteTime;
         else if (wasGrounded) coyoteTimer = coyoteTime; // just left ground
+        if (grounded && !wasGrounded) AudioManager.Instance.PlaySfx("land");
 
         Vector3 camForward = cameraTransform != null ? cameraTransform.forward : Vector3.forward;
         Vector3 camRight   = cameraTransform != null ? cameraTransform.right   : Vector3.right;
@@ -141,6 +147,7 @@ public class AstronautController : MonoBehaviour
                 v.z = horiz.y;
             }
             animator.SetTrigger(JumpHash);
+            AudioManager.Instance.PlaySfx("jump", 0.85f);
             jumpBufferTimer = 0f;
             coyoteTimer = 0f;
         }
@@ -157,6 +164,20 @@ public class AstronautController : MonoBehaviour
         float horizSpeed = new Vector2(v.x, v.z).magnitude;
         animator.SetFloat(SpeedHash, horizSpeed, speedDamp, Time.fixedDeltaTime);
         animator.SetBool(GroundedHash, grounded);
+
+        if (grounded && horizSpeed > FootstepSpeedThreshold)
+        {
+            footstepTimer -= Time.fixedDeltaTime;
+            if (footstepTimer <= 0f)
+            {
+                AudioManager.Instance.PlaySfx("footstep_metal", FootstepVolume);
+                footstepTimer = sprintHeld ? FootstepRunInterval : FootstepWalkInterval;
+            }
+        }
+        else
+        {
+            footstepTimer = 0f;
+        }
     }
 
     public void TriggerWave()  => animator.SetTrigger(WaveHash);

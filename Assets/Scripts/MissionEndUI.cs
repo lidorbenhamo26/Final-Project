@@ -13,6 +13,8 @@ public class MissionEndUI : MonoBehaviour
         if (shown) return;
         shown = true;
         Build();
+        AudioManager.Instance.PlayMusic("mission_complete", loop: false);
+        AudioManager.Instance.PlayVoice("mission_complete");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
     }
@@ -116,6 +118,7 @@ public class MissionEndUI : MonoBehaviour
 
     private void Restart()
     {
+        AudioManager.Instance.PlaySfx("button_click");
         if (SessionManager.Instance != null) SessionManager.Instance.ResetForNewMission();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
     }

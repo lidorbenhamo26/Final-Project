@@ -22,10 +22,6 @@ public class StationButton3D : MonoBehaviour, IPointerClickHandler
     [Tooltip("Time to travel down + back up (seconds).")]
     public float pressDuration = 0.12f;
 
-    [Header("Audio")]
-    public AudioClip clickSound;
-    [Range(0f, 1f)] public float clickVolume = 0.8f;
-
     [Header("Emission Flash")]
     [Tooltip("Emission color used during the click flash. Renderer must support _EmissionColor.")]
     public Color flashColor = new Color(0.6f, 1.2f, 1.6f, 1f);
@@ -38,7 +34,6 @@ public class StationButton3D : MonoBehaviour, IPointerClickHandler
     private bool _hasEmission;
     private Vector3 _restLocalPos;
     private bool _animating;
-    private AudioSource _audio;
 
     private static readonly int EmissionColorId = Shader.PropertyToID("_EmissionColor");
 
@@ -60,22 +55,10 @@ public class StationButton3D : MonoBehaviour, IPointerClickHandler
     public void OnPointerClick(PointerEventData eventData)
     {
         if (!enabled) return;
-        if (clickSound != null) PlayClickSound();
+        AudioManager.Instance.PlaySfx("button_click");
         if (!_animating) StartCoroutine(PressRoutine());
         if (_hasEmission) StartCoroutine(FlashRoutine());
         onClick?.Invoke();
-    }
-
-    private void PlayClickSound()
-    {
-        if (_audio == null)
-        {
-            _audio = GetComponent<AudioSource>();
-            if (_audio == null) _audio = gameObject.AddComponent<AudioSource>();
-            _audio.playOnAwake = false;
-            _audio.spatialBlend = 1f;
-        }
-        _audio.PlayOneShot(clickSound, clickVolume);
     }
 
     private IEnumerator PressRoutine()

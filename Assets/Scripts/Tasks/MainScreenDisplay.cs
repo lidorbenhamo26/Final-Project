@@ -21,14 +21,10 @@ public class MainScreenDisplay : MonoBehaviour
     [SerializeField] private float canvasScale = 0.003f;
     [SerializeField] private Vector3 canvasLocalOffset = new Vector3(0f, 0f, 0.3f);
 
-    [Header("Audio (optional)")]
-    [SerializeField] private AudioClip alertClip;
-
     private Canvas worldCanvas;
     private TMP_Text codeText;
     private TMP_Text statusText;
     private Image alertGlow;
-    private AudioSource audioSrc;
     private Coroutine glowCo;
 
     private void Awake()
@@ -40,9 +36,6 @@ public class MainScreenDisplay : MonoBehaviour
         }
         Instance = this;
         BuildCanvas();
-        audioSrc = gameObject.AddComponent<AudioSource>();
-        audioSrc.playOnAwake = false;
-        audioSrc.spatialBlend = 0f;
         SetIdleVisual();
     }
 
@@ -138,7 +131,7 @@ public class MainScreenDisplay : MonoBehaviour
     /// <summary>Pulse the screen with an alert (red glow + audio cue).</summary>
     public void ShowAlert(float seconds)
     {
-        if (alertClip != null && audioSrc != null) audioSrc.PlayOneShot(alertClip);
+        AudioManager.Instance.PlaySfx("alert_pulse");
         if (statusText != null)
         {
             statusText.text = "INCOMING TRANSMISSION";

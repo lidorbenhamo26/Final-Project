@@ -91,6 +91,7 @@ public class StroopTask : CognitiveTaskBase
         if (buttonsParent == null) return;
         ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
         ClearButtons();
+        AudioManager.Instance.PlayVoice("stroop_ready");
         SpawnButton(new Vector2(0f, -130f), new Vector2(280f, 100f), "READY",
             new Color(0.2f, 0.8f, 0.4f), OnStartReadyClicked);
     }
@@ -131,14 +132,20 @@ public class StroopTask : CognitiveTaskBase
             ClearTrialButtons();
             if (!answered)
             {
+                AudioManager.Instance.PlaySfx("timeout_alarm");
+                AudioManager.Instance.PlayVoice("timeout");
                 ShowSplash("TIME!", new Color(1f, 0.6f, 0.2f), 0.7f);
             }
             else if (wasCorrect)
             {
+                AudioManager.Instance.PlaySfx("success_chime");
+                AudioManager.Instance.PlayVoice("correct");
                 ShowSplash("CORRECT!", new Color(0.3f, 1f, 0.4f), 0.7f);
             }
             else
             {
+                AudioManager.Instance.PlaySfx("fail_buzz");
+                AudioManager.Instance.PlayVoice("incorrect");
                 ShowSplash("WRONG!", new Color(1f, 0.3f, 0.3f), 0.7f);
             }
             UpdateHud();
