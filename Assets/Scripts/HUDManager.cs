@@ -114,11 +114,11 @@ public class HUDManager : MonoBehaviour
         codePanel = new GameObject("CodePanel", typeof(RectTransform), typeof(UnityEngine.UI.Image));
         codePanel.transform.SetParent(parent, false);
         RectTransform rt = (RectTransform)codePanel.transform;
-        rt.anchorMin = new Vector2(0.5f, 0.5f);
-        rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.sizeDelta = new Vector2(900f, 380f);
-        rt.anchoredPosition = new Vector2(0f, 60f);
+        rt.anchorMin = new Vector2(0.5f, 1f);
+        rt.anchorMax = new Vector2(0.5f, 1f);
+        rt.pivot = new Vector2(0.5f, 1f);
+        rt.sizeDelta = new Vector2(560f, 170f);
+        rt.anchoredPosition = new Vector2(0f, -120f);
         var bg = codePanel.GetComponent<UnityEngine.UI.Image>();
         bg.color = new Color(0.02f, 0.05f, 0.08f, 0.92f);
         bg.raycastTarget = false;
@@ -133,7 +133,7 @@ public class HUDManager : MonoBehaviour
         statusGO.transform.SetParent(codePanel.transform, false);
         codePanelStatus = statusGO.AddComponent<TextMeshProUGUI>();
         codePanelStatus.alignment = TextAlignmentOptions.Center;
-        codePanelStatus.fontSize = 42f;
+        codePanelStatus.fontSize = 26f;
         codePanelStatus.fontStyle = FontStyles.Bold;
         codePanelStatus.color = new Color(0.4f, 1f, 0.6f);
         codePanelStatus.text = "AUTH CODE — MEMORIZE";
@@ -142,25 +142,25 @@ public class HUDManager : MonoBehaviour
         srt.anchorMin = new Vector2(0f, 1f);
         srt.anchorMax = new Vector2(1f, 1f);
         srt.pivot = new Vector2(0.5f, 1f);
-        srt.anchoredPosition = new Vector2(0f, -20f);
-        srt.sizeDelta = new Vector2(0f, 70f);
+        srt.anchoredPosition = new Vector2(0f, -10f);
+        srt.sizeDelta = new Vector2(0f, 42f);
 
         // Big code text (center)
         var codeGO = new GameObject("Code", typeof(RectTransform));
         codeGO.transform.SetParent(codePanel.transform, false);
         codePanelCode = codeGO.AddComponent<TextMeshProUGUI>();
         codePanelCode.alignment = TextAlignmentOptions.Center;
-        codePanelCode.fontSize = 220f;
+        codePanelCode.fontSize = 110f;
         codePanelCode.fontStyle = FontStyles.Bold;
         codePanelCode.color = new Color(0.3f, 1f, 1f);
-        codePanelCode.characterSpacing = 20f;
+        codePanelCode.characterSpacing = 14f;
         codePanelCode.text = "";
         codePanelCode.raycastTarget = false;
         RectTransform crt = (RectTransform)codeGO.transform;
         crt.anchorMin = new Vector2(0f, 0f);
         crt.anchorMax = new Vector2(1f, 1f);
-        crt.offsetMin = new Vector2(20f, 20f);
-        crt.offsetMax = new Vector2(-20f, -90f);
+        crt.offsetMin = new Vector2(12f, 10f);
+        crt.offsetMax = new Vector2(-12f, -50f);
 
         codePanel.SetActive(false);
     }
@@ -232,14 +232,69 @@ public class HUDManager : MonoBehaviour
         scaler.referenceResolution = new Vector2(1920f, 1080f);
         canvasGO.AddComponent<GraphicRaycaster>();
 
+        var statsPanel = BuildStatsPanel(canvasGO.transform);
+
         if (timerText == null)
-            timerText = SpawnHudLabel(canvasGO.transform, "Timer", new Vector2(24f, -24f), 36, FontStyles.Bold);
+            timerText = SpawnHudLabel(statsPanel, "Timer", new Vector2(20f, -14f), 34, FontStyles.Bold);
         if (taskListText == null)
-            taskListText = SpawnHudLabel(canvasGO.transform, "Score", new Vector2(24f, -68f), 24, FontStyles.Normal);
+            taskListText = SpawnHudLabel(statsPanel, "Score", new Vector2(20f, -62f), 22, FontStyles.Bold);
 
         SpawnMiniMap(canvasGO.transform);
         SpawnTaskListHUD(canvasGO.transform);
         SpawnNotificationFeed(canvasGO.transform);
+    }
+
+    // Top-left stats panel: dark navy fill, corner-bracket frame overlay, and a
+    // thin cyan separator between the timer (top) and the score line (bottom).
+    private Transform BuildStatsPanel(Transform canvasParent)
+    {
+        var panel = new GameObject("StatsPanel", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        panel.transform.SetParent(canvasParent, false);
+        var rt = (RectTransform)panel.transform;
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(16f, -16f);
+        rt.sizeDelta = new Vector2(380f, 104f);
+        var bg = panel.GetComponent<UnityEngine.UI.Image>();
+        bg.color = new Color(0.04f, 0.06f, 0.09f, 0.78f);
+        bg.raycastTarget = false;
+
+        var frameSprite = Resources.Load<Sprite>("UI/panel_frame_corners");
+        var frame = new GameObject("Frame", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        frame.transform.SetParent(panel.transform, false);
+        var frt = (RectTransform)frame.transform;
+        frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one;
+        frt.offsetMin = new Vector2(2f, 2f); frt.offsetMax = new Vector2(-2f, -2f);
+        var frameImg = frame.GetComponent<UnityEngine.UI.Image>();
+        frameImg.raycastTarget = false;
+        if (frameSprite != null)
+        {
+            frameImg.sprite = frameSprite;
+            frameImg.type = UnityEngine.UI.Image.Type.Sliced;
+            frameImg.pixelsPerUnitMultiplier = 1f;
+            frameImg.color = new Color(0.55f, 0.95f, 1f, 1f);
+        }
+        else
+        {
+            // Fallback: thin cyan outline so the panel still reads as a contained block.
+            var outline = panel.AddComponent<UnityEngine.UI.Outline>();
+            outline.effectColor = new Color(0.55f, 0.95f, 1f, 0.55f);
+            outline.effectDistance = new Vector2(2f, 2f);
+            Destroy(frame); // no frame sprite, the Outline replaces it
+        }
+
+        var sep = new GameObject("Separator", typeof(RectTransform), typeof(UnityEngine.UI.Image));
+        sep.transform.SetParent(panel.transform, false);
+        var srt = (RectTransform)sep.transform;
+        srt.anchorMin = new Vector2(0f, 1f); srt.anchorMax = new Vector2(1f, 1f);
+        srt.pivot = new Vector2(0.5f, 1f);
+        srt.anchoredPosition = new Vector2(0f, -54f);
+        srt.sizeDelta = new Vector2(-32f, 1f);
+        sep.GetComponent<UnityEngine.UI.Image>().color = new Color(0.55f, 0.95f, 1f, 0.35f);
+        sep.GetComponent<UnityEngine.UI.Image>().raycastTarget = false;
+
+        return panel.transform;
     }
 
     private void SpawnMiniMap(Transform canvasParent)
@@ -263,7 +318,9 @@ public class HUDManager : MonoBehaviour
         rt.anchorMin = new Vector2(0f, 1f);
         rt.anchorMax = new Vector2(0f, 1f);
         rt.pivot     = new Vector2(0f, 1f);
-        rt.anchoredPosition = new Vector2(24f, -110f);
+        // Stats panel above is anchored at (16,-16) and is 104 tall, so its bottom is at y=-120.
+        // Start the task list 16px below that so the two panels never overlap.
+        rt.anchoredPosition = new Vector2(24f, -136f);
         rt.sizeDelta = new Vector2(300f, 340f);
         go.AddComponent<TaskListHUD>();
     }
@@ -276,7 +333,8 @@ public class HUDManager : MonoBehaviour
         rt.anchorMin = new Vector2(0f, 1f);
         rt.anchorMax = new Vector2(0f, 1f);
         rt.pivot     = new Vector2(0f, 1f);
-        rt.anchoredPosition = new Vector2(24f, -470f);
+        // Sits below the TaskListHUD (which is 340 tall starting at -136 → bottom -476).
+        rt.anchoredPosition = new Vector2(24f, -496f);
         rt.sizeDelta = new Vector2(280f, 290f);
         go.AddComponent<NotificationFeed>();
     }

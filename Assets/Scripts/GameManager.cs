@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public class GameManager : MonoBehaviour
@@ -7,8 +8,18 @@ public class GameManager : MonoBehaviour
 
     [Header("Mission Settings")]
     [SerializeField] private float missionDuration = 600f;
-    [SerializeField, Tooltip("Seconds between task spawns — lower = harder")]
-    private float eventFrequency = 15f;
+
+    [Header("Task Spawn Pacing")]
+    [SerializeField, Tooltip("Maximum number of tasks that can be active at the same time across all stations.")]
+    private int maxConcurrentTasks = 3;
+    [SerializeField, Tooltip("Minimum seconds between consecutive task spawns.")]
+    private float minSpawnInterval = 15f;
+    [SerializeField, Tooltip("Maximum seconds between consecutive task spawns. Spawn delay is randomized between min and max.")]
+    private float maxSpawnInterval = 25f;
+    [SerializeField, Tooltip("After a task resolves at a station, wait this many seconds before that station can receive a new task.")]
+    private float stationCooldownAfterResolve = 15f;
+    [SerializeField, Tooltip("How often (seconds) the spawner re-checks when it's blocked (max concurrent reached or no eligible station). Keep small.")]
+    private float spawnRecheckInterval = 1.5f;
 
     [Header("Debug / Quick Test")]
     [SerializeField, Tooltip("If checked, mission uses Quick Test Duration instead of Mission Duration. Leave OFF for normal 10-min runs.")]
@@ -42,11 +53,30 @@ public class GameManager : MonoBehaviour
     public TaskStation CommsStation       => commsStation;
     public TaskStation LifeSupportStation => lifeSupportStation;
 
+    private readonly Dictionary<string, float> lastResolvedAt = new Dictionary<string, float>();
+    private string lastSpawnedStationName = null;
+
     private void Awake()
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         AutoBindStations();
+    }
+
+    private void OnEnable()
+    {
+        MissionTask.OnTaskResolved += HandleTaskResolvedForCooldown;
+    }
+
+    private void OnDisable()
+    {
+        MissionTask.OnTaskResolved -= HandleTaskResolvedForCooldown;
+    }
+
+    private void HandleTaskResolvedForCooldown(MissionTask task, TaskResult result, float rt)
+    {
+        if (task == null || string.IsNullOrEmpty(task.StationName)) return;
+        lastResolvedAt[task.StationName] = Time.time;
     }
 
     private void AutoBindStations()
@@ -143,30 +173,70 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(3f);
         while (MissionActive)
         {
-            int pick = Random.Range(0, 4);
-
-            if (pick == 0 && engineStation != null && !engineStation.HasActiveTask())
+            if (CountActiveTasks() >= maxConcurrentTasks)
             {
-                GameObject go = new GameObject("EngineTask");
-                engineStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, engineStation.stationName));
-            }
-            else if (pick == 1 && navigationStation != null && !navigationStation.HasActiveTask())
-            {
-                GameObject go = new GameObject("NavigationTask");
-                navigationStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, navigationStation.stationName));
-            }
-            else if (pick == 2 && commsStation != null && !commsStation.HasActiveTask())
-            {
-                GameObject go = new GameObject("CommsTask");
-                commsStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, commsStation.stationName));
-            }
-            else if (pick == 3 && lifeSupportStation != null && !lifeSupportStation.HasActiveTask())
-            {
-                GameObject go = new GameObject("LifeSupportTask");
-                lifeSupportStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, lifeSupportStation.stationName));
+                yield return new WaitForSeconds(spawnRecheckInterval);
+                continue;
             }
 
-            yield return new WaitForSeconds(eventFrequency);
+            var eligible = BuildEligibleStationList();
+            if (eligible.Count == 0)
+            {
+                yield return new WaitForSeconds(spawnRecheckInterval);
+                continue;
+            }
+
+            TaskStation chosen = PickStation(eligible);
+            SpawnTaskAt(chosen);
+            lastSpawnedStationName = chosen.stationName;
+
+            float wait = Random.Range(minSpawnInterval, maxSpawnInterval);
+            yield return new WaitForSeconds(wait);
         }
+    }
+
+    private int CountActiveTasks()
+    {
+        int n = 0;
+        if (engineStation      != null && engineStation.HasActiveTask())      n++;
+        if (navigationStation  != null && navigationStation.HasActiveTask())  n++;
+        if (commsStation       != null && commsStation.HasActiveTask())       n++;
+        if (lifeSupportStation != null && lifeSupportStation.HasActiveTask()) n++;
+        return n;
+    }
+
+    private List<TaskStation> BuildEligibleStationList()
+    {
+        var list = new List<TaskStation>(4);
+        TryAddEligible(list, engineStation);
+        TryAddEligible(list, navigationStation);
+        TryAddEligible(list, commsStation);
+        TryAddEligible(list, lifeSupportStation);
+        return list;
+    }
+
+    private void TryAddEligible(List<TaskStation> list, TaskStation s)
+    {
+        if (s == null) return;
+        if (s.HasActiveTask()) return;
+        if (lastResolvedAt.TryGetValue(s.stationName, out float t)
+            && Time.time - t < stationCooldownAfterResolve) return;
+        list.Add(s);
+    }
+
+    private TaskStation PickStation(List<TaskStation> eligible)
+    {
+        if (eligible.Count > 1 && lastSpawnedStationName != null)
+        {
+            var alt = eligible.FindAll(s => s.stationName != lastSpawnedStationName);
+            if (alt.Count > 0) return alt[Random.Range(0, alt.Count)];
+        }
+        return eligible[Random.Range(0, eligible.Count)];
+    }
+
+    private void SpawnTaskAt(TaskStation station)
+    {
+        var go = new GameObject(station.stationName + "Task");
+        station.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, station.stationName));
     }
 }
