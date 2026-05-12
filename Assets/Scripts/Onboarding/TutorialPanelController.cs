@@ -23,7 +23,6 @@ public class TutorialPanelController : MonoBehaviour
          "Take a breath. When you press Continue, you'll move on to the ship briefing."),
     };
 
-    private static readonly Color PanelColor = new Color(0.08f, 0.10f, 0.14f, 0.92f);
     private static readonly Color OkColor = new Color(0.20f, 0.40f, 0.85f, 1f);
     private static readonly Color DisabledColor = new Color(0.20f, 0.40f, 0.85f, 0.35f);
     private static readonly Color SkipColor = new Color(0.30f, 0.34f, 0.40f, 1f);
@@ -40,9 +39,8 @@ public class TutorialPanelController : MonoBehaviour
 
     public RectTransform BuildUI(Transform parent)
     {
-        panel = NewRect("TutorialPanel", parent, new Vector2(960f, 640f), Vector2.zero);
-        var panelImg = panel.gameObject.AddComponent<Image>();
-        panelImg.color = PanelColor;
+        panel = UIChrome.BuildScifiPanel(parent, new Vector2(960f, 640f), Vector2.zero);
+        panel.gameObject.name = "TutorialPanel";
 
         titleLbl = SpawnLabel(panel, "", 36, FontStyles.Bold, TextAlignmentOptions.Center,
             new Vector2(0f, 250f), new Vector2(900f, 60f), Color.white);
