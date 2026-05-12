@@ -4,6 +4,9 @@ using UnityEngine.UI;
 
 public class StartSceneController : MonoBehaviour
 {
+    private RectTransform formPanel;
+    private TutorialPanelController tutorial;
+
     private void Awake()
     {
         var _ = SessionContext.Instance;
@@ -43,10 +46,23 @@ public class StartSceneController : MonoBehaviour
         formGO.transform.SetParent(transform, false);
         var form = formGO.AddComponent<ParticipantFormController>();
         form.OnSubmit = OnFormSubmitted;
-        form.BuildUI(canvasGO.transform);
+        formPanel = form.BuildUI(canvasGO.transform);
+
+        var tutGO = new GameObject("TutorialPanel");
+        tutGO.transform.SetParent(transform, false);
+        tutorial = tutGO.AddComponent<TutorialPanelController>();
+        tutorial.OnFinish = OnTutorialFinished;
+        tutorial.BuildUI(canvasGO.transform);
+        tutorial.Hide();
     }
 
     private void OnFormSubmitted()
+    {
+        if (formPanel != null) formPanel.gameObject.SetActive(false);
+        tutorial.Show();
+    }
+
+    private void OnTutorialFinished()
     {
         SceneTransition.LoadMain();
     }
