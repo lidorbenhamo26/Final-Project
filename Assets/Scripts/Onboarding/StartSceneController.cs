@@ -35,10 +35,13 @@ public class StartSceneController : MonoBehaviour
         var bg = new GameObject("Bg");
         bg.transform.SetParent(canvasGO.transform, false);
         var bgImg = bg.AddComponent<Image>();
-        bgImg.color = new Color(0.05f, 0.07f, 0.10f, 1f);
+        bgImg.color = new Color(0.03f, 0.05f, 0.09f, 1f);
+        bgImg.raycastTarget = false;
         var bgRT = bg.GetComponent<RectTransform>();
         bgRT.anchorMin = Vector2.zero; bgRT.anchorMax = Vector2.one;
         bgRT.offsetMin = Vector2.zero; bgRT.offsetMax = Vector2.zero;
+
+        UIChrome.BuildStarfield(canvasGO.transform);
 
         SpawnHeading(canvasGO.transform, "MISSION FOCUS", 56, FontStyles.Bold,
             new Vector2(0f, 480f), new Vector2(1200f, 64f), Color.white);
