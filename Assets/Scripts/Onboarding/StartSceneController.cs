@@ -6,6 +6,7 @@ public class StartSceneController : MonoBehaviour
 {
     private RectTransform formPanel;
     private TutorialPanelController tutorial;
+    private ShipBriefingPanelController briefing;
 
     private void Awake()
     {
@@ -54,6 +55,14 @@ public class StartSceneController : MonoBehaviour
         tutorial.OnFinish = OnTutorialFinished;
         tutorial.BuildUI(canvasGO.transform);
         tutorial.Hide();
+
+        var briefGO = new GameObject("ShipBriefingPanel");
+        briefGO.transform.SetParent(transform, false);
+        briefing = briefGO.AddComponent<ShipBriefingPanelController>();
+        briefing.OnBegin = OnBriefingBegin;
+        briefing.OnBack = OnBriefingBack;
+        briefing.BuildUI(canvasGO.transform);
+        briefing.Hide();
     }
 
     private void OnFormSubmitted()
@@ -63,6 +72,18 @@ public class StartSceneController : MonoBehaviour
     }
 
     private void OnTutorialFinished()
+    {
+        tutorial.Hide();
+        briefing.Show();
+    }
+
+    private void OnBriefingBack()
+    {
+        briefing.Hide();
+        tutorial.Show();
+    }
+
+    private void OnBriefingBegin()
     {
         SceneTransition.LoadMain();
     }
