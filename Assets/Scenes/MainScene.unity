@@ -22,8 +22,8 @@ RenderSettings:
   m_LinearFogEnd: 300
   m_AmbientSkyColor: {r: 0.3, g: 0.36, b: 0.5, a: 1}
   m_AmbientEquatorColor: {r: 0.22, g: 0.26, b: 0.35, a: 1}
-  m_AmbientGroundColor: {r: 0.1, g: 0.11, b: 0.15, a: 1}
-  m_AmbientIntensity: 0.6
+  m_AmbientGroundColor: {r: 0.18, g: 0.2, b: 0.25, a: 1}
+  m_AmbientIntensity: 1
   m_AmbientMode: 1
   m_SubtractiveShadowColor: {r: 0.42, g: 0.478, b: 0.627, a: 1}
   m_SkyboxMaterial: {fileID: 2100000, guid: 045b95688a777ca45b2171e77eac4722, type: 2}
@@ -35,7 +35,7 @@ RenderSettings:
   m_DefaultReflectionMode: 0
   m_DefaultReflectionResolution: 128
   m_ReflectionBounces: 1
-  m_ReflectionIntensity: 0.7
+  m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
   m_UseRadianceAmbientProbe: 0
@@ -3568,6 +3568,17 @@ MonoBehaviour:
   hintLabel: {fileID: 0}
   hintCanvas: {fileID: 0}
   hintText: '[E] INTERACT'
+--- !u!114 &322376111 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 294110994406138659, guid: e38f2bd92504fe04baa834a9c034cbc1, type: 3}
+  m_PrefabInstance: {fileID: 186062353}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 322376104}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e108a092e3e64064d889e528015a0a4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaskStation
 --- !u!1001 &323842544
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -17751,10 +17762,12 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   missionDuration: 600
   eventFrequency: 15
-  engineStation: {fileID: 0}
-  navigationStation: {fileID: 0}
-  commsStation: {fileID: 0}
-  lifeSupportStation: {fileID: 0}
+  quickTestMode: 0
+  quickTestDuration: 30
+  engineStation: {fileID: 322376111}
+  navigationStation: {fileID: 1916795669}
+  commsStation: {fileID: 2064666183}
+  lifeSupportStation: {fileID: 1665574991}
 --- !u!4 &1300853735
 Transform:
   m_ObjectHideFlags: 0
@@ -21439,6 +21452,17 @@ MonoBehaviour:
   hintLabel: {fileID: 0}
   hintCanvas: {fileID: 0}
   hintText: '[E] INTERACT'
+--- !u!114 &1665574991 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4661973153749579641, guid: fd999dc9211a05b45b01c1c2e102455b, type: 3}
+  m_PrefabInstance: {fileID: 1665574979}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 896519256}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e108a092e3e64064d889e528015a0a4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaskStation
 --- !u!1001 &1675105384
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -24158,6 +24182,17 @@ MonoBehaviour:
   hintLabel: {fileID: 0}
   hintCanvas: {fileID: 0}
   hintText: '[E] INTERACT'
+--- !u!114 &1916795669 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 4801193895022020136, guid: fed8d70f0859bb14cbd5019e71c97814, type: 3}
+  m_PrefabInstance: {fileID: 1461703195}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1916795662}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e108a092e3e64064d889e528015a0a4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaskStation
 --- !u!1 &1930720124
 GameObject:
   m_ObjectHideFlags: 0
@@ -24818,7 +24853,7 @@ Light:
   serializedVersion: 13
   m_Type: 1
   m_Color: {r: 0.85, g: 0.92, b: 1, a: 1}
-  m_Intensity: 0.25
+  m_Intensity: 0.8
   m_Range: 10
   m_SpotAngle: 30
   m_InnerSpotAngle: 21.80208
@@ -30187,6 +30222,17 @@ MonoBehaviour:
   hintLabel: {fileID: 0}
   hintCanvas: {fileID: 0}
   hintText: '[E] INTERACT'
+--- !u!114 &2064666183 stripped
+MonoBehaviour:
+  m_CorrespondingSourceObject: {fileID: 5716108966312721200, guid: 5ac6a348b5825ba438f2a396594cd83f, type: 3}
+  m_PrefabInstance: {fileID: 2064666171}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1168830031}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e108a092e3e64064d889e528015a0a4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::TaskStation
 --- !u!1001 &2067147221
 PrefabInstance:
   m_ObjectHideFlags: 0

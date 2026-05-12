@@ -11,7 +11,7 @@ public static class CognitiveTaskCatalog
     {
         return stationName switch
         {
-            "EngineStation"      => host.AddComponent<CodeMemoryTask>(),
+            "EngineStation"      => host.AddComponent<WorkingMemoryTask>(),
             "NavigationStation"  => host.AddComponent<PatternMatchTask>(),
             "CommsStation"       => host.AddComponent<StroopTask>(),
             "LifeSupportStation" => host.AddComponent<NBackTask>(),
