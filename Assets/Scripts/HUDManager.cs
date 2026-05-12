@@ -66,6 +66,7 @@ public class HUDManager : MonoBehaviour
         if (alertBannerText == null) return;
         if (alertBannerCo != null) StopCoroutine(alertBannerCo);
         alertBannerText.text = text;
+        AudioManager.Instance.PlaySfx("alert_pulse");
         alertBannerCo = StartCoroutine(CoBannerFade(seconds));
     }
 
@@ -87,6 +88,7 @@ public class HUDManager : MonoBehaviour
         codePanel.SetActive(true);
         if (codePanelStatus != null) codePanelStatus.text = "AUTH CODE — MEMORIZE";
         if (codePanelCode != null) codePanelCode.text = code;
+        AudioManager.Instance.PlaySfx("code_banner_appear");
         codePanelCo = StartCoroutine(CoHideCodePanel(duration));
     }
 
@@ -236,6 +238,8 @@ public class HUDManager : MonoBehaviour
             taskListText = SpawnHudLabel(canvasGO.transform, "Score", new Vector2(24f, -68f), 24, FontStyles.Normal);
 
         SpawnMiniMap(canvasGO.transform);
+        SpawnTaskListHUD(canvasGO.transform);
+        SpawnNotificationFeed(canvasGO.transform);
     }
 
     private void SpawnMiniMap(Transform canvasParent)
@@ -249,6 +253,32 @@ public class HUDManager : MonoBehaviour
         rt.anchoredPosition = new Vector2(24f, 24f);
         rt.sizeDelta = new Vector2(280f, 280f);
         minimapGO.AddComponent<MiniMapHUD>();
+    }
+
+    private void SpawnTaskListHUD(Transform canvasParent)
+    {
+        var go = new GameObject("TaskListHUD", typeof(RectTransform));
+        go.transform.SetParent(canvasParent, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot     = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(24f, -110f);
+        rt.sizeDelta = new Vector2(300f, 340f);
+        go.AddComponent<TaskListHUD>();
+    }
+
+    private void SpawnNotificationFeed(Transform canvasParent)
+    {
+        var go = new GameObject("NotificationFeed", typeof(RectTransform));
+        go.transform.SetParent(canvasParent, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = new Vector2(0f, 1f);
+        rt.anchorMax = new Vector2(0f, 1f);
+        rt.pivot     = new Vector2(0f, 1f);
+        rt.anchoredPosition = new Vector2(24f, -470f);
+        rt.sizeDelta = new Vector2(280f, 290f);
+        go.AddComponent<NotificationFeed>();
     }
 
     private TMP_Text SpawnHudLabel(Transform parent, string name, Vector2 anchoredPos, int size, FontStyles style)

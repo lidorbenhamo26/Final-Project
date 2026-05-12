@@ -138,6 +138,7 @@ public class PatternMatchTask : CognitiveTaskBase
         // Countdown.
         phase = Phase.Countdown;
         ShowMessage("READY?", new Color(0.9f, 0.95f, 1f));
+        AudioManager.Instance.PlayVoice("pattern_match_ready");
         yield return new WaitForSeconds(0.7f);
         for (int n = 3; n >= 1 && IsActive; n--)
         {
@@ -218,6 +219,7 @@ public class PatternMatchTask : CognitiveTaskBase
     {
         if (phase != Phase.Choosing || !IsActive) return;
         if (!IsDocked) return;
+        AudioManager.Instance.PlaySfx("button_click");
         phase = Phase.Done;
         ClearButtons();
         if (idx == correctIndex)
@@ -229,11 +231,23 @@ public class PatternMatchTask : CognitiveTaskBase
     private IEnumerator CoFinish(TaskResult result)
     {
         if (result == TaskResult.Success)
+        {
+            AudioManager.Instance.PlaySfx("success_chime");
+            AudioManager.Instance.PlayVoice("correct");
             ShowSplash("CORRECT!", new Color(0.3f, 1f, 0.4f), 1.0f);
+        }
         else if (result == TaskResult.Omission)
+        {
+            AudioManager.Instance.PlaySfx("timeout_alarm");
+            AudioManager.Instance.PlayVoice("timeout");
             ShowSplash("TIMEOUT", new Color(1f, 0.6f, 0.2f), 1.0f);
+        }
         else
+        {
+            AudioManager.Instance.PlaySfx("fail_buzz");
+            AudioManager.Instance.PlayVoice("incorrect");
             ShowSplash("WRONG!", new Color(1f, 0.3f, 0.3f), 1.0f);
+        }
         yield return new WaitForSeconds(1.0f);
         Resolve(result);
     }

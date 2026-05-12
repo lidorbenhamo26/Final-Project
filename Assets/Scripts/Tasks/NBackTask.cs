@@ -83,6 +83,7 @@ public class NBackTask : CognitiveTaskBase
         if (buttonsParent == null) return;
         ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
         ClearButtons();
+        AudioManager.Instance.PlayVoice("nback_ready");
         SpawnButton(new Vector2(0f, -150f), new Vector2(280f, 100f), "READY",
             new Color(0.2f, 0.8f, 0.4f), OnStartReadyClicked);
     }
@@ -156,6 +157,8 @@ public class NBackTask : CognitiveTaskBase
             currentTrial = i;
             alertPressedThisTrial = false;
             if (symbolText != null) symbolText.text = Symbols[trial[i]];
+            if (i >= 2 && trial[i] == trial[i - 2])
+                AudioManager.Instance.PlaySfx("nback_target_alert");
             UpdateHud();
 
             float t0 = Time.time;
@@ -181,6 +184,8 @@ public class NBackTask : CognitiveTaskBase
         bool pass = (hits >= 3 && falseAlarms <= 2);
         if (pass)
         {
+            AudioManager.Instance.PlaySfx("success_chime");
+            AudioManager.Instance.PlayVoice("correct");
             ShowMessage("HITS " + hits + " / " + TargetHits + "   FALSE ALARMS " + falseAlarms,
                 new Color(0.4f, 1f, 0.5f));
             ShowSplash("PASS!", new Color(0.3f, 1f, 0.4f), 1.2f);
@@ -189,6 +194,8 @@ public class NBackTask : CognitiveTaskBase
         }
         else
         {
+            AudioManager.Instance.PlaySfx("fail_buzz");
+            AudioManager.Instance.PlayVoice("incorrect");
             ShowMessage("HITS " + hits + " / " + TargetHits + "   FALSE ALARMS " + falseAlarms,
                 new Color(1f, 0.5f, 0.3f));
             ShowSplash("FAIL", new Color(1f, 0.3f, 0.3f), 1.2f);
@@ -212,6 +219,7 @@ public class NBackTask : CognitiveTaskBase
         if (currentTrial < 0) return;
         if (alertPressedThisTrial) return; // only first press counts
         alertPressedThisTrial = true;
+        AudioManager.Instance.PlaySfx("button_click");
 
         // Brief visual flash so the player knows the click registered.
         if (alertFlash != null) StartCoroutine(CoAlertFlash());

@@ -18,6 +18,7 @@ public class StationDockController : MonoBehaviour
     public Camera mainCamera;
     public ThirdPersonCamera tpCam;
     public FirstPersonStationCamera fpCam;
+    public FirstPersonHandsView handsView;
     public AstronautController player;
 
     private State _state = State.Free;
@@ -32,9 +33,22 @@ public class StationDockController : MonoBehaviour
     // its eventMask includes the station's mesh colliders (FBX import adds
     // them automatically). Disable while docked, re-enable on undock.
     private PhysicsRaycaster _suspendedPhysicsRaycaster;
+    private RendererSnapshot[] _playerRendererSnapshots;
 
     public bool IsDocked => _state == State.Docked;
     public TaskStation CurrentStation => _currentStation;
+
+    private struct RendererSnapshot
+    {
+        public Renderer renderer;
+        public bool wasEnabled;
+
+        public RendererSnapshot(Renderer renderer)
+        {
+            this.renderer = renderer;
+            wasEnabled = renderer != null && renderer.enabled;
+        }
+    }
 
     private void Awake()
     {
@@ -44,6 +58,9 @@ public class StationDockController : MonoBehaviour
 
     private void OnDestroy()
     {
+        RestorePlayerVisuals();
+        if (handsView != null) handsView.Hide();
+
         if (Instance == this) Instance = null;
         if (_subscribed)
         {
@@ -74,6 +91,11 @@ public class StationDockController : MonoBehaviour
             fpCam = mainCamera.GetComponent<FirstPersonStationCamera>();
             if (fpCam == null) fpCam = FindAnyObjectByType<FirstPersonStationCamera>(FindObjectsInactive.Include);
         }
+        if (handsView == null && mainCamera != null)
+        {
+            handsView = mainCamera.GetComponent<FirstPersonHandsView>();
+            if (handsView == null) handsView = FindAnyObjectByType<FirstPersonHandsView>(FindObjectsInactive.Include);
+        }
         if (player == null) player = FindAnyObjectByType<AstronautController>();
 
         // Resolve Interact action from the player's PlayerInput
@@ -86,6 +108,7 @@ public class StationDockController : MonoBehaviour
 
         // Disable fpCam at start so the third-person view is the default
         if (fpCam != null) fpCam.enabled = false;
+        if (handsView != null) handsView.Hide();
     }
 
     private void Update()
@@ -144,6 +167,8 @@ public class StationDockController : MonoBehaviour
         ResolveRefs();
         _currentStation = station;
         _state = State.Docked;
+        AudioManager.Instance.PlaySfx("dock_lock");
+        AudioManager.Instance.PlaySfx("airlock_hiss");
 
         if (player != null) player.ControlsEnabled = false;
         if (tpCam != null) tpCam.enabled = false;
@@ -153,6 +178,8 @@ public class StationDockController : MonoBehaviour
             fpCam.enabled = true;
             fpCam.SetDockTarget(station.transform);
         }
+        HidePlayerVisuals();
+        if (handsView != null) handsView.Show();
 
         station.UI?.Hide();
 
@@ -161,6 +188,11 @@ public class StationDockController : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        // Warp the cursor to screen center so the player doesn't need to fish
+        // for the READY button — it lands right under the cursor on dock.
+        if (Mouse.current != null)
+            Mouse.current.WarpCursorPosition(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
 
         EnsureEventSystem();
 
@@ -204,10 +236,13 @@ public class StationDockController : MonoBehaviour
 
         _currentStation = null;
         _state = State.Free;
+        AudioManager.Instance.PlaySfx("dock_release");
 
         if (player != null) player.ControlsEnabled = true;
         if (tpCam != null) tpCam.enabled = true;
         if (fpCam != null) fpCam.enabled = false;
+        if (handsView != null) handsView.Hide();
+        RestorePlayerVisuals();
 
         station?.UI?.Show();
 
@@ -226,6 +261,35 @@ public class StationDockController : MonoBehaviour
 
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
+    }
+
+    private void HidePlayerVisuals()
+    {
+        if (_playerRendererSnapshots != null || player == null) return;
+
+        Renderer[] renderers = player.GetComponentsInChildren<Renderer>(true);
+        _playerRendererSnapshots = new RendererSnapshot[renderers.Length];
+
+        for (int i = 0; i < renderers.Length; i++)
+        {
+            Renderer renderer = renderers[i];
+            _playerRendererSnapshots[i] = new RendererSnapshot(renderer);
+            if (renderer != null) renderer.enabled = false;
+        }
+    }
+
+    private void RestorePlayerVisuals()
+    {
+        if (_playerRendererSnapshots == null) return;
+
+        for (int i = 0; i < _playerRendererSnapshots.Length; i++)
+        {
+            RendererSnapshot snapshot = _playerRendererSnapshots[i];
+            if (snapshot.renderer != null)
+                snapshot.renderer.enabled = snapshot.wasEnabled;
+        }
+
+        _playerRendererSnapshots = null;
     }
 
     private void HandleTaskResolved(MissionTask task, TaskResult result, float rt)
