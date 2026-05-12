@@ -37,7 +37,10 @@ public class TaskListHUD : MonoBehaviour
     private MissionTask currentTask;
     private Dictionary<string, Sprite> iconByStation;
     private Sprite fallbackIcon;
+    private Sprite panelFrameSprite;
+    private Image activeFrameImg;
     private bool _urgencyActive;
+    private bool _hasRecent;
 
     private void Awake()
     {
@@ -50,12 +53,15 @@ public class TaskListHUD : MonoBehaviour
         bgRt.offsetMin = Vector2.zero; bgRt.offsetMax = Vector2.zero;
         bg.GetComponent<Image>().color = ColorPanelBg;
 
+        panelFrameSprite = Resources.Load<Sprite>("UI/panel_frame_corners");
+
         LoadIcons();
         BuildActiveRow();
         BuildRecentHeader();
         BuildRecentRows();
         ClearActiveRow();
         for (int i = 0; i < recentRows.Length; i++) ClearRecentRow(i);
+        ShowEmptyRecentState();
     }
 
     private void OnEnable()
@@ -230,7 +236,33 @@ public class TaskListHUD : MonoBehaviour
 
     private void BuildActiveRow()
     {
-        activeRow = BuildRow("ActiveRow", 0f, ACTIVE_H, 64f, 18, 14);
+        activeRow = BuildRow("ActiveRow", 0f, ACTIVE_H, 64f, 20, 16);
+
+        // Corner-bracket frame overlay (sci-fi cockpit feel). If the Meshy sprite is
+        // present at Resources/UI/panel_frame_corners we use it as a 9-sliced image;
+        // otherwise fall back to a thin outline rectangle so the row still reads
+        // as a contained panel.
+        var frame = new GameObject("Frame", typeof(RectTransform), typeof(Image));
+        frame.transform.SetParent(activeRow.Root, false);
+        var frt = (RectTransform)frame.transform;
+        frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one;
+        frt.offsetMin = new Vector2(2f, 2f); frt.offsetMax = new Vector2(-2f, -2f);
+        activeFrameImg = frame.GetComponent<Image>();
+        activeFrameImg.raycastTarget = false;
+        if (panelFrameSprite != null)
+        {
+            activeFrameImg.sprite = panelFrameSprite;
+            activeFrameImg.type = Image.Type.Sliced;
+            activeFrameImg.pixelsPerUnitMultiplier = 1f;
+        }
+        else
+        {
+            activeFrameImg.sprite = BuildHollowRectSprite();
+            activeFrameImg.type = Image.Type.Sliced;
+            activeFrameImg.pixelsPerUnitMultiplier = 1f;
+        }
+        activeFrameImg.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, 0.4f);
+
         var bar = new GameObject("TimeBar", typeof(RectTransform), typeof(Image));
         bar.transform.SetParent(activeRow.Root, false);
         var brt = (RectTransform)bar.transform;
@@ -245,6 +277,38 @@ public class TaskListHUD : MonoBehaviour
         img.fillOrigin = (int)Image.OriginHorizontal.Left;
         img.fillAmount = 1f;
         activeRow.TimeBar = img;
+    }
+
+    // Procedural fallback when panel_frame_corners sprite is missing: a 32x32
+    // hollow rect with a 4px cyan border, sliced 9-ways so it stretches cleanly.
+    private static Sprite BuildHollowRectSprite()
+    {
+        const int N = 32;
+        const int border = 4;
+        var px = new Color[N * N];
+        var clear = new Color(0f, 0f, 0f, 0f);
+        var stroke = new Color(0.55f, 0.95f, 1f, 1f);
+        for (int i = 0; i < px.Length; i++) px[i] = clear;
+        for (int y = 0; y < N; y++)
+        for (int x = 0; x < N; x++)
+        {
+            bool onEdge = x < border || x >= N - border || y < border || y >= N - border;
+            // Carve out the center so only the border + corners draw
+            bool inCorner =
+                (x < border * 2 && y < border * 2) ||
+                (x >= N - border * 2 && y < border * 2) ||
+                (x < border * 2 && y >= N - border * 2) ||
+                (x >= N - border * 2 && y >= N - border * 2);
+            if (onEdge && inCorner) px[y * N + x] = stroke;
+        }
+        var tex = new Texture2D(N, N, TextureFormat.RGBA32, false);
+        tex.filterMode = FilterMode.Bilinear;
+        tex.wrapMode = TextureWrapMode.Clamp;
+        tex.SetPixels(px);
+        tex.Apply();
+        return Sprite.Create(tex, new Rect(0, 0, N, N),
+            new Vector2(0.5f, 0.5f), 100f, 0, SpriteMeshType.FullRect,
+            new Vector4(border * 2, border * 2, border * 2, border * 2));
     }
 
     private void BuildRecentHeader()
@@ -360,6 +424,7 @@ public class TaskListHUD : MonoBehaviour
         if (activeRow.StationLabel != null) { activeRow.StationLabel.text = "STANDBY"; activeRow.StationLabel.color = ColorTextSec; }
         if (activeRow.ResultLabel != null) activeRow.ResultLabel.text = "Awaiting task...";
         if (activeRow.TimeBar != null) { activeRow.TimeBar.fillAmount = 0f; activeRow.TimeBar.color = ColorIdle; }
+        if (activeFrameImg != null) activeFrameImg.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, 0.4f);
     }
 
     private void ClearRecentRow(int slot)
@@ -368,8 +433,26 @@ public class TaskListHUD : MonoBehaviour
         var r = recentRows[slot];
         if (r.Pill != null) r.Pill.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, 0.35f);
         if (r.Icon != null) { r.Icon.sprite = null; r.Icon.color = new Color(1f, 1f, 1f, 0f); }
-        if (r.StationLabel != null) r.StationLabel.text = "";
-        if (r.ResultLabel != null) r.ResultLabel.text = "";
+        if (r.StationLabel != null) { r.StationLabel.text = ""; r.StationLabel.color = ColorTextPri; }
+        if (r.ResultLabel != null) { r.ResultLabel.text = ""; r.ResultLabel.color = ColorTextSec; }
+    }
+
+    private void ShowEmptyRecentState()
+    {
+        if (recentRows.Length == 0) return;
+        var r = recentRows[0];
+        if (r.Pill != null) r.Pill.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, 0.18f);
+        if (r.StationLabel != null)
+        {
+            r.StationLabel.text = "AWAITING";
+            r.StationLabel.color = new Color(ColorTextSec.r, ColorTextSec.g, ColorTextSec.b, 0.55f);
+        }
+        if (r.ResultLabel != null)
+        {
+            r.ResultLabel.text = "No tasks completed yet";
+            r.ResultLabel.color = new Color(ColorTextSec.r, ColorTextSec.g, ColorTextSec.b, 0.4f);
+        }
+        _hasRecent = false;
     }
 
     private void HandleSpawn(MissionTask task)
@@ -382,12 +465,19 @@ public class TaskListHUD : MonoBehaviour
         if (activeRow.StationLabel != null) { activeRow.StationLabel.text = PrettyStation(task.StationName).ToUpperInvariant(); activeRow.StationLabel.color = ColorTextPri; }
         if (activeRow.ResultLabel != null) activeRow.ResultLabel.text = task.TaskName != null ? task.TaskName : "Task";
         if (activeRow.TimeBar != null) { activeRow.TimeBar.color = ColorActive; activeRow.TimeBar.fillAmount = 1f; }
+        if (activeFrameImg != null) activeFrameImg.color = new Color(ColorActive.r, ColorActive.g, ColorActive.b, 1f);
     }
 
     private void HandleResolved(MissionTask task, TaskResult result, float reactionTime)
     {
         if (task == null) return;
         bool isCurrent = ReferenceEquals(task, currentTask);
+        if (!_hasRecent)
+        {
+            // First resolved task: replace the empty-state placeholder before shifting.
+            ClearRecentRow(0);
+            _hasRecent = true;
+        }
         ShiftRecentsDown();
         WriteRecent(0, task, result, reactionTime);
         if (isCurrent) { ClearActiveRow(); _urgencyActive = false; }
@@ -482,5 +572,11 @@ public class TaskListHUD : MonoBehaviour
         Color c = urgent ? ColorUrgent : ColorActive;
         if (activeRow.Pill != null) activeRow.Pill.color = c;
         if (activeRow.TimeBar != null) activeRow.TimeBar.color = c;
+        if (activeFrameImg != null)
+        {
+            // Pulse the frame alpha while urgent so the panel reads as 'in danger'.
+            float a = urgent ? 0.55f + 0.45f * Mathf.PingPong(Time.time * 2f, 1f) : 1f;
+            activeFrameImg.color = new Color(c.r, c.g, c.b, a);
+        }
     }
 }

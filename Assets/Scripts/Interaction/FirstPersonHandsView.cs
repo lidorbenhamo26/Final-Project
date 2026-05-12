@@ -9,11 +9,25 @@ public class FirstPersonHandsView : MonoBehaviour
 {
     [Header("Hands")]
     [SerializeField] private GameObject handsPrefab;
-    [SerializeField] private Vector3 localPosition = new Vector3(0f, -0.58f, 0.85f);
-    [SerializeField] private Vector3 localEulerAngles = new Vector3(4f, 0f, 0f);
-    [SerializeField] private Vector3 localScale = Vector3.one * 0.35f;
+    [SerializeField] private Vector3 localPosition = new Vector3(0f, -0.54f, 0.92f);
+    [SerializeField] private Vector3 localEulerAngles = new Vector3(14f, 0f, 0f);
+    [SerializeField] private Vector3 localScale = Vector3.one * 26f;
+
+    [Header("Idle Motion")]
+    [SerializeField] private bool idleMotion = true;
+    [SerializeField] private float motionFrequency = 0.55f;
+    [SerializeField] private float bobAmplitude = 0.012f;
+    [SerializeField] private float swayAmplitude = 0.016f;
+    [SerializeField] private float rollAmplitude = 0.9f;
+
+    [Header("Press Reaction")]
+    [SerializeField] private float pressForwardAmount = 0.045f;
+    [SerializeField] private float pressPitchDegrees = 6f;
+    [SerializeField] private float pressDuration = 0.18f;
 
     private GameObject instance;
+    private float motionStartTime;
+    private float pressStartTime = float.NegativeInfinity;
 
     public GameObject HandsPrefab
     {
@@ -37,13 +51,21 @@ public class FirstPersonHandsView : MonoBehaviour
     public void Show()
     {
         if (!EnsureInstance()) return;
-        ApplyLocalPose();
+        motionStartTime = Time.unscaledTime;
+        ApplyLocalPose(true);
         instance.SetActive(true);
     }
 
     public void Hide()
     {
         if (instance != null) instance.SetActive(false);
+    }
+
+    /// <summary>Trigger a one-shot forward jab + slight pitch reaction. Called when the docked player
+    /// clicks a keypad button so the hands feel connected to the input.</summary>
+    public void TriggerPress()
+    {
+        pressStartTime = Time.unscaledTime;
     }
 
     private bool EnsureInstance()
@@ -54,18 +76,49 @@ public class FirstPersonHandsView : MonoBehaviour
         instance = Instantiate(handsPrefab, transform);
         instance.name = "FirstPersonHands_View";
         DisableInteractionColliders(instance);
-        ApplyLocalPose();
+        ApplyLocalPose(false);
         instance.SetActive(false);
         return true;
     }
 
-    private void ApplyLocalPose()
+    private void LateUpdate()
+    {
+        if (instance != null && instance.activeSelf)
+            ApplyLocalPose(true);
+    }
+
+    private void ApplyLocalPose(bool includeMotion)
     {
         if (instance == null) return;
-        Transform t = instance.transform;
-        t.localPosition = localPosition;
-        t.localRotation = Quaternion.Euler(localEulerAngles);
-        t.localScale = localScale;
+
+        Vector3 position = localPosition;
+        Vector3 eulerAngles = localEulerAngles;
+        if (includeMotion && idleMotion)
+        {
+            float t = (Time.unscaledTime - motionStartTime) * motionFrequency * Mathf.PI * 2f;
+            position.x += Mathf.Sin(t * 0.7f) * swayAmplitude;
+            position.y += Mathf.Sin(t) * bobAmplitude;
+            eulerAngles.x += Mathf.Cos(t * 0.5f) * 0.45f;
+            eulerAngles.z += Mathf.Sin(t * 0.6f) * rollAmplitude;
+        }
+
+        if (includeMotion && pressDuration > 0f)
+        {
+            float pressElapsed = Time.unscaledTime - pressStartTime;
+            if (pressElapsed >= 0f && pressElapsed <= pressDuration)
+            {
+                float u = pressElapsed / pressDuration;
+                float bell = 4f * u * (1f - u);
+                position.z += pressForwardAmount * bell;
+                position.y -= pressForwardAmount * 0.35f * bell;
+                eulerAngles.x += pressPitchDegrees * bell;
+            }
+        }
+
+        Transform instanceTransform = instance.transform;
+        instanceTransform.localPosition = position;
+        instanceTransform.localRotation = Quaternion.Euler(eulerAngles);
+        instanceTransform.localScale = localScale;
     }
 
     private static void DisableInteractionColliders(GameObject root)

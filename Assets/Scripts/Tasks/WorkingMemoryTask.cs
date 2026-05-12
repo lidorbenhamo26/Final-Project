@@ -52,7 +52,6 @@ public class WorkingMemoryTask : CognitiveTaskBase
         code = new string(digits);
 
         SessionManager.Instance?.LogCustomEvent("WM_Spawned", "EngineStation", "code=" + code);
-        StationUI?.SetInstruction("WORKING MEMORY: read code on main screen, then enter here");
         ShowMessage("AWAIT CODE…", new Color(0.7f, 0.85f, 1f));
         AudioManager.Instance.PlayVoice("wm_memorize");
         flowCo = StartCoroutine(CoFullFlow());
@@ -147,6 +146,7 @@ public class WorkingMemoryTask : CognitiveTaskBase
 
     private void OnDigitPressed(int d)
     {
+        StationDockController.Instance?.handsView?.TriggerPress();
         if (phase != Phase.Recall || !IsActive) return;
         if (!IsDocked) return;
         if (input.Length >= CodeLength) return;
@@ -166,6 +166,7 @@ public class WorkingMemoryTask : CognitiveTaskBase
 
     private void OnClear()
     {
+        StationDockController.Instance?.handsView?.TriggerPress();
         if (phase != Phase.Recall) return;
         input = "";
         UpdateInputLabel();
@@ -173,6 +174,7 @@ public class WorkingMemoryTask : CognitiveTaskBase
 
     private void OnSubmit()
     {
+        StationDockController.Instance?.handsView?.TriggerPress();
         if (phase != Phase.Recall || !IsActive) return;
         if (input.Length < CodeLength)
         {

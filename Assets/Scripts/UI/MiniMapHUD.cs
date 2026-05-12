@@ -342,15 +342,21 @@ public class MiniMapHUD : MonoBehaviour
         bgImg.raycastTarget = false;
         bgImg.preserveAspect = true;
 
-        SpawnLabel("Lbl_Engine",      engineLabel,      new Vector2(140f, 215f));
-        SpawnLabel("Lbl_Navigation",  navigationLabel,  new Vector2(215f, 140f));
-        SpawnLabel("Lbl_Comms",       commsLabel,       new Vector2( 65f, 140f));
-        SpawnLabel("Lbl_LifeSupport", lifeSupportLabel, new Vector2(140f,  65f));
+        // Room labels sit INSIDE each room, directly below the room icon — that
+        // empty band between icon and room edge is the only spot that doesn't
+        // conflict with either the icon (above) or the alert beacon (above the icon).
+        // Short uppercase labels at 9pt with a dark outline so they stay readable
+        // against the navy room interior.
+        SpawnLabel("Lbl_Engine",      engineLabel,      new Vector2(140f, 195f), 9, FontStyles.Bold, true);
+        SpawnLabel("Lbl_Navigation",  navigationLabel,  new Vector2(218f, 117f), 9, FontStyles.Bold, true);
+        SpawnLabel("Lbl_Comms",       commsLabel,       new Vector2( 62f, 117f), 9, FontStyles.Bold, true);
+        SpawnLabel("Lbl_LifeSupport", lifeSupportLabel, new Vector2(140f,  38f), 9, FontStyles.Bold, true);
 
-        SpawnLabel("Lbl_N", nLabel, new Vector2(140f, 258f), 18, FontStyles.Bold);
-        SpawnLabel("Lbl_S", sLabel, new Vector2(140f,  22f), 18, FontStyles.Bold);
-        SpawnLabel("Lbl_E", eLabel, new Vector2(258f, 140f), 18, FontStyles.Bold);
-        SpawnLabel("Lbl_W", wLabel, new Vector2( 22f, 140f), 18, FontStyles.Bold);
+        // Cardinal N/S/E/W markers stay at the very edge of the ring.
+        SpawnLabel("Lbl_N", nLabel, new Vector2(140f, 266f), 13, FontStyles.Bold, true);
+        SpawnLabel("Lbl_S", sLabel, new Vector2(140f,  14f), 13, FontStyles.Bold, true);
+        SpawnLabel("Lbl_E", eLabel, new Vector2(266f, 140f), 13, FontStyles.Bold, true);
+        SpawnLabel("Lbl_W", wLabel, new Vector2( 14f, 140f), 13, FontStyles.Bold, true);
 
         var arrow = new GameObject("PlayerArrow", typeof(RectTransform), typeof(Image));
         arrow.transform.SetParent(transform, false);
@@ -378,7 +384,7 @@ public class MiniMapHUD : MonoBehaviour
     }
 
     private void SpawnLabel(string name, string text, Vector2 pixelPos,
-                            int size = 14, FontStyles style = FontStyles.Bold)
+                            int size = 14, FontStyles style = FontStyles.Bold, bool withOutline = false)
     {
         var go = new GameObject(name, typeof(RectTransform));
         go.transform.SetParent(transform, false);
@@ -392,8 +398,15 @@ public class MiniMapHUD : MonoBehaviour
         lbl.fontSize  = size;
         lbl.fontStyle = style;
         lbl.alignment = TextAlignmentOptions.Center;
-        lbl.color     = new Color(0.55f, 0.95f, 1f, 1f);
+        lbl.color     = new Color(0.78f, 0.98f, 1f, 1f);
         lbl.raycastTarget = false;
+        lbl.enableWordWrapping = false;
+        lbl.overflowMode = TextOverflowModes.Overflow;
+        if (withOutline)
+        {
+            lbl.outlineWidth = 0.22f;
+            lbl.outlineColor = new Color(0.02f, 0.04f, 0.09f, 1f);
+        }
     }
 
     private static void StretchToParent(RectTransform rt)

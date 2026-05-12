@@ -168,7 +168,6 @@ public class StationDockController : MonoBehaviour
         _currentStation = station;
         _state = State.Docked;
         AudioManager.Instance.PlaySfx("dock_lock");
-        AudioManager.Instance.PlaySfx("airlock_hiss");
 
         if (player != null) player.ControlsEnabled = false;
         if (tpCam != null) tpCam.enabled = false;
