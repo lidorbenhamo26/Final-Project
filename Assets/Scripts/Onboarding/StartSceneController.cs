@@ -18,6 +18,12 @@ public class StartSceneController : MonoBehaviour
     private void Start()
     {
         BuildUI();
+        if (SessionContext.Instance.TutorialCompleted)
+        {
+            if (formPanel != null) formPanel.gameObject.SetActive(false);
+            tutorial.Hide();
+            briefing.Show();
+        }
     }
 
     private void BuildUI()
@@ -70,8 +76,7 @@ public class StartSceneController : MonoBehaviour
 
     private void OnFormSubmitted()
     {
-        if (formPanel != null) formPanel.gameObject.SetActive(false);
-        tutorial.Show();
+        SceneTransition.LoadTutorial();
     }
 
     private void OnTutorialFinished()
