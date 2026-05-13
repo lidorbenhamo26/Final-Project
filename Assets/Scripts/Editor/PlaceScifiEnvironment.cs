@@ -77,8 +77,10 @@ public class PlaceScifiEnvironment
     }
 
     static GameObject PlaceStatic(string path, Vector3 pos, float rotY)
+#pragma warning disable CS0618 // NavigationStatic still functions; full migration to NavMeshBuilder.CollectSources is out of scope here
         => Place(path, pos, rotY,
             StaticEditorFlags.NavigationStatic | StaticEditorFlags.ContributeGI);
+#pragma warning restore CS0618
 
     static void PlaceNamed(string path, string name, Vector3 pos, float rotY)
     {

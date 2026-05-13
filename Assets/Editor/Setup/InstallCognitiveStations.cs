@@ -188,7 +188,7 @@ namespace SpaceStation.EditorSetup
         public static void SetupDockController()
         {
             // EventSystem (needed for any UI clicks at all)
-            var es = Object.FindFirstObjectByType<EventSystem>();
+            var es = Object.FindAnyObjectByType<EventSystem>();
             if (es == null)
             {
                 var esGO = new GameObject("EventSystem", typeof(EventSystem),

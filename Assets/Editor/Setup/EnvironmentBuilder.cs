@@ -43,6 +43,8 @@ namespace FinalProject.EditorTools.Setup
         private const string EnvironmentLayerName   = "Environment";
 
         // ---- Prefab paths (verified to exist in MinimalScifiPack) -----------
+        // Catalog of available prefabs; some entries are reserved for future layouts.
+#pragma warning disable CS0414
         private const string PrefabsRoot = "Assets/Dzeruza/MinimalScifiPack/3DModels";
 
         private static readonly string FloorTile_8x8         = PrefabsRoot + "/Floor/Prefabs/SM_Trim_Floor_8x8M_A1.prefab";
@@ -69,6 +71,7 @@ namespace FinalProject.EditorTools.Setup
         private static readonly string Prop_Canister         = PrefabsRoot + "/Props/Prefabs/SM_Canister1.prefab";
         private static readonly string Prop_Container1       = PrefabsRoot + "/Props/Prefabs/SM_Trim_L_Container1.prefab";
         private static readonly string Prop_Container2       = PrefabsRoot + "/Props/Prefabs/SM_Trim_L_Container2.prefab";
+#pragma warning restore CS0414
 
         // Cache for fall-back complaints so we only log once per asset.
         private static readonly HashSet<string> _missingLogged = new HashSet<string>();

@@ -51,12 +51,14 @@ namespace SpaceStation.EditorSetup
             new PropDef { Name = "StarMapStand",   FbxRelativePath = "StarMapStand/StarMapStand.fbx",   Position = new Vector3(17.5f, 0.0f,  2.0f), UniformScale = 1.0f, RandomYRotation = true,  EmissiveTint = new Color(0.3f, 0.7f, 1.0f), EmissiveIntensity = 1.5f },
             new PropDef { Name = "PlanetGlobe",    FbxRelativePath = "PlanetGlobe/PlanetGlobe.fbx",     Position = new Vector3(15.0f, 1.0f, -2.0f), UniformScale = 0.6f, RandomYRotation = true  },
 
-            // Comms_W (-X): alien contact + signal crystal.
-            new PropDef { Name = "AlienBuddy",     FbxRelativePath = "AlienBuddy/AlienBuddy.fbx",       Position = new Vector3(-15.0f, 0.0f, -2.0f), UniformScale = 1.0f, RandomYRotation = false, EulerRotation = new Vector3(0,  35, 0) },
+            // Comms_W (-X): signal crystal (alien moved to Hub as companion).
             new PropDef { Name = "StarCrystal",    FbxRelativePath = "StarCrystal/StarCrystal.fbx",     Position = new Vector3(-15.0f, 1.5f,  2.0f), UniformScale = 0.5f, RandomYRotation = true,  EmissiveTint = new Color(1.0f, 0.9f, 0.4f), EmissiveIntensity = 2.5f },
 
-            // Hub_Central: friendly mascot at the entry.
-            new PropDef { Name = "RobotPet",       FbxRelativePath = "RobotPet/RobotPet.fbx",           Position = new Vector3( 1.5f, 0.0f,  0.0f), UniformScale = 0.7f, RandomYRotation = false, EulerRotation = new Vector3(0, 180, 0) },
+            // Hub_Central: friendly mascots that share the entry space.
+            // Y offsets compensate for Meshy FBX center-pivot at scale ~42 (PropsFixup ×60).
+            // HoverBob amplitude is ±0.12m, so Y=0.6 keeps the robot's feet above floor even at the dip.
+            new PropDef { Name = "AlienBuddy",     FbxRelativePath = "AlienBuddy/AlienBuddy.fbx",       Position = new Vector3(-1.5f, 0.0f,  0.0f), UniformScale = 1.0f, RandomYRotation = false, EulerRotation = new Vector3(0,  35, 0) },
+            new PropDef { Name = "RobotPet",       FbxRelativePath = "RobotPet/RobotPet.fbx",           Position = new Vector3( 1.5f, 0.6f,  0.0f), UniformScale = 0.7f, RandomYRotation = false, EulerRotation = new Vector3(0, 180, 0) },
         };
 
         // ----- Celestial props (parented under SkyBodies_Root, large scale, far away) -----

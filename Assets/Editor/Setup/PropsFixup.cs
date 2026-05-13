@@ -100,51 +100,49 @@ namespace SpaceStation.EditorSetup
         [MenuItem("Setup/7 - Brighten Lighting")]
         public static void Brighten()
         {
-            // 1. Moderate ambient — bright enough to read, dark enough to feel like space
-            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Trilight;
-            RenderSettings.ambientSkyColor    = new Color(0.30f, 0.36f, 0.50f);
-            RenderSettings.ambientEquatorColor = new Color(0.22f, 0.26f, 0.35f);
-            RenderSettings.ambientGroundColor  = new Color(0.10f, 0.11f, 0.15f);
-            RenderSettings.ambientIntensity   = 0.6f;
-            RenderSettings.reflectionIntensity = 0.5f;
+            // 1. Flat ambient at high intensity. Trilight made the floor much
+            //    darker than the walls; Flat keeps everything evenly lit even
+            //    when the closed ceiling blocks the directional light.
+            RenderSettings.ambientMode = UnityEngine.Rendering.AmbientMode.Flat;
+            RenderSettings.ambientLight = new Color(0.85f, 0.88f, 0.92f);
+            RenderSettings.ambientIntensity = 3.0f;
+            RenderSettings.reflectionIntensity = 1.0f;
 
-            // 2. Lighter fog
+            // 2. Very light fog
             RenderSettings.fog = true;
-            RenderSettings.fogDensity = 0.004f;
-            RenderSettings.fogColor = new Color(0.12f, 0.18f, 0.30f);
+            RenderSettings.fogDensity = 0.0008f;
+            RenderSettings.fogColor = new Color(0.55f, 0.58f, 0.65f);
 
-            // 3. Tame the directional light(s) — too many causes blow-out
-            //    Keep the FIRST directional reasonable, weaken the rest.
-            //    Boost point/spot lights moderately.
+            // 3. Stronger directionals, NO shadows (the ceiling blocks the
+            //    directional in Play Mode otherwise). Boost point/spot lights.
             int boosted = 0;
             bool firstDir = true;
-            foreach (var light in Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
+            foreach (var light in Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude))
             {
                 if (light.type == LightType.Directional)
                 {
                     if (firstDir)
                     {
-                        light.intensity = 0.7f;
-                        light.color = new Color(0.85f, 0.92f, 1.0f);
+                        light.intensity = 1.2f;
+                        light.color = new Color(0.92f, 0.95f, 1.0f);
                         firstDir = false;
                     }
                     else
                     {
-                        // additional directionals (e.g. SunDirectional) — weaken so they don't blow out
-                        light.intensity = Mathf.Min(light.intensity, 0.25f);
+                        light.intensity = Mathf.Min(light.intensity, 0.5f);
                     }
+                    light.shadows = LightShadows.None;
                     boosted++;
                 }
                 else if (light.type == LightType.Point || light.type == LightType.Spot)
                 {
-                    // Neon room accents — bright enough to read but not blow out
-                    light.intensity = Mathf.Clamp(light.intensity * 1.2f, 2.5f, 6f);
-                    light.range = Mathf.Max(light.range, 10f);
+                    light.intensity = Mathf.Clamp(light.intensity * 1.4f, 5.0f, 12f);
+                    light.range = Mathf.Max(light.range, 12f);
                     boosted++;
                 }
             }
 
-            // 4. Soft fill directional from above-front
+            // 4. Soft fill directional from above-front (rim/back light)
             var fillName = "FillLight_TopFront";
             var existing = GameObject.Find(fillName);
             if (existing != null) Object.DestroyImmediate(existing);
@@ -154,9 +152,11 @@ namespace SpaceStation.EditorSetup
             var fl = fillGo.AddComponent<Light>();
             fl.type = LightType.Directional;
             fl.color = new Color(0.95f, 0.97f, 1.0f);
-            fl.intensity = 0.25f;
+            fl.intensity = 0.5f;
             fl.shadows = LightShadows.None;
 
+            UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
+                UnityEngine.SceneManagement.SceneManager.GetActiveScene());
             Debug.Log($"[PropsFixup] Brightened lighting. Adjusted {boosted} lights, ambient now bright.");
         }
 

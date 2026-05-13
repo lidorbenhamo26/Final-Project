@@ -327,7 +327,7 @@ public class MiniMapHUD : MonoBehaviour
 
     private void Start()
     {
-        var astro = Object.FindFirstObjectByType<AstronautController>();
+        var astro = Object.FindAnyObjectByType<AstronautController>();
         if (astro != null) playerTransform = astro.transform;
         mainCam = Camera.main;
     }
@@ -400,7 +400,7 @@ public class MiniMapHUD : MonoBehaviour
         lbl.alignment = TextAlignmentOptions.Center;
         lbl.color     = new Color(0.78f, 0.98f, 1f, 1f);
         lbl.raycastTarget = false;
-        lbl.enableWordWrapping = false;
+        lbl.textWrappingMode = TextWrappingModes.NoWrap;
         lbl.overflowMode = TextOverflowModes.Overflow;
         if (withOutline)
         {

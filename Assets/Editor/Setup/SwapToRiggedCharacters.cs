@@ -21,6 +21,8 @@ namespace SpaceStation.EditorSetup
         [MenuItem("Setup/13 - Swap to Rigged Characters")]
         public static void Swap()
         {
+            int npcLayer = EnsureNpcLayer();
+
             ConfigureRiggedFbx(AlienWalkingFbx, isHumanoid: false, animLoop: true);
             ConfigureStaticFbx(RobotRefinedFbx);
             AssetDatabase.Refresh();
@@ -46,11 +48,31 @@ namespace SpaceStation.EditorSetup
             alien.transform.localScale = Vector3.one * 1.2f;  // ~1.6m height after Meshy rig at 1.6m
             GroundRenderer(alien);
 
+            // Capsule blocks the player from walking through. Kinematic Rigidbody
+            // so the dynamic player Rigidbody can't shove the alien around (which
+            // would fight WanderingAI's transform translation).
+            var alienCap = alien.AddComponent<CapsuleCollider>();
+            alienCap.radius = 0.30f;
+            alienCap.height = 1.5f;
+            alienCap.center = new Vector3(0f, 0.75f, 0f);
+            alienCap.direction = 1; // Y-axis
+            var alienRb = alien.AddComponent<Rigidbody>();
+            alienRb.isKinematic = true;
+            alienRb.useGravity = false;
+            SetLayerRecursive(alien, npcLayer);
+
             var wander = alien.AddComponent<WanderingAI>();
             wander.areaCenter = new Vector3(0f, 0f, 0f);
             wander.areaRadius = 4.5f;
             wander.walkSpeed = 0.9f;
             wander.idleTime = 1.2f;
+
+            // Mischievous-pestering reactive layer — sits next to WanderingAI.
+            var curiosity = alien.AddComponent<AlienCuriosity>();
+            curiosity.losBlockers = ~(1 << npcLayer);
+            curiosity.chirpInterval = new Vector2(2.5f, 4.0f);
+            curiosity.pesterChirpVolume = 0.35f;
+            curiosity.noticeChirpVolume = 0.6f;
 
             // ── Robot — refined PBR mesh, hovers + bobs
             var robot = (GameObject)PrefabUtility.InstantiatePrefab(robotPrefab, root.transform);
@@ -61,14 +83,71 @@ namespace SpaceStation.EditorSetup
             GroundRenderer(robot);
             robot.transform.position += new Vector3(0f, 0.6f, 0f);  // raise so it floats off ground
 
+            var robotCap = robot.AddComponent<CapsuleCollider>();
+            robotCap.radius = 0.25f;
+            robotCap.height = 0.55f;
+            robotCap.center = Vector3.zero;
+            robotCap.direction = 1;
+            var robotRb = robot.AddComponent<Rigidbody>();
+            robotRb.isKinematic = true;
+            robotRb.useGravity = false;
+            SetLayerRecursive(robot, npcLayer);
+
             var bob = robot.AddComponent<HoverBob>();
             bob.bobAmplitude = 0.15f;
             bob.bobSpeed = 1.6f;
             bob.yawSpin = 6f;
 
+            // The rigged walking FBX ships without textures (Meshy keeps them with
+            // the refine task), so chain into Setup/14 — otherwise the alien/robot
+            // would appear as pure white silhouettes until the user manually runs it.
+            ApplyCharacterTextures.Apply();
+
+            // Setup/16: builds the AnimatorController and wires it onto the alien.
+            // Without this the alien T-poses (or slides) instead of playing its walk
+            // clip when WanderingAI / AlienCuriosity move it.
+            CleanupAndAnimate.WireAlienAnimator();
+
             UnityEditor.SceneManagement.EditorSceneManager.MarkSceneDirty(
                 UnityEngine.SceneManagement.SceneManager.GetActiveScene());
             Debug.Log("[Swap] Replaced AlienBuddy + RobotPet with V2 rigged/refined characters.");
+        }
+
+        /// <summary>Make sure a user layer named "NPC" exists. Returns its index.</summary>
+        private static int EnsureNpcLayer()
+        {
+            int existing = LayerMask.NameToLayer("NPC");
+            if (existing >= 0) return existing;
+
+            var tagManager = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+            var layers = tagManager.FindProperty("layers");
+            if (layers == null || !layers.isArray)
+            {
+                Debug.LogWarning("[Swap] Could not read TagManager layers; falling back to Default layer.");
+                return 0;
+            }
+            // Slots 0-7 are reserved Unity built-ins; user layers start at 8.
+            for (int i = 8; i < layers.arraySize; i++)
+            {
+                var slot = layers.GetArrayElementAtIndex(i);
+                if (string.IsNullOrEmpty(slot.stringValue))
+                {
+                    slot.stringValue = "NPC";
+                    tagManager.ApplyModifiedPropertiesWithoutUndo();
+                    AssetDatabase.SaveAssets();
+                    Debug.Log($"[Swap] Created user layer 'NPC' at index {i}.");
+                    return i;
+                }
+            }
+            Debug.LogWarning("[Swap] No empty user-layer slot available; falling back to Default layer.");
+            return 0;
+        }
+
+        private static void SetLayerRecursive(GameObject go, int layer)
+        {
+            if (go == null) return;
+            go.layer = layer;
+            foreach (Transform child in go.transform) SetLayerRecursive(child.gameObject, layer);
         }
 
         private static void ConfigureRiggedFbx(string path, bool isHumanoid, bool animLoop)

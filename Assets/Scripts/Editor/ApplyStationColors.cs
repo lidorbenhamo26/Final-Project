@@ -149,14 +149,14 @@ public class ApplyStationColors
 
     static void PaintRoot(string exactName, Material mat)
     {
-        foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+        foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Exclude))
             if (r.transform.root.gameObject.name == exactName)
                 ApplyToRenderer(r, mat);
     }
 
     static void PaintPrefix(string prefix, Material mat)
     {
-        foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsSortMode.None))
+        foreach (var r in Object.FindObjectsByType<MeshRenderer>(FindObjectsInactive.Exclude))
             if (r.transform.root.gameObject.name.StartsWith(prefix))
                 ApplyToRenderer(r, mat);
     }

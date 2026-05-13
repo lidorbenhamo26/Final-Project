@@ -117,7 +117,7 @@ public class NotificationFeed : MonoBehaviour
         tmp.fontStyle = FontStyles.Bold;
         tmp.color = ColorText;
         tmp.alignment = TextAlignmentOptions.MidlineLeft;
-        tmp.enableWordWrapping = false;
+        tmp.textWrappingMode = TextWrappingModes.NoWrap;
         tmp.overflowMode = TextOverflowModes.Ellipsis;
         tmp.raycastTarget = false;
 

@@ -89,8 +89,27 @@ public class WanderingAI : MonoBehaviour
 
     private void PickNewTarget()
     {
-        Vector2 r = Random.insideUnitCircle * areaRadius;
-        _target = new Vector3(areaCenter.x + r.x, transform.position.y, areaCenter.z + r.y);
+        // Try up to 5 random points in the area, rejecting any that would
+        // require walking through a wall. Without a NavMesh, a raycast from
+        // current position to the candidate is enough — every Wall/Door has
+        // a MeshCollider, so any blocked path returns a hit.
+        for (int attempt = 0; attempt < 5; attempt++)
+        {
+            Vector2 r = Random.insideUnitCircle * areaRadius;
+            Vector3 candidate = new Vector3(areaCenter.x + r.x, transform.position.y, areaCenter.z + r.y);
+            Vector3 dir = candidate - transform.position;
+            dir.y = 0f;
+            if (dir.sqrMagnitude < 0.0001f) continue;
+            Vector3 origin = transform.position + Vector3.up * 0.5f;
+            int npc = LayerMask.NameToLayer("NPC");
+            int wallMask = npc >= 0 ? ~(1 << npc) : ~0;
+            if (!Physics.Raycast(origin, dir.normalized, dir.magnitude, wallMask, QueryTriggerInteraction.Ignore))
+            {
+                _target = candidate;
+                return;
+            }
+        }
+        _target = transform.position;
     }
 
     private void SetAnimatorSpeed(float s)

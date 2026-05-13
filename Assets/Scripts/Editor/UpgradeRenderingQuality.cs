@@ -197,7 +197,7 @@ public class UpgradeRenderingQuality
     // ── 6. Soft shadows on all lights ─────────────────────────────────────────
     static void UpgradeShadows()
     {
-        foreach (var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+        foreach (var light in Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude))
         {
             if (light.shadows == LightShadows.None) continue;
             Undo.RecordObject(light, "Soft Shadows");

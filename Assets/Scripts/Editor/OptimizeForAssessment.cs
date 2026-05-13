@@ -59,7 +59,7 @@ public class OptimizeForAssessment
     static List<GameObject> FindAllRootNamed(string name)
     {
         var result = new List<GameObject>();
-        foreach (var go in Object.FindObjectsByType<GameObject>(FindObjectsSortMode.None))
+        foreach (var go in Object.FindObjectsByType<GameObject>(FindObjectsInactive.Exclude))
             if (go.transform.parent == null && go.name == name)
                 result.Add(go);
         return result;
