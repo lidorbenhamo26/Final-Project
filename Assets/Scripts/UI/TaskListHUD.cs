@@ -391,7 +391,7 @@ public class TaskListHUD : MonoBehaviour
         stTmp.fontStyle = FontStyles.Bold;
         stTmp.color = ColorTextPri;
         stTmp.alignment = TextAlignmentOptions.TopLeft;
-        stTmp.enableWordWrapping = false;
+        stTmp.textWrappingMode = TextWrappingModes.NoWrap;
         stTmp.overflowMode = TextOverflowModes.Ellipsis;
         stTmp.text = "";
         stTmp.raycastTarget = false;
@@ -407,7 +407,7 @@ public class TaskListHUD : MonoBehaviour
         tkTmp.fontSize = taskFontSize;
         tkTmp.color = ColorTextSec;
         tkTmp.alignment = TextAlignmentOptions.BottomLeft;
-        tkTmp.enableWordWrapping = false;
+        tkTmp.textWrappingMode = TextWrappingModes.NoWrap;
         tkTmp.overflowMode = TextOverflowModes.Ellipsis;
         tkTmp.richText = true;
         tkTmp.text = "";

@@ -90,9 +90,9 @@ namespace SpaceStation.EditorSetup
                 return;
             }
 
-            var dock = Object.FindFirstObjectByType<StationDockController>();
-            var station = Object.FindFirstObjectByType<TaskStation>();
-            var player = Object.FindFirstObjectByType<AstronautController>();
+            var dock = Object.FindAnyObjectByType<StationDockController>();
+            var station = Object.FindAnyObjectByType<TaskStation>();
+            var player = Object.FindAnyObjectByType<AstronautController>();
             var view = Camera.main != null ? Camera.main.GetComponent<FirstPersonHandsView>() : null;
 
             if (dock == null || station == null || player == null || view == null)
@@ -314,7 +314,7 @@ namespace SpaceStation.EditorSetup
 
         private static void ConfigureDockController(FirstPersonHandsView view)
         {
-            var dock = Object.FindFirstObjectByType<StationDockController>();
+            var dock = Object.FindAnyObjectByType<StationDockController>();
             if (dock == null) return;
 
             var so = new SerializedObject(dock);

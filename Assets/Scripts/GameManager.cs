@@ -84,7 +84,7 @@ public class GameManager : MonoBehaviour
         if (engineStation != null && navigationStation != null
             && commsStation != null && lifeSupportStation != null) return;
 
-        var all = Object.FindObjectsByType<TaskStation>(FindObjectsSortMode.None);
+        var all = Object.FindObjectsByType<TaskStation>(FindObjectsInactive.Exclude);
         foreach (var s in all)
         {
             string n = s.stationName != null ? s.stationName.ToLowerInvariant() : "";
@@ -121,6 +121,12 @@ public class GameManager : MonoBehaviour
         // F9: skip random spawn, immediately start the full Working Memory task.
         if (kb.f9Key.wasPressedThisFrame) ForceSpawnEngineTask();
 
+        // F7: skip random spawn, immediately start the full Inhibit task at Comms.
+        if (kb.f7Key.wasPressedThisFrame) ForceSpawnCommsTask();
+
+        // F6: skip random spawn, immediately start Radar Scan in quick mode (fast dev iteration).
+        if (kb.f6Key.wasPressedThisFrame) ForceSpawnNavigationTask();
+
         // F8: debug — show the HUD code banner directly with "1234".
         if (kb.f8Key.wasPressedThisFrame)
         {
@@ -151,6 +157,44 @@ public class GameManager : MonoBehaviour
         GameObject go = new GameObject("EngineTask");
         engineStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, engineStation.stationName));
         Debug.Log("[GameManager] Force-spawned Engine task via F9.");
+    }
+
+    [ContextMenu("Debug: Force-spawn Comms Task")]
+    public void ForceSpawnCommsTask()
+    {
+        if (commsStation == null)
+        {
+            Debug.LogWarning("[GameManager] commsStation is null — run Tools/Mission Focus/Wire GameManager Stations.");
+            return;
+        }
+        if (commsStation.HasActiveTask())
+        {
+            Debug.Log("[GameManager] CommsStation already has an active task.");
+            return;
+        }
+        GameObject go = new GameObject("CommsTask");
+        commsStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, commsStation.stationName));
+        Debug.Log("[GameManager] Force-spawned Comms task via F7.");
+    }
+
+    [ContextMenu("Debug: Force-spawn Navigation Task (quick mode)")]
+    public void ForceSpawnNavigationTask()
+    {
+        if (navigationStation == null)
+        {
+            Debug.LogWarning("[GameManager] navigationStation is null — run Tools/Mission Focus/Wire GameManager Stations.");
+            return;
+        }
+        if (navigationStation.HasActiveTask())
+        {
+            Debug.Log("[GameManager] NavigationStation already has an active task.");
+            return;
+        }
+        GameObject go = new GameObject("NavigationTask");
+        var task = CognitiveTaskCatalog.CreateTaskForStation(go, navigationStation.stationName);
+        if (task is RadarScanTask radar) radar.quickMode = true;
+        navigationStation.AssignTask(task);
+        Debug.Log("[GameManager] Force-spawned Radar Scan (quick mode) via F6.");
     }
 
     private IEnumerator MissionCountdown()

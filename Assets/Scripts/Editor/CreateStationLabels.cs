@@ -7,7 +7,7 @@ public class CreateStationLabels
     [MenuItem("Tools/Mission Focus/Create Station Labels")]
     public static void Run()
     {
-        foreach (var t in Object.FindObjectsByType<TextMeshPro>(FindObjectsSortMode.None))
+        foreach (var t in Object.FindObjectsByType<TextMeshPro>(FindObjectsInactive.Exclude))
             if (t.gameObject.name.StartsWith("Label_"))
                 Undo.DestroyObjectImmediate(t.gameObject);
 
@@ -33,7 +33,7 @@ public class CreateStationLabels
             tmp.fontStyle = FontStyles.Bold;
             tmp.color = new Color(0.1f, 1f, 0.45f);
             tmp.alignment = TextAlignmentOptions.Center;
-            tmp.enableWordWrapping = false;
+            tmp.textWrappingMode = TextWrappingModes.NoWrap;
             tmp.overflowMode = TextOverflowModes.Overflow;
             tmp.rectTransform.sizeDelta = new Vector2(10f, 2.5f);
 
