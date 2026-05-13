@@ -105,3 +105,7 @@ InitTestScene*.unity*
 
 # Auto-generated scenes by play mode tests
 /[Aa]ssets/[Ii]nit[Tt]est[Ss]cene*.unity*
+
+# Blender export intermediates — the .fbx is an intermediate from Unity → Blender.
+# The .blend is the deliverable. Skip the (large) FBX.
+/BlenderExports/*.fbx
