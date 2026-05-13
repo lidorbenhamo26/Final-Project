@@ -30,18 +30,33 @@ namespace SpaceStation.EditorSetup
         }
 
         // ----- Interior props (parented under MeshyProps_Root) -----
+        // Logical room assignment:
+        //   Engine_N    (+Z, repairs):   ToolsCaddy, RobotHelper
+        //   Navigation_E (+X, mapping):  StarMapStand, PlanetGlobe
+        //   LifeSupport_S (-Z, crew):    OxygenTank, HelmetStand, CoffeeMug
+        //   Comms_W     (-X, signals):   AlienBuddy, StarCrystal
+        //   Hub         (center):        RobotPet
         private static readonly PropDef[] InteriorProps = new[]
         {
-            new PropDef { Name = "OxygenTank",     FbxRelativePath = "OxygenTank/OxygenTank.fbx",       Position = new Vector3( 2.0f, 0.0f,  8.0f), UniformScale = 1.0f, RandomYRotation = true  },
-            new PropDef { Name = "ToolsCaddy",     FbxRelativePath = "ToolsCaddy/ToolsCaddy.fbx",       Position = new Vector3(-3.0f, 1.2f,  0.0f), UniformScale = 1.0f, RandomYRotation = true  },
-            new PropDef { Name = "RobotHelper",    FbxRelativePath = "RobotHelper/RobotHelper.fbx",     Position = new Vector3( 3.0f, 0.0f, 18.0f), UniformScale = 1.0f, RandomYRotation = false, EulerRotation = new Vector3(0, 200, 0) },
-            new PropDef { Name = "StarMapStand",   FbxRelativePath = "StarMapStand/StarMapStand.fbx",   Position = new Vector3(18.0f, 0.0f,  0.0f), UniformScale = 1.0f, RandomYRotation = true,  EmissiveTint = new Color(0.3f, 0.7f, 1.0f), EmissiveIntensity = 1.5f },
-            new PropDef { Name = "CoffeeMug",      FbxRelativePath = "CoffeeMug/CoffeeMug.fbx",         Position = new Vector3( 0.5f, 0.9f,-16.0f), UniformScale = 0.6f, RandomYRotation = true  },
-            new PropDef { Name = "AlienBuddy",     FbxRelativePath = "AlienBuddy/AlienBuddy.fbx",       Position = new Vector3(-1.0f, 0.0f, -2.0f), UniformScale = 1.0f, RandomYRotation = false, EulerRotation = new Vector3(0,  35, 0) },
-            new PropDef { Name = "RobotPet",       FbxRelativePath = "RobotPet/RobotPet.fbx",           Position = new Vector3( 1.5f, 0.0f,  4.0f), UniformScale = 0.7f, RandomYRotation = false, EulerRotation = new Vector3(0, 180, 0) },
-            new PropDef { Name = "StarCrystal",    FbxRelativePath = "StarCrystal/StarCrystal.fbx",     Position = new Vector3( 5.0f, 1.5f, -3.0f), UniformScale = 0.5f, RandomYRotation = true,  EmissiveTint = new Color(1.0f, 0.9f, 0.4f), EmissiveIntensity = 2.5f },
-            new PropDef { Name = "PlanetGlobe",    FbxRelativePath = "PlanetGlobe/PlanetGlobe.fbx",     Position = new Vector3(-15.0f, 1.0f, 1.0f), UniformScale = 0.6f, RandomYRotation = true  },
-            new PropDef { Name = "HelmetStand",    FbxRelativePath = "HelmetStand/HelmetStand.fbx",     Position = new Vector3(16.0f, 1.0f,  2.0f), UniformScale = 0.8f, RandomYRotation = true  },
+            // LifeSupport_S (-Z): oxygen storage + EVA helmet + crew coffee.
+            new PropDef { Name = "OxygenTank",     FbxRelativePath = "OxygenTank/OxygenTank.fbx",       Position = new Vector3(-2.0f, 0.0f, -17.5f), UniformScale = 1.0f, RandomYRotation = true  },
+            new PropDef { Name = "HelmetStand",    FbxRelativePath = "HelmetStand/HelmetStand.fbx",     Position = new Vector3( 2.0f, 1.0f, -17.5f), UniformScale = 0.8f, RandomYRotation = true  },
+            new PropDef { Name = "CoffeeMug",      FbxRelativePath = "CoffeeMug/CoffeeMug.fbx",         Position = new Vector3( 1.0f, 0.9f, -15.5f), UniformScale = 0.6f, RandomYRotation = true  },
+
+            // Engine_N (+Z): tools + repair robot.
+            new PropDef { Name = "ToolsCaddy",     FbxRelativePath = "ToolsCaddy/ToolsCaddy.fbx",       Position = new Vector3(-2.0f, 0.0f,  17.5f), UniformScale = 1.0f, RandomYRotation = true  },
+            new PropDef { Name = "RobotHelper",    FbxRelativePath = "RobotHelper/RobotHelper.fbx",     Position = new Vector3( 2.0f, 0.0f,  17.5f), UniformScale = 1.0f, RandomYRotation = false, EulerRotation = new Vector3(0, 200, 0) },
+
+            // Navigation_E (+X): star map + planetary globe.
+            new PropDef { Name = "StarMapStand",   FbxRelativePath = "StarMapStand/StarMapStand.fbx",   Position = new Vector3(17.5f, 0.0f,  2.0f), UniformScale = 1.0f, RandomYRotation = true,  EmissiveTint = new Color(0.3f, 0.7f, 1.0f), EmissiveIntensity = 1.5f },
+            new PropDef { Name = "PlanetGlobe",    FbxRelativePath = "PlanetGlobe/PlanetGlobe.fbx",     Position = new Vector3(15.0f, 1.0f, -2.0f), UniformScale = 0.6f, RandomYRotation = true  },
+
+            // Comms_W (-X): alien contact + signal crystal.
+            new PropDef { Name = "AlienBuddy",     FbxRelativePath = "AlienBuddy/AlienBuddy.fbx",       Position = new Vector3(-15.0f, 0.0f, -2.0f), UniformScale = 1.0f, RandomYRotation = false, EulerRotation = new Vector3(0,  35, 0) },
+            new PropDef { Name = "StarCrystal",    FbxRelativePath = "StarCrystal/StarCrystal.fbx",     Position = new Vector3(-15.0f, 1.5f,  2.0f), UniformScale = 0.5f, RandomYRotation = true,  EmissiveTint = new Color(1.0f, 0.9f, 0.4f), EmissiveIntensity = 2.5f },
+
+            // Hub_Central: friendly mascot at the entry.
+            new PropDef { Name = "RobotPet",       FbxRelativePath = "RobotPet/RobotPet.fbx",           Position = new Vector3( 1.5f, 0.0f,  0.0f), UniformScale = 0.7f, RandomYRotation = false, EulerRotation = new Vector3(0, 180, 0) },
         };
 
         // ----- Celestial props (parented under SkyBodies_Root, large scale, far away) -----

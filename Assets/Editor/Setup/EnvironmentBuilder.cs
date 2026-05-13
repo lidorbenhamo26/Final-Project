@@ -373,8 +373,20 @@ namespace FinalProject.EditorTools.Setup
                     prefab = Wall_3x4_Gates;
                     InstantiatePrefabOrFallback(prefab, sideGo.transform, lp, Quaternion.identity,
                                                 FallbackKind.Wall, new Vector3(4f, WallHeight, 0.2f));
-                    InstantiatePrefabOrFallback(Door_3x4, sideGo.transform, lp, Quaternion.identity,
+                    var doorGo = InstantiatePrefabOrFallback(Door_3x4, sideGo.transform, lp, Quaternion.identity,
                                                 FallbackKind.Door, new Vector3(4f, WallHeight, 0.3f));
+                    // The door panel mesh is partially closed — its non-convex
+                    // MeshCollider blocks ~half the opening width and snags the
+                    // astronaut at sprint speed. The gated wall behind already
+                    // provides the correct corridor collision, so the visual
+                    // door is decoration only.
+                    if (doorGo != null)
+                    {
+                        foreach (var mc in doorGo.GetComponentsInChildren<MeshCollider>(includeInactive: true))
+                        {
+                            mc.enabled = false;
+                        }
+                    }
                 }
                 else if (placeWindow && (i == 0 || i == slots4m - 1) && slots4m >= 3)
                 {
