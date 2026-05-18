@@ -5,7 +5,6 @@ using UnityEngine.UI;
 public class StartSceneController : MonoBehaviour
 {
     private RectTransform formPanel;
-    private TutorialPanelController tutorial;
     private ShipBriefingPanelController briefing;
 
     private void Awake()
@@ -21,7 +20,6 @@ public class StartSceneController : MonoBehaviour
         if (SessionContext.Instance.TutorialCompleted)
         {
             if (formPanel != null) formPanel.gameObject.SetActive(false);
-            tutorial.Hide();
             briefing.Show();
         }
     }
@@ -58,13 +56,6 @@ public class StartSceneController : MonoBehaviour
         form.OnSubmit = OnFormSubmitted;
         formPanel = form.BuildUI(canvasGO.transform);
 
-        var tutGO = new GameObject("TutorialPanel");
-        tutGO.transform.SetParent(transform, false);
-        tutorial = tutGO.AddComponent<TutorialPanelController>();
-        tutorial.OnFinish = OnTutorialFinished;
-        tutorial.BuildUI(canvasGO.transform);
-        tutorial.Hide();
-
         var briefGO = new GameObject("ShipBriefingPanel");
         briefGO.transform.SetParent(transform, false);
         briefing = briefGO.AddComponent<ShipBriefingPanelController>();
@@ -79,16 +70,9 @@ public class StartSceneController : MonoBehaviour
         SceneTransition.LoadTutorial();
     }
 
-    private void OnTutorialFinished()
-    {
-        tutorial.Hide();
-        briefing.Show();
-    }
-
     private void OnBriefingBack()
     {
-        briefing.Hide();
-        tutorial.Show();
+        SceneTransition.LoadTutorial();
     }
 
     private void OnBriefingBegin()
