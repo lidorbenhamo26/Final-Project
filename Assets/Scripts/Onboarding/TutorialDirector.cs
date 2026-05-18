@@ -43,25 +43,22 @@ public class TutorialDirector : MonoBehaviour
         BuildOverlay();
         BuildHighlight();
         ResolveRefs();
-        DisablePlayerAnimator();
+        EnsurePlayerAnimator();
         BuildSteps();
         MissionTask.OnTaskResolved += HandleTaskResolved;
         Advance();
     }
 
-    // The Astronaut prefab is a generic-rig SkinnedMesh whose Animator was
-    // wired up without ever generating an Avatar. Each frame the Animator
-    // writes garbage bone transforms — and, critically, pins the root
-    // transform.position back to the spawn pose. That fights the Rigidbody
-    // and makes the player effectively unable to move. Disabling the
-    // Animator drops the locomotion clips but lets physics actually drive
-    // the body, which is what the tutorial needs first. Re-enable once the
-    // rig has a real Avatar.
-    private void DisablePlayerAnimator()
+    // Make sure the Astronaut's Animator is enabled when entering the
+    // tutorial. We previously disabled it as a workaround for a movement
+    // bug; that bug was actually the practice station's huge BoxCollider,
+    // not the Animator. The disable lives in the scene file as a relic
+    // and would silently re-disable the animator on every play.
+    private void EnsurePlayerAnimator()
     {
         if (player == null) return;
         var anim = player.GetComponent<Animator>();
-        if (anim != null) anim.enabled = false;
+        if (anim != null) anim.enabled = true;
     }
 
     private void BuildHighlight()
