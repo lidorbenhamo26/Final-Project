@@ -78,7 +78,7 @@ public class TutorialDirector : MonoBehaviour
 
     private void Update()
     {
-        if (finished || stepIndex < 0 || stepIndex >= steps.Count) return;
+        if (finished || steps == null || stepIndex < 0 || stepIndex >= steps.Count) return;
         if (steps[stepIndex].IsComplete(this)) Advance();
     }
 
