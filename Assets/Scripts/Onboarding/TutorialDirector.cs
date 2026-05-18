@@ -30,6 +30,7 @@ public class TutorialDirector : MonoBehaviour
     private TMP_Text promptLbl;
     private TMP_Text helperLbl;
     private TMP_Text progressLbl;
+    private TutorialHighlight highlight;
 
     private List<Step> steps;
     private int stepIndex = -1;
@@ -40,10 +41,18 @@ public class TutorialDirector : MonoBehaviour
     private void Start()
     {
         BuildOverlay();
+        BuildHighlight();
         ResolveRefs();
         BuildSteps();
         MissionTask.OnTaskResolved += HandleTaskResolved;
         Advance();
+    }
+
+    private void BuildHighlight()
+    {
+        var hGO = new GameObject("TutorialHighlight");
+        hGO.transform.SetParent(transform, false);
+        highlight = hGO.AddComponent<TutorialHighlight>();
     }
 
     private void OnDestroy()
@@ -140,6 +149,28 @@ public class TutorialDirector : MonoBehaviour
         promptLbl.text = steps[stepIndex].Prompt;
         helperLbl.text = steps[stepIndex].Helper;
         progressLbl.text = (stepIndex + 1) + " / " + steps.Count;
+        UpdateHighlight();
+    }
+
+    private void UpdateHighlight()
+    {
+        if (highlight == null) return;
+        switch (stepIndex)
+        {
+            case 3:
+                if (practiceStation != null)
+                    highlight.SetTarget(practiceStation.transform, "PRACTICE STATION");
+                else highlight.Hide();
+                break;
+            case 6:
+                if (launchPad != null)
+                    highlight.SetTarget(launchPad, "LAUNCH PAD");
+                else highlight.Hide();
+                break;
+            default:
+                highlight.Hide();
+                break;
+        }
     }
 
     private void Finish()
@@ -147,6 +178,7 @@ public class TutorialDirector : MonoBehaviour
         if (finished) return;
         finished = true;
         SessionContext.Instance.TutorialCompleted = true;
+        if (highlight != null) highlight.Hide();
         promptLbl.text = "TUTORIAL COMPLETE";
         helperLbl.text = "Returning to briefing...";
         progressLbl.text = "";
