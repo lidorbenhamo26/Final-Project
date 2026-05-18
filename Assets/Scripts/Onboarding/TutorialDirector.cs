@@ -43,9 +43,25 @@ public class TutorialDirector : MonoBehaviour
         BuildOverlay();
         BuildHighlight();
         ResolveRefs();
+        DisablePlayerAnimator();
         BuildSteps();
         MissionTask.OnTaskResolved += HandleTaskResolved;
         Advance();
+    }
+
+    // The Astronaut prefab is a generic-rig SkinnedMesh whose Animator was
+    // wired up without ever generating an Avatar. Each frame the Animator
+    // writes garbage bone transforms — and, critically, pins the root
+    // transform.position back to the spawn pose. That fights the Rigidbody
+    // and makes the player effectively unable to move. Disabling the
+    // Animator drops the locomotion clips but lets physics actually drive
+    // the body, which is what the tutorial needs first. Re-enable once the
+    // rig has a real Avatar.
+    private void DisablePlayerAnimator()
+    {
+        if (player == null) return;
+        var anim = player.GetComponent<Animator>();
+        if (anim != null) anim.enabled = false;
     }
 
     private void BuildHighlight()
@@ -101,7 +117,7 @@ public class TutorialDirector : MonoBehaviour
         steps = new List<Step>
         {
             new Step {
-                Prompt = "PRESS  W  A  S  D  TO MOVE",
+                Prompt = "PRESS  W A S D  OR  ARROW KEYS  TO MOVE",
                 Helper = "Walk around to get a feel for the controls.",
                 IsComplete = d => d.SustainedSpeed(1.0f, 0.4f),
             },
