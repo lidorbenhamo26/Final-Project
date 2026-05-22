@@ -77,6 +77,8 @@ public class AlienCuriosity : MonoBehaviour
     public float knockUpForce = 1.3f;
     [Tooltip("SFX id played as the alien lunges in for the swat.")]
     public string swatChirpId = "alien_curious_chirp_a";
+    [Tooltip("Master switch for the battery-snatch behaviour. When ON the alien chases the player and knocks the carried cell loose. Turn OFF to make the alien ignore the cell (pesters only).")]
+    public bool snatchCarriedCell = true;
 
     private static bool _firstSightNotified;
 
@@ -121,6 +123,9 @@ public class AlienCuriosity : MonoBehaviour
 
     private void Update()
     {
+        // Debug freeze (F11) halts the alien — no wander, no pester, no snatch.
+        if (GameManager.IsDebugFrozen) return;
+
         if (_player == null)
         {
             ResolvePlayer();
@@ -328,6 +333,7 @@ public class AlienCuriosity : MonoBehaviour
 
     private bool PlayerHasCell()
     {
+        if (!snatchCarriedCell) return false;
         return _cell != null && _cell.IsCarried && !_cell.IsInstalled;
     }
 
