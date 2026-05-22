@@ -59,6 +59,7 @@ public class SessionManager : MonoBehaviour
 
     private void HandleTaskSpawned(MissionTask task)
     {
+        if (logBuffer == null) StartNewLog(); // non-serialized field is lost on domain reload
         string row = DateTime.Now.ToString("HH:mm:ss.fff") + "," + (Time.time - sessionStartTime).ToString("F2") + ",Task_Spawned," + task.StationName + "," + task.Priority.ToString() + ",Pending,N/A";
         logBuffer.AppendLine(row);
         FlushLog();
@@ -66,6 +67,7 @@ public class SessionManager : MonoBehaviour
 
     private void HandleTaskResolved(MissionTask task, TaskResult result, float reactionTime)
     {
+        if (logBuffer == null) StartNewLog(); // non-serialized field is lost on domain reload
         TasksTotal++;
         if (result == TaskResult.Success) TasksPassed++;
         else TasksFailed++;
@@ -78,6 +80,7 @@ public class SessionManager : MonoBehaviour
 
     public void LogCustomEvent(string eventType, string station, string action)
     {
+        if (logBuffer == null) StartNewLog(); // non-serialized field is lost on domain reload
         string row = DateTime.Now.ToString("HH:mm:ss.fff") + "," + (Time.time - sessionStartTime).ToString("F2") + "," + eventType + "," + station + ",N/A," + action + ",N/A";
         logBuffer.AppendLine(row);
         FlushLog();

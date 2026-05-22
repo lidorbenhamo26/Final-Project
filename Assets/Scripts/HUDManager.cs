@@ -230,6 +230,9 @@ public class HUDManager : MonoBehaviour
         var scaler = canvasGO.AddComponent<CanvasScaler>();
         scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
         scaler.referenceResolution = new Vector2(1920f, 1080f);
+        // Match height so the HUD keeps its full 1080-tall layout on screens
+        // shorter than 16:9 instead of cramming into the visible height.
+        scaler.matchWidthOrHeight = 1f;
         canvasGO.AddComponent<GraphicRaycaster>();
 
         var statsPanel = BuildStatsPanel(canvasGO.transform);
