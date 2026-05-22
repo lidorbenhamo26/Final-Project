@@ -36,6 +36,11 @@ public class GameManager : MonoBehaviour
     public float MissionTimeRemaining { get; private set; }
     public bool MissionActive { get; private set; }
 
+    // F11 toggles this. When true: mission timer, task spawning, and every
+    // MissionTask's internal timer freeze — so you can carry the cell and inspect
+    // the grip indefinitely with no game pressure.
+    public static bool IsDebugFrozen { get; private set; }
+
     public TaskStation ActiveTaskStation
     {
         get
@@ -130,6 +135,14 @@ public class GameManager : MonoBehaviour
         // F10: skip random spawn, immediately start the Battery Delivery task at Life Support.
         if (kb.f10Key.wasPressedThisFrame) ForceSpawnLifeSupportTask();
 
+        // F11: debug freeze — pauses mission timer, task spawns, and all task drains.
+        if (kb.f11Key.wasPressedThisFrame)
+        {
+            IsDebugFrozen = !IsDebugFrozen;
+            Debug.Log("[GameManager] Debug freeze: " + (IsDebugFrozen ? "ON" : "OFF"));
+            HUDManager.Instance?.ShowAlertBanner(IsDebugFrozen ? "DEBUG FREEZE: ON" : "DEBUG FREEZE: OFF", 1.4f);
+        }
+
         // F8: debug — show the HUD code banner directly with "1234".
         if (kb.f8Key.wasPressedThisFrame)
         {
@@ -223,7 +236,7 @@ public class GameManager : MonoBehaviour
         while (MissionTimeRemaining > 0f && MissionActive)
         {
             yield return new WaitForSeconds(1f);
-            MissionTimeRemaining -= 1f;
+            if (!IsDebugFrozen) MissionTimeRemaining -= 1f;
         }
         MissionActive = false;
         if (SessionManager.Instance != null)
@@ -238,6 +251,11 @@ public class GameManager : MonoBehaviour
         yield return new WaitForSeconds(3f);
         while (MissionActive)
         {
+            if (IsDebugFrozen)
+            {
+                yield return new WaitForSeconds(spawnRecheckInterval);
+                continue;
+            }
             if (CountActiveTasks() >= maxConcurrentTasks)
             {
                 yield return new WaitForSeconds(spawnRecheckInterval);

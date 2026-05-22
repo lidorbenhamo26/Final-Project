@@ -16,9 +16,13 @@ public class CarryableBattery : MonoBehaviour
 
     [Header("Carry — held in hand")]
     [Tooltip("Fine nudge of the cell away from the grip bone, in the player's local axes (right, up, forward).")]
-    public Vector3 carryGripOffset = Vector3.zero;
+    public Vector3 carryGripOffset = new Vector3(-0.01f, -0.1f, 0f);
     [Tooltip("Uniform scale applied to the cell while carried, so it fits the astronaut's small hand.")]
     [Range(0.2f, 1f)] public float carriedScale = 0.45f;
+    [Tooltip("Carried cell rotation relative to the hand bone — lays the cell horizontal across the grip.")]
+    public Vector3 carryRotation = new Vector3(0f, 0f, -90f);
+    [Tooltip("Rotation smoothing time in seconds while carried. 0 = instant follow of the hand. Higher = the cell lags the hand, dampening the swing during walk. Try 0.1–0.3.")]
+    public float carrySmoothTime = 0.15f;
 
     [Header("Idle motion while in storage")]
     public float hoverAmplitude = 0.06f;
@@ -112,7 +116,15 @@ public class CarryableBattery : MonoBehaviour
               + Vector3.up * carryGripOffset.y
               + player.forward * carryGripOffset.z;
 
-        transform.rotation = Quaternion.Euler(0f, player.eulerAngles.y, 0f);
+        // Follow the hand bone's orientation (so the cell stays locked in the
+        // grip as the arm animates), laid horizontal by carryRotation. Optional
+        // smoothing damps the rotation so the cell doesn't whip during walk.
+        Transform rotAnchor = handBone != null ? handBone : player;
+        Quaternion targetRot = rotAnchor.rotation * Quaternion.Euler(carryRotation);
+        float blend = carrySmoothTime > 0f
+            ? 1f - Mathf.Exp(-Time.deltaTime / carrySmoothTime)
+            : 1f;
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRot, blend);
 
         // Shift the pivot so the cell's visible centre lands on the grip point.
         Vector3 centreLocal = dropCollider != null ? dropCollider.center : new Vector3(0f, 0.21f, 0f);
@@ -274,7 +286,10 @@ public class CarryableBattery : MonoBehaviour
     {
         var canvasGO = new GameObject("BatteryHintCanvas");
         canvasGO.transform.SetParent(transform, false);
-        canvasGO.transform.localPosition = Vector3.up * 0.55f;
+        // High enough to clear the top of the storage rack (rack is ~1.5m
+        // tall and the cell spawns at its centre, so a small offset would
+        // sit inside the box and the prompt would be hidden).
+        canvasGO.transform.localPosition = Vector3.up * 1.0f;
 
         hintCanvas = canvasGO.AddComponent<Canvas>();
         hintCanvas.renderMode = RenderMode.WorldSpace;

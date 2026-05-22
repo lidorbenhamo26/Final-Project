@@ -2,16 +2,25 @@ using UnityEngine;
 
 /// <summary>
 /// Marks where a fresh power cell appears in central storage. BatteryDeliveryTask
-/// finds this at runtime and spawns the battery at SpawnPoint.
+/// finds this at runtime and spawns the battery at SpawnPosition (the geometric
+/// centre of the rack mesh, so the cell sits visually centred inside the box).
 /// </summary>
 [DisallowMultipleComponent]
 public class BatteryStorageRack : MonoBehaviour
 {
-    [Tooltip("Where the cell spawns. Falls back to this object's position + 1m up.")]
+    [Tooltip("Optional override. If unset, the cell spawns at the rack mesh's geometric centre.")]
     public Transform spawnPoint;
 
-    public Vector3 SpawnPosition =>
-        spawnPoint != null ? spawnPoint.position : transform.position + Vector3.up;
+    public Vector3 SpawnPosition
+    {
+        get
+        {
+            // Centre on the rack mesh so the cell sits in the middle of the box.
+            if (TryGetComponent(out MeshRenderer rend)) return rend.bounds.center;
+            if (spawnPoint != null) return spawnPoint.position;
+            return transform.position + Vector3.up;
+        }
+    }
 
     public Quaternion SpawnRotation =>
         spawnPoint != null ? spawnPoint.rotation : transform.rotation;
