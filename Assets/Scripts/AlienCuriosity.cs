@@ -10,7 +10,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public class AlienCuriosity : MonoBehaviour
 {
-    private enum State { Wander, Notice, Pester, Cooldown }
+    private enum State { Wander, Notice, Pester, Snatch, Cooldown }
 
     [Header("Detection")]
     [Tooltip("Distance within which the alien can spot the player.")]
@@ -60,6 +60,24 @@ public class AlienCuriosity : MonoBehaviour
     [Header("UI")]
     public string firstSightNotification = "The alien is curious about you...";
 
+    [Header("Battery snatch")]
+    [Tooltip("The alien senses and hunts a carried power cell within this radius — no line-of-sight or vision cone needed.")]
+    public float snatchSenseRadius = 14f;
+    [Tooltip("Move speed while chasing the player to knock the carried power cell loose (m/s).")]
+    public float snatchSpeed = 3f;
+    [Tooltip("Player distance at which the alien stops chasing and swats the cell loose.")]
+    public float swatRange = 1.6f;
+    [Tooltip("Telegraph delay before the swat lands (seconds).")]
+    public float swatWindup = 0.3f;
+    [Tooltip("Closest the alien's body gets to the player — stops it clipping through.")]
+    public float bodyRadius = 1f;
+    [Tooltip("Horizontal impulse the swat imparts to the knocked-loose cell.")]
+    public float knockForce = 1.6f;
+    [Tooltip("Upward impulse the swat imparts to the knocked-loose cell.")]
+    public float knockUpForce = 1.3f;
+    [Tooltip("SFX id played as the alien lunges in for the swat.")]
+    public string swatChirpId = "alien_curious_chirp_a";
+
     private static bool _firstSightNotified;
 
     private State _state = State.Wander;
@@ -70,6 +88,9 @@ public class AlienCuriosity : MonoBehaviour
     private float _orbitDir = 1f;
     private bool _hasSpeedParam;
     private bool _hasWalkingParam;
+    private CarryableBattery _cell;
+    private float _swatTimer;
+    private bool _windingUp;
 
     private void Awake()
     {
@@ -106,17 +127,40 @@ public class AlienCuriosity : MonoBehaviour
             if (_player == null) return;
         }
 
+        _cell = FindAnyObjectByType<CarryableBattery>();
+
         switch (_state)
         {
             case State.Wander:   TickWander();   break;
             case State.Notice:   TickNotice();   break;
             case State.Pester:   TickPester();   break;
+            case State.Snatch:   TickSnatch();   break;
             case State.Cooldown: TickCooldown(); break;
         }
     }
 
+    // Soft body separation so the alien never clips into the player.
+    private void LateUpdate()
+    {
+        if (_player == null) return;
+        Vector3 flat = transform.position - _player.position;
+        flat.y = 0f;
+        float d = flat.magnitude;
+        if (d > 0.0001f && d < bodyRadius)
+            transform.position += flat / d * (bodyRadius - d);
+    }
+
     private void TickWander()
     {
+        // Hunt a carried power cell on instinct — no vision cone, no line of
+        // sight: the alien is drawn straight to the cell from anywhere near.
+        if (PlayerHasCell())
+        {
+            Vector3 flat = _player.position - transform.position;
+            flat.y = 0f;
+            if (flat.magnitude <= snatchSenseRadius) { EnterNotice(0f); return; }
+        }
+
         if (!CanSeePlayer(out float dist)) return;
         EnterNotice(dist);
     }
@@ -125,11 +169,17 @@ public class AlienCuriosity : MonoBehaviour
     {
         FacePlayer();
         _stateTimer -= Time.deltaTime;
-        if (_stateTimer <= 0f) EnterPester();
+        if (_stateTimer <= 0f)
+        {
+            if (PlayerHasCell()) EnterSnatch();
+            else EnterPester();
+        }
     }
 
     private void TickPester()
     {
+        if (PlayerHasCell()) { EnterSnatch(); return; }
+
         float dist = Vector3.Distance(transform.position, _player.position);
         if (dist > disengageRadius) { EnterCooldown(); return; }
 
@@ -158,13 +208,7 @@ public class AlienCuriosity : MonoBehaviour
         transform.position += move * Time.deltaTime;
         SetAnimatorSpeed(move.magnitude);
 
-        _chirpTimer -= Time.deltaTime;
-        if (_chirpTimer <= 0f)
-        {
-            string id = Random.value < 0.5f ? softChirpIdB : softChirpIdC;
-            if (AudioManager.Instance != null) AudioManager.Instance.PlaySfx(id, pesterChirpVolume);
-            _chirpTimer = Random.Range(chirpInterval.x, chirpInterval.y);
-        }
+        TickSoftChirp();
 
         _stateTimer -= Time.deltaTime;
         if (_stateTimer <= 0f) EnterCooldown();
@@ -209,6 +253,82 @@ public class AlienCuriosity : MonoBehaviour
         _stateTimer = Random.Range(cooldownDuration.x, cooldownDuration.y);
         SetAnimatorSpeed(0f);
         if (_wanderer != null) _wanderer.enabled = true;
+    }
+
+    // Chases the player down and knocks the carried cell out of their hands.
+    private void TickSnatch()
+    {
+        // Cell installed, or already knocked to the floor — give up and reset.
+        if (!PlayerHasCell()) { EnterCooldown(); return; }
+
+        Vector3 toPlayer = _player.position - transform.position;
+        toPlayer.y = 0f;
+        float dist = toPlayer.magnitude;
+        if (dist > snatchSenseRadius) { EnterCooldown(); return; }
+
+        FacePlayer();
+        Vector3 dir = dist > 0.001f ? toPlayer / dist : transform.forward;
+
+        if (dist > swatRange)
+        {
+            // Out of reach — chase hard.
+            _windingUp = false;
+            transform.position += dir * snatchSpeed * Time.deltaTime;
+            SetAnimatorSpeed(snatchSpeed);
+            TickSoftChirp();
+        }
+        else
+        {
+            // In reach — telegraph briefly while pressing in, then swat it loose.
+            if (!_windingUp)
+            {
+                _windingUp = true;
+                _swatTimer = swatWindup;
+                if (AudioManager.Instance != null)
+                    AudioManager.Instance.PlaySfx(swatChirpId, noticeChirpVolume);
+            }
+            transform.position += dir * (snatchSpeed * 0.5f) * Time.deltaTime;
+            SetAnimatorSpeed(snatchSpeed * 0.5f);
+
+            _swatTimer -= Time.deltaTime;
+            if (_swatTimer <= 0f) PerformSwat(dir);
+        }
+    }
+
+    private void PerformSwat(Vector3 horizDir)
+    {
+        if (PlayerHasCell())
+        {
+            Vector3 impulse = horizDir.normalized * knockForce + Vector3.up * knockUpForce;
+            _cell.Drop(impulse);
+        }
+        _windingUp = false;
+        EnterCooldown();
+    }
+
+    private void EnterSnatch()
+    {
+        _state = State.Snatch;
+        _windingUp = false;
+        _swatTimer = 0f;
+        _chirpTimer = Random.Range(chirpInterval.x, chirpInterval.y);
+        if (_wanderer != null) _wanderer.enabled = false;
+    }
+
+    private void TickSoftChirp()
+    {
+        _chirpTimer -= Time.deltaTime;
+        if (_chirpTimer <= 0f)
+        {
+            string id = Random.value < 0.5f ? softChirpIdB : softChirpIdC;
+            if (AudioManager.Instance != null) AudioManager.Instance.PlaySfx(id, pesterChirpVolume);
+            _chirpTimer = Random.Range(chirpInterval.x, chirpInterval.y);
+        }
+    }
+
+    private bool PlayerHasCell()
+    {
+        return _cell != null && _cell.IsCarried && !_cell.IsInstalled;
     }
 
     private bool CanSeePlayer(out float distance)

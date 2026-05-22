@@ -127,6 +127,9 @@ public class GameManager : MonoBehaviour
         // F6: skip random spawn, immediately start Radar Scan in quick mode (fast dev iteration).
         if (kb.f6Key.wasPressedThisFrame) ForceSpawnNavigationTask();
 
+        // F10: skip random spawn, immediately start the Battery Delivery task at Life Support.
+        if (kb.f10Key.wasPressedThisFrame) ForceSpawnLifeSupportTask();
+
         // F8: debug — show the HUD code banner directly with "1234".
         if (kb.f8Key.wasPressedThisFrame)
         {
@@ -195,6 +198,24 @@ public class GameManager : MonoBehaviour
         if (task is RadarScanTask radar) radar.quickMode = true;
         navigationStation.AssignTask(task);
         Debug.Log("[GameManager] Force-spawned Radar Scan (quick mode) via F6.");
+    }
+
+    [ContextMenu("Debug: Force-spawn Life Support Task")]
+    public void ForceSpawnLifeSupportTask()
+    {
+        if (lifeSupportStation == null)
+        {
+            Debug.LogWarning("[GameManager] lifeSupportStation is null — run Tools/Mission Focus/Wire GameManager Stations.");
+            return;
+        }
+        if (lifeSupportStation.HasActiveTask())
+        {
+            Debug.Log("[GameManager] LifeSupportStation already has an active task.");
+            return;
+        }
+        GameObject go = new GameObject("LifeSupportStationTask");
+        lifeSupportStation.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, lifeSupportStation.stationName));
+        Debug.Log("[GameManager] Force-spawned Life Support battery task via F10.");
     }
 
     private IEnumerator MissionCountdown()
