@@ -80,27 +80,35 @@ public class MissionEndUI : MonoBehaviour
         statsRT.offsetMin = new Vector2(60f, 110f);
         statsRT.offsetMax = new Vector2(-60f, -120f);
 
-        var btnGO = new GameObject("RestartButton");
-        btnGO.transform.SetParent(panel.transform, false);
+        BuildBottomButton(panel.transform, "NEW PARTICIPANT",
+            new Color(0.30f, 0.34f, 0.40f, 1f), new Vector2(-140f, 28f), NewParticipant);
+        BuildBottomButton(panel.transform, "RUN AGAIN",
+            new Color(0.20f, 0.40f, 0.85f, 1f), new Vector2(140f, 28f), Restart);
+
+        canvasRoot = canvasGO;
+    }
+
+    private void BuildBottomButton(Transform parent, string text, Color color, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClick)
+    {
+        var btnGO = new GameObject("Btn_" + text);
+        btnGO.transform.SetParent(parent, false);
         var btnImg = btnGO.AddComponent<Image>();
-        btnImg.color = new Color(0.20f, 0.40f, 0.85f, 1f);
+        btnImg.color = color;
         var btn = btnGO.AddComponent<Button>();
         btn.targetGraphic = btnImg;
-        btn.onClick.AddListener(Restart);
+        btn.onClick.AddListener(onClick);
         var btnRT = btnGO.GetComponent<RectTransform>();
         btnRT.anchorMin = new Vector2(0.5f, 0f);
         btnRT.anchorMax = new Vector2(0.5f, 0f);
         btnRT.pivot = new Vector2(0.5f, 0f);
-        btnRT.sizeDelta = new Vector2(260f, 64f);
-        btnRT.anchoredPosition = new Vector2(0f, 28f);
+        btnRT.sizeDelta = new Vector2(240f, 64f);
+        btnRT.anchoredPosition = anchoredPos;
 
-        var btnLabel = SpawnLabel(btnGO.transform, "RESTART", 28, FontStyles.Bold);
+        var btnLabel = SpawnLabel(btnGO.transform, text, 22, FontStyles.Bold);
         btnLabel.alignment = TextAlignmentOptions.Center;
         var lblRT = btnLabel.GetComponent<RectTransform>();
         lblRT.anchorMin = Vector2.zero; lblRT.anchorMax = Vector2.one;
         lblRT.offsetMin = Vector2.zero; lblRT.offsetMax = Vector2.zero;
-
-        canvasRoot = canvasGO;
     }
 
     private TMP_Text SpawnLabel(Transform parent, string text, int size, FontStyles style = FontStyles.Normal)
@@ -121,5 +129,12 @@ public class MissionEndUI : MonoBehaviour
         AudioManager.Instance.PlaySfx("button_click");
         if (SessionManager.Instance != null) SessionManager.Instance.ResetForNewMission();
         SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private void NewParticipant()
+    {
+        if (SessionContext.Instance != null) SessionContext.Instance.Reset();
+        if (SessionManager.Instance != null) SessionManager.Instance.ResetForNewMission();
+        SceneTransition.LoadStart();
     }
 }
