@@ -183,6 +183,18 @@ public class AstronautController : MonoBehaviour
     public void TriggerWave()  => animator.SetTrigger(WaveHash);
     public void TriggerAlert() => animator.SetTrigger(AlertHash);
 
+    // The astronaut's Animator (generic rig, no Avatar) writes back to
+    // the root transform every Update, pinning the body at its spawn
+    // pose. We can't easily fix that without re-importing the FBX, so
+    // each LateUpdate (after the Animator's writes) we snap the
+    // transform back to where the Rigidbody integrated to. Visually the
+    // bones still animate relative to the root; only the spawn-pin
+    // override gets undone.
+    private void LateUpdate()
+    {
+        if (rb != null) transform.position = rb.position;
+    }
+
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = grounded ? Color.green : Color.red;

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -33,6 +34,13 @@ public class StationDockController : MonoBehaviour
     // its eventMask includes the station's mesh colliders (FBX import adds
     // them automatically). Disable while docked, re-enable on undock.
     private PhysicsRaycaster _suspendedPhysicsRaycaster;
+    // While docked, hide all 3D geometry so the task UI feels like a focused
+    // fullscreen task screen rather than an in-world zoomed-in view.
+    private readonly List<Renderer> _hiddenRenderers = new List<Renderer>();
+    private CameraClearFlags _savedClearFlags;
+    private Color _savedClearColor;
+    private bool _taskModeSnapshot;
+    private static readonly Color TaskModeBackground = new Color(0.02f, 0.04f, 0.07f, 1f);
     private RendererSnapshot[] _playerRendererSnapshots;
 
     public bool IsDocked => _state == State.Docked;
@@ -221,7 +229,61 @@ public class StationDockController : MonoBehaviour
             }
         }
 
+        EnterTaskMode();
+
         station.CurrentTask?.OnPlayerEnter();
+    }
+
+    // Visually isolate the task: hide every MeshRenderer/SkinnedMeshRenderer
+    // in the scene and switch the camera clear to a dark sci-fi background.
+    // The task's WorldCanvas (UI, not a Renderer) keeps rendering, so the
+    // player sees the task panel floating in dark space.
+    private void EnterTaskMode()
+    {
+        if (_taskModeSnapshot) return;
+
+        _hiddenRenderers.Clear();
+        var all = Object.FindObjectsByType<Renderer>(FindObjectsInactive.Exclude, FindObjectsSortMode.None);
+        for (int i = 0; i < all.Length; i++)
+        {
+            var r = all[i];
+            if (r == null || !r.enabled) continue;
+            if (r is MeshRenderer || r is SkinnedMeshRenderer)
+            {
+                _hiddenRenderers.Add(r);
+                r.enabled = false;
+            }
+        }
+
+        if (mainCamera != null)
+        {
+            _savedClearFlags = mainCamera.clearFlags;
+            _savedClearColor = mainCamera.backgroundColor;
+            mainCamera.clearFlags = CameraClearFlags.SolidColor;
+            mainCamera.backgroundColor = TaskModeBackground;
+        }
+
+        _taskModeSnapshot = true;
+    }
+
+    private void ExitTaskMode()
+    {
+        if (!_taskModeSnapshot) return;
+
+        for (int i = 0; i < _hiddenRenderers.Count; i++)
+        {
+            var r = _hiddenRenderers[i];
+            if (r != null) r.enabled = true;
+        }
+        _hiddenRenderers.Clear();
+
+        if (mainCamera != null)
+        {
+            mainCamera.clearFlags = _savedClearFlags;
+            mainCamera.backgroundColor = _savedClearColor;
+        }
+
+        _taskModeSnapshot = false;
     }
 
     /// <summary>Release the player from the station and restore normal play.</summary>
@@ -244,6 +306,8 @@ public class StationDockController : MonoBehaviour
         RestorePlayerVisuals();
 
         station?.UI?.Show();
+
+        ExitTaskMode();
 
         if (_suspendedPhysicsRaycaster != null)
         {
