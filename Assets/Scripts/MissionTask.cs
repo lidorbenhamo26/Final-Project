@@ -38,6 +38,13 @@ public abstract class MissionTask : MonoBehaviour
     protected virtual void Update()
     {
         if (!IsActive) return;
+        if (GameManager.IsDebugFrozen)
+        {
+            // Slide the start point forward at real time so elapsed (and any
+            // derived drain that reads Time.time - SpawnTime) stays frozen.
+            SpawnTime += Time.deltaTime;
+            return;
+        }
         if (Time.time - SpawnTime >= timeLimit)
         {
             HandleExpiry();

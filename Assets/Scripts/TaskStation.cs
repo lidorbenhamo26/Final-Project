@@ -13,7 +13,15 @@ public class TaskStation : MonoBehaviour
         GetComponent<Collider>().isTrigger = true;
     }
 
-    private void Start() => stationUI?.SetIdle();
+    private void Start()
+    {
+        stationUI?.SetIdle();
+        // Hide the world-space station info panel permanently — its decorative
+        // squares (status light, LED, progress-bar background) read as floating
+        // white shapes on the console, and every piece of info it carries is
+        // already shown on the top-left HUD.
+        stationUI?.Hide();
+    }
 
     public void AssignTask(MissionTask task)
     {

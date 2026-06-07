@@ -117,7 +117,7 @@ namespace SpaceStation.EditorSetup
 
             // Boost existing point/spot lights modestly so neon accents still read
             int boosted = 0;
-            foreach (var light in Object.FindObjectsByType<Light>(FindObjectsSortMode.None))
+            foreach (var light in Object.FindObjectsByType<Light>(FindObjectsInactive.Exclude))
             {
                 if (light.gameObject.name.StartsWith("Lamp_")) continue; // skip the ones we just made
                 if (light.type == LightType.Point || light.type == LightType.Spot)

@@ -1,0 +1,9 @@
+[mcp_servers.MeshyMCP]
+args = ["C:/Users/Lidor/AppData/Roaming/npm/node_modules/@meshy-ai/meshy-mcp-server/dist/index.js"]
+command = "C:/Program Files/nodejs/node.exe"
+
+[mcp_servers.MeshyMCP.env]
+MESHY_API_KEY = "msy_dzmyRIwRGTI6ReVxSYaIn1I5WdM0SvhipQI7"
+
+[mcp_servers.UnityMCP]
+url = "http://127.0.0.1:8080/mcp"

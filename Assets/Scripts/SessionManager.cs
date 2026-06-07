@@ -44,6 +44,9 @@ public class SessionManager : MonoBehaviour
 
     private void EnsureLogOpen()
     {
+        // logBuffer is non-serialized and can be wiped by an editor domain reload
+        // mid-session (Awake won't re-run), so re-create it defensively.
+        if (logBuffer == null) logBuffer = new StringBuilder();
         if (logOpen) return;
         logOpen = true;
 
