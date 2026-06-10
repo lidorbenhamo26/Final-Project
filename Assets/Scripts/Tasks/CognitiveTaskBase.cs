@@ -50,7 +50,10 @@ public abstract class CognitiveTaskBase : MissionTask
     {
         if (!IsActive) return;
         IsDocked = true;
-        if (DockTime < 0f) DockTime = Time.time;
+        if (DockTime < 0f)
+        {
+            DockTime = Time.time;
+        }
         ShowCanvas();
         OnDocked();
     }

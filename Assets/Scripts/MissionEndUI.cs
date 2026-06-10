@@ -47,7 +47,7 @@ public class MissionEndUI : MonoBehaviour
         panelRT.anchorMin = new Vector2(0.5f, 0.5f);
         panelRT.anchorMax = new Vector2(0.5f, 0.5f);
         panelRT.pivot = new Vector2(0.5f, 0.5f);
-        panelRT.sizeDelta = new Vector2(640f, 460f);
+        panelRT.sizeDelta = new Vector2(640f, 540f);
         panelRT.anchoredPosition = Vector2.zero;
 
         var title = SpawnLabel(panel.transform, "MISSION COMPLETE", 48, FontStyles.Bold);
@@ -77,7 +77,7 @@ public class MissionEndUI : MonoBehaviour
         var statsRT = stats.GetComponent<RectTransform>();
         statsRT.anchorMin = new Vector2(0f, 0f);
         statsRT.anchorMax = new Vector2(1f, 1f);
-        statsRT.offsetMin = new Vector2(60f, 110f);
+        statsRT.offsetMin = new Vector2(60f, 190f);
         statsRT.offsetMax = new Vector2(-60f, -120f);
 
         BuildBottomButton(panel.transform, "NEW PARTICIPANT",
@@ -88,7 +88,7 @@ public class MissionEndUI : MonoBehaviour
         canvasRoot = canvasGO;
     }
 
-    private void BuildBottomButton(Transform parent, string text, Color color, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClick)
+    private void BuildBottomButton(Transform parent, string text, Color color, Vector2 anchoredPos, UnityEngine.Events.UnityAction onClick, Vector2? size = null)
     {
         var btnGO = new GameObject("Btn_" + text);
         btnGO.transform.SetParent(parent, false);
@@ -101,7 +101,7 @@ public class MissionEndUI : MonoBehaviour
         btnRT.anchorMin = new Vector2(0.5f, 0f);
         btnRT.anchorMax = new Vector2(0.5f, 0f);
         btnRT.pivot = new Vector2(0.5f, 0f);
-        btnRT.sizeDelta = new Vector2(240f, 64f);
+        btnRT.sizeDelta = size ?? new Vector2(240f, 64f);
         btnRT.anchoredPosition = anchoredPos;
 
         var btnLabel = SpawnLabel(btnGO.transform, text, 22, FontStyles.Bold);

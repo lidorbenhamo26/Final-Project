@@ -105,10 +105,11 @@ public class BatteryDeliveryTask : MissionTask
     {
         if (pickedUp) return;
         pickedUp = true;
+        float latency = Time.time - SpawnTime;
         if (hud != null)
             hud.SetObjective("CARRY THE CELL TO LIFE SUPPORT  -  [E] AT THE CONSOLE TO INSTALL");
         SessionManager.Instance?.LogCustomEvent("Battery_PickedUp", StationName,
-            "t=" + (Time.time - SpawnTime).ToString("F2"));
+            "t=" + latency.ToString("F2"));
     }
 
     private void HandleInstalled(CarryableBattery b)
