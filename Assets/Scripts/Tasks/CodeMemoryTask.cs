@@ -9,7 +9,7 @@ using UnityEngine.UI;
 ///   1. "READY?" -> "3" -> "2" -> "1" -> "GO!" countdown.
 ///   2. Show 5 colored squares one-at-a-time (Showing).
 ///   3. Player presses READY (Waiting).
-///   4. Player reproduces the sequence in 12s (Recalling).
+///   4. Player reproduces the sequence in 18s (Recalling).
 ///   5. Splash CORRECT/WRONG, then Resolve.
 /// </summary>
 public class CodeMemoryTask : CognitiveTaskBase
@@ -26,7 +26,9 @@ public class CodeMemoryTask : CognitiveTaskBase
     private static readonly string[] PaletteNames = { "RED", "YELLOW", "BLUE", "GREEN" };
 
     private const int SequenceLength = 5;
-    private const float RecallDeadline = 12f;
+    private const float ColorOnTime = 0.9f;
+    private const float ColorOffTime = 0.25f;
+    private const float RecallDeadline = 18f;
 
     private Phase phase = Phase.Idle;
     private readonly List<int> sequence = new List<int>(SequenceLength);
@@ -127,15 +129,13 @@ public class CodeMemoryTask : CognitiveTaskBase
         TMPro.TMP_Text caption = SpawnLabel(new Vector2(0f, -160f), new Vector2(400f, 60f),
             "", new Color(0.85f, 0.9f, 1f), 36f);
 
-        float onTime = 0.5f;
-        float offTime = 0.12f;
         for (int i = 0; i < sequence.Count && IsActive; i++)
         {
             img.color = Palette[sequence[i]];
             if (caption != null) caption.text = (i + 1) + " / " + sequence.Count;
-            yield return new WaitForSeconds(onTime);
+            yield return new WaitForSeconds(ColorOnTime);
             img.color = new Color(0.1f, 0.1f, 0.1f, 1f);
-            yield return new WaitForSeconds(offTime);
+            yield return new WaitForSeconds(ColorOffTime);
         }
         if (showSquare != null) Destroy(showSquare);
         if (caption != null && caption.gameObject != null) Destroy(caption.gameObject);

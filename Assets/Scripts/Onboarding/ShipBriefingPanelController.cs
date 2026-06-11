@@ -17,14 +17,14 @@ public class ShipBriefingPanelController : MonoBehaviour
     private static readonly Station[] Stations = new Station[]
     {
         new Station {
-            Name = "ENGINE", Task = "Code Memory",
-            Body = "Recall short sequences shown briefly on the console.",
+            Name = "ENGINE", Task = "Working Memory",
+            Body = "Memorize the code shown on the HUD, then enter it at the engine console.",
             Accent = new Color(1.00f, 0.55f, 0.20f, 1f),
             WorldXZ = new Vector2(0f, 16f),
         },
         new Station {
-            Name = "NAVIGATION", Task = "Pattern Match",
-            Body = "Pick the matching pattern from a row of options.",
+            Name = "NAVIGATION", Task = "Radar Scan",
+            Body = "Flag asteroid contacts and ignore harmless returns.",
             Accent = new Color(0.30f, 0.70f, 0.95f, 1f),
             WorldXZ = new Vector2(16f, 0f),
         },
@@ -35,8 +35,8 @@ public class ShipBriefingPanelController : MonoBehaviour
             WorldXZ = new Vector2(-16f, 0f),
         },
         new Station {
-            Name = "LIFE SUPPORT", Task = "N-Back",
-            Body = "Match the symbol shown N steps earlier.",
+            Name = "LIFE SUPPORT", Task = "Battery Delivery",
+            Body = "Carry a power cell from storage and restore life support.",
             Accent = new Color(0.95f, 0.45f, 0.40f, 1f),
             WorldXZ = new Vector2(0f, -16f),
         },

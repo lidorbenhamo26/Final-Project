@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
@@ -28,7 +29,10 @@ public class StroopTask : CognitiveTaskBase
     private int currentInkIdx;
     private bool matchInk;
     private bool answered;
+    private bool roundsStarted;
     private float roundStartTime;
+    private int answeredCount;
+    private readonly List<float> roundRtsMs = new List<float>();
 
     private TMPro.TextMeshProUGUI stimulusText;
 
@@ -43,8 +47,17 @@ public class StroopTask : CognitiveTaskBase
     {
         base.Activate();
         StationUI?.SetInstruction("STROOP TASK: dock to respond");
-        ShowMessage("COMMS CALIBRATION", Color.white);
+        ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
         BuildStimulus();
+    }
+
+    // Rounds start on first dock (like Inhibit/Radar) so every presented trial
+    // was actually seen by the player; never docking ends as a clean Omission
+    // via the base 60s time limit instead of a fake accuracy-0 Fail.
+    protected override void OnDocked()
+    {
+        if (roundsStarted) return;
+        roundsStarted = true;
         StartCoroutine(CoRunRounds());
     }
 
@@ -73,18 +86,46 @@ public class StroopTask : CognitiveTaskBase
 
         for (round = 0; round < RoundCount && IsActive; round++)
         {
-            StartRound(round);
-            float start = Time.time;
-            while (IsActive && phase == Phase.Trial && !answered && Time.time - start < RoundLimit)
-                yield return null;
+            // Hold the next round until the player is docked again — undocked
+            // time must not burn trials. The base time limit still gates this.
+            while (IsActive && !IsDocked) yield return null;
+            if (!IsActive) yield break;
 
-            // Unanswered round while docked = an attention/inhibition lapse the
-            // player witnessed; undocked rounds are captured as task omission.
-            yield return new WaitForSeconds(0.4f);
+            StartRound(round);
+            float elapsed = 0f;
+            while (IsActive && phase == Phase.Trial && !answered && elapsed < RoundLimit)
+            {
+                // Debug freeze (F11 / assessor report): pause the round clock
+                // and slide the RT anchor so reaction times stay correct.
+                if (GameManager.IsDebugFrozen) roundStartTime += Time.deltaTime;
+                else elapsed += Time.deltaTime;
+                yield return null;
+            }
+
+            // Unanswered round while docked = an attention/inhibition lapse.
+            yield return FrozenWait(0.4f);
         }
 
         if (!IsActive) yield break;
         phase = Phase.Done;
+
+        float rtMean = 0f;
+        for (int i = 0; i < roundRtsMs.Count; i++) rtMean += roundRtsMs[i];
+        if (roundRtsMs.Count > 0) rtMean /= roundRtsMs.Count;
+        float accuracy = (float)correct / RoundCount;
+        // "NA", not 0: a zero would read as a real 0 ms reaction time downstream.
+        string rtMeanStr = roundRtsMs.Count > 0 ? Num.F0(rtMean) : "NA";
+
+        SessionManager.Instance?.LogCustomEvent("STROOP_Summary", "CommsStation",
+            "correct=" + correct + " rounds=" + RoundCount + " answered=" + answeredCount +
+            " accuracy=" + Num.F3(accuracy) + " rtMeanMs=" + rtMeanStr);
+        AssessmentResults.Report(this,
+            ("correct", correct.ToString()),
+            ("rounds", RoundCount.ToString()),
+            ("answered", answeredCount.ToString()),
+            ("accuracy", Num.F3(accuracy)),
+            ("rtMeanMs", rtMeanStr));
+
         Resolve(correct >= 4 ? TaskResult.Success : TaskResult.Fail);
     }
 
@@ -134,5 +175,26 @@ public class StroopTask : CognitiveTaskBase
         int target = matchInk ? currentInkIdx : currentWordIdx;
         bool ok = answerIdx == target;
         if (ok) correct++;
+
+        answeredCount++;
+        float rtMs = (Time.time - roundStartTime) * 1000f;
+        roundRtsMs.Add(rtMs);
+        SessionManager.Instance?.LogCustomEvent("STROOP_Round", "CommsStation",
+            "round=" + round + " rule=" + (matchInk ? "ink" : "word") +
+            " word=" + WordNames[currentWordIdx] + " ink=" + WordNames[currentInkIdx] +
+            " congruent=" + (currentWordIdx == currentInkIdx) +
+            " choice=" + WordNames[answerIdx] + " correct=" + ok +
+            " rtMs=" + Num.F0(rtMs));
+    }
+
+    // Mission-level timeout (e.g. the player never docked): record whatever
+    // was answered so the Omission row isn't empty.
+    protected override void HandleExpiry()
+    {
+        AssessmentResults.Report(this,
+            ("correct", correct.ToString()),
+            ("rounds", RoundCount.ToString()),
+            ("answered", answeredCount.ToString()));
+        base.HandleExpiry();
     }
 }

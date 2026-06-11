@@ -24,10 +24,12 @@ public class ThirdPersonCamera : MonoBehaviour
     private float yaw;
     private float pitch = 15f;
     private bool cursorLocked;
+    private Rigidbody _targetRb;
 
     private void Start()
     {
         yaw = transform.eulerAngles.y;
+        if (target != null) _targetRb = target.GetComponent<Rigidbody>();
         SetCursorLock(true);
         SnapToTarget();
     }
@@ -41,7 +43,11 @@ public class ThirdPersonCamera : MonoBehaviour
         transform.LookAt(focus);
     }
 
-    public void SetTarget(Transform t) => target = t;
+    public void SetTarget(Transform t)
+    {
+        target = t;
+        _targetRb = t != null ? t.GetComponent<Rigidbody>() : null;
+    }
 
     private void LateUpdate()
     {
@@ -58,7 +64,9 @@ public class ThirdPersonCamera : MonoBehaviour
 
         if (target == null) return;
 
-        Vector3 focus = target.position + targetOffset;
+        // Use Rigidbody interpolated position when available for jitter-free tracking.
+        Vector3 targetPos = (_targetRb != null) ? _targetRb.position : target.position;
+        Vector3 focus = targetPos + targetOffset;
         Quaternion rot = Quaternion.Euler(pitch, yaw, 0f);
         Vector3 desiredPos = focus + rot * (Vector3.back * distance);
 

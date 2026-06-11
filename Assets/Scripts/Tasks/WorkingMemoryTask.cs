@@ -185,9 +185,15 @@ public class WorkingMemoryTask : CognitiveTaskBase
         float totalTime = Time.time - SpawnTime;
         SessionManager.Instance?.LogCustomEvent("WM_Submit", "EngineStation",
             "input=" + input + " correct=" + correct + " typos=" + wrongDigits +
-            " totalTime=" + totalTime.ToString("F2"));
+            " totalTime=" + Num.F2(totalTime));
+        AssessmentResults.Report(this,
+            ("correct", correct.ToString()),
+            ("typos", wrongDigits.ToString()),
+            ("totalTimeS", Num.F2(totalTime)),
+            ("recallTimeout", "false"));
 
         phase = Phase.Done;
+        ResolutionPending = true; // outcome computed — base expiry must not overwrite it
         StartCoroutine(CoFinish(correct ? TaskResult.Success : TaskResult.Fail));
     }
 
@@ -221,14 +227,37 @@ public class WorkingMemoryTask : CognitiveTaskBase
         base.Update();
         if (!IsActive) return;
         if (phase != Phase.Recall) return;
+        // Debug freeze (F11 / assessor report): the recall deadline pauses with
+        // the rest of the mission instead of expiring behind the overlay.
+        if (GameManager.IsDebugFrozen)
+        {
+            recallStartTime += Time.deltaTime;
+            return;
+        }
         if (Time.time - recallStartTime >= RecallDeadline)
         {
             phase = Phase.Done;
+            ResolutionPending = true;
             SessionManager.Instance?.LogCustomEvent("WM_Submit", "EngineStation",
                 "input=" + input + " correct=False typos=" + wrongDigits +
-                " totalTime=" + (Time.time - SpawnTime).ToString("F2") + " recallTimeout=true");
+                " totalTime=" + Num.F2(Time.time - SpawnTime) + " recallTimeout=true");
+            AssessmentResults.Report(this,
+                ("correct", "False"),
+                ("typos", wrongDigits.ToString()),
+                ("totalTimeS", Num.F2(Time.time - SpawnTime)),
+                ("recallTimeout", "true"));
             StartCoroutine(CoFinish(TaskResult.Omission));
         }
+    }
+
+    // Overall mission time limit hit before submission — keep partial entry data.
+    protected override void HandleExpiry()
+    {
+        AssessmentResults.Report(this,
+            ("correct", "False"),
+            ("typos", wrongDigits.ToString()),
+            ("phaseAtTimeout", phase.ToString()));
+        base.HandleExpiry();
     }
 
     protected override void OnDestroy()

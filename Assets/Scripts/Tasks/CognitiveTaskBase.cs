@@ -65,6 +65,21 @@ public abstract class CognitiveTaskBase : MissionTask
         OnUndocked();
     }
 
+    /// <summary>
+    /// WaitForSeconds replacement that stops accumulating while the debug
+    /// freeze (F11 / assessor report) is active, so trial pacing pauses with
+    /// the rest of the mission instead of expiring behind the overlay.
+    /// </summary>
+    protected static System.Collections.IEnumerator FrozenWait(float seconds)
+    {
+        float t = 0f;
+        while (t < seconds)
+        {
+            if (!GameManager.IsDebugFrozen) t += Time.deltaTime;
+            yield return null;
+        }
+    }
+
     /// <summary>Hook called the first time (and every time) the player docks.</summary>
     protected virtual void OnDocked() { }
 

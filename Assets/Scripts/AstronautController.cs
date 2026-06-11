@@ -73,7 +73,13 @@ public class AstronautController : MonoBehaviour
         animator = GetComponent<Animator>();
         playerInput = GetComponent<PlayerInput>();
         if (rb != null)
+        {
             rb.constraints = RigidbodyConstraints.FreezeRotationX | RigidbodyConstraints.FreezeRotationY | RigidbodyConstraints.FreezeRotationZ;
+            rb.interpolation = RigidbodyInterpolation.Interpolate;
+        }
+        // Prevent the generic-rig Animator from writing back to the root
+        // transform every frame, which fights the Rigidbody and causes jitter.
+        if (animator != null) animator.applyRootMotion = false;
         if (cameraTransform == null && Camera.main != null) cameraTransform = Camera.main.transform;
         ResolveActions();
     }
@@ -183,13 +189,8 @@ public class AstronautController : MonoBehaviour
     public void TriggerWave()  => animator.SetTrigger(WaveHash);
     public void TriggerAlert() => animator.SetTrigger(AlertHash);
 
-    // The astronaut's Animator (generic rig, no Avatar) writes back to
-    // the root transform every Update, pinning the body at its spawn
-    // pose. We can't easily fix that without re-importing the FBX, so
-    // each LateUpdate (after the Animator's writes) we snap the
-    // transform back to where the Rigidbody integrated to. Visually the
-    // bones still animate relative to the root; only the spawn-pin
-    // override gets undone.
+    // Safety-net: keep transform in sync with the interpolated Rigidbody
+    // position in case anything else moves it unexpectedly.
     private void LateUpdate()
     {
         if (rb != null) transform.position = rb.position;

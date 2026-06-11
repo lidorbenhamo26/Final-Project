@@ -7,3 +7,16 @@ MESHY_API_KEY = "msy_dzmyRIwRGTI6ReVxSYaIn1I5WdM0SvhipQI7"
 
 [mcp_servers.UnityMCP]
 url = "http://127.0.0.1:8080/mcp"
+
+[mcp_servers.ElevenLabs]
+command = "C:/Users/Lidor/.local/bin/uvx.exe"
+args = ["elevenlabs-mcp"]
+
+[mcp_servers.ElevenLabs.env]
+ELEVENLABS_API_KEY = "sk_7424d3d368be0a43bbf593f1f5445eb1ef4a97d9d20e3fbe"
+ELEVENLABS_MCP_BASE_PATH = "C:/Users/Lidor/Desktop/Final-Project/Assets/Audio/Generated"
+ELEVENLABS_MCP_OUTPUT_MODE = "files"
+
+[mcp_servers.blender]
+command = "uvx"
+args = ["blender-mcp"]
