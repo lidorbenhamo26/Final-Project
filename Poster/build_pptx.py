@@ -17,12 +17,12 @@ A = lambda name: os.path.join(HERE, "Assets", name)
 
 # ---------- palette ----------
 BG      = RGBColor(0x06, 0x0D, 0x1F)
-CARD    = RGBColor(0x0E, 0x1B, 0x38)
+CARD    = RGBColor(0x0A, 0x14, 0x2C)
 CARD2   = RGBColor(0x12, 0x24, 0x48)
 EDGE    = RGBColor(0x3E, 0x6F, 0xA0)
 INK     = RGBColor(0xE8, 0xF0, 0xFF)
-SOFT    = RGBColor(0xC2, 0xD2, 0xEF)
-DIM     = RGBColor(0x8D, 0xA3, 0xC9)
+SOFT    = RGBColor(0xDF, 0xE9, 0xFB)
+DIM     = RGBColor(0xAA, 0xBD, 0xDF)
 CYAN    = RGBColor(0x4F, 0xD8, 0xFF)
 CYANSOFT= RGBColor(0x9F, 0xDC, 0xFF)
 ORANGE  = RGBColor(0xFF, 0x9B, 0x42)
@@ -188,45 +188,74 @@ def bullets(x, y, w, items, size=20, gap=6, marker="◆", mcolor=CYAN, msize=Non
 def bg_need(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "01", "Background & Need")
     text(x + PAD, y + PAD + 17, w - 2 * PAD, 24, [[
-        R("Executive-function assessment still leans on ", size=21),
-        R("questionnaires (BRIEF-A)", size=21, color=WHITE, bold=True),
-        R(" and dry lab drills:", size=21),
+        R("Executive-function assessment still leans on ", size=23),
+        R("questionnaires (BRIEF-A)", size=23, color=WHITE, bold=True),
+        R(" and dry lab drills:", size=23),
     ]])
-    bullets(x + PAD, y + PAD + 42, w - 2 * PAD, [
-        [R("Stressful & repetitive", size=20, color=WHITE, bold=True), R(" — scores drop with motivation, not ability", size=20)],
-        [R("Low engagement", size=20, color=WHITE, bold=True), R(", especially for children and young adults", size=20)],
-        [R("Subjective ratings", size=20, color=WHITE, bold=True), R(" — little objective, trial-level data", size=20)],
-    ])
-    rect(x + PAD, y + h - 38, w - 2 * PAD, 27, RGBColor(0x33, 0x24, 0x1A), line=ORANGE, line_w=1.5, radius=0.12)
-    text(x + PAD + 6, y + h - 34.5, w - 2 * PAD - 12, 20, [[
+    bullets(x + PAD, y + PAD + 44, w - 2 * PAD, [
+        [R("Stressful & repetitive", size=22, color=WHITE, bold=True), R(" — scores drop with motivation, not ability", size=22)],
+        [R("Low engagement", size=22, color=WHITE, bold=True), R(", especially for children and young adults", size=22)],
+        [R("Subjective ratings", size=22, color=WHITE, bold=True), R(" — little objective, trial-level data", size=22)],
+    ], size=22)
+    rect(x + PAD, y + h - 40, w - 2 * PAD, 29, RGBColor(0x33, 0x24, 0x1A), line=ORANGE, line_w=1.5, radius=0.12)
+    text(x + PAD + 6, y + h - 36, w - 2 * PAD - 12, 22, [[
         R("The need: measurement that is objective, repeatable — and actually fun to take.",
-          size=20, color=RGBColor(0xFF, 0xD9, 0xB3), bold=True)]], line_spacing=1.15)
+          size=21, color=RGBColor(0xFF, 0xD9, 0xB3), bold=True)]], line_spacing=1.15)
 
 
 def solution(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "02", "The Solution")
-    text(x + PAD, y + PAD + 17, w - 2 * PAD, 22, [[
-        R("Mission Focus", size=21, color=WHITE, bold=True),
-        R(" turns assessment into a 10-minute space mission:", size=21),
-    ]])
-    bullets(x + PAD, y + PAD + 32, w - 2 * PAD, [
-        [R("A first-person astronaut keeps a failing station alive", size=20)],
-        [R("Every repair console is a ", size=20), R("cognitive paradigm in disguise", size=20, color=WHITE, bold=True)],
-        [R("Every reaction is ", size=20), R("silently logged", size=20, color=WHITE, bold=True), R(" — no test anxiety, no clipboards", size=20)],
-        [R("One click: ", size=20), R("assessor-ready HTML report", size=20, color=WHITE, bold=True), R(" + analysis-ready CSV", size=20)],
-    ])
+    text(x + PAD, y + PAD + 17, w - 2 * PAD, 26, [[
+        R("Mission Focus", size=22, color=WHITE, bold=True),
+        R(" embeds the assessment inside a 10-minute space mission — each problem above gets a built-in answer:", size=22),
+    ]], line_spacing=1.2)
+    rows = [
+        ("STRESS", 27, [
+            R("Assessment is embedded inside ", size=20, color=INK),
+            R("meaningful repair tasks", size=20, color=WHITE, bold=True),
+            R(" — participants play rather than feel tested, so performance is ", size=20, color=INK),
+            R("less distorted by test anxiety", size=20, color=WHITE, bold=True), R(".", size=20, color=INK)]),
+        ("BOREDOM", 27, [
+            R("A live mission with a real goal — keep the station alive — ", size=20, color=INK),
+            R("sustains motivation", size=20, color=WHITE, bold=True),
+            R(" for the full session, for kids and adults.", size=20, color=INK)]),
+        ("SUBJECTIVE\nDATA", 45, [
+            R("The scientific core: a silent ", size=20, color=INK),
+            R("behavioral log", size=20, color=WHITE, bold=True),
+            R(" of what participants actually do — ", size=20, color=INK),
+            R("RT, accuracy, omissions, impulsive actions, task completion", size=20, color=WHITE, bold=True),
+            R(" — objective evidence that ", size=20, color=INK),
+            R("complements", size=20, color=WHITE, bold=True),
+            R(" BRIEF-style ratings and clinical judgment, not replaces them.", size=20, color=INK)]),
+        ("PAPERWORK", 18, [
+            R("One click → ", size=20, color=INK),
+            R("assessor-ready HTML report", size=20, color=WHITE, bold=True),
+            R(" + analysis-ready ", size=20, color=INK),
+            R("CSV", size=20, color=WHITE, bold=True),
+            R(" — no manual scoring.", size=20, color=INK)]),
+    ]
+    yy = y + PAD + 44
+    for tag, rh, runs in rows:
+        tag_lines = tag.split("\n")
+        tag_h = 6 + 6.5 * len(tag_lines)
+        rect(x + PAD, yy + 1, 44, tag_h, RGBColor(0x33, 0x24, 0x1A), line=ORANGE, line_w=1.2, radius=0.18)
+        text(x + PAD, yy + 1 + (tag_h - 5.8 * len(tag_lines)) / 2 - 0.6, 44, tag_h,
+             [[R(t, font=ORB, size=12, color=RGBColor(0xFF, 0xC0, 0x8A), bold=True)] for t in tag_lines],
+             align=PP_ALIGN.CENTER, line_spacing=1.05, space_after=0)
+        text(x + PAD + 50, yy, w - 2 * PAD - 50, rh, [runs], line_spacing=1.18)
+        yy += rh + 4
 
 
 def requirements(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "03", "Main Requirements")
     bullets(x + PAD, y + PAD + 18, w - 2 * PAD, [
-        [R("Playable 10-min mission", size=20, color=WHITE, bold=True), R(" — tutorial + voice guidance, not a quiz", size=20)],
-        [R("Measure ", size=20), R("attention, working memory, inhibition, planning", size=20, color=WHITE, bold=True), R(" and response accuracy", size=20)],
-        [R("Per-trial logging", size=20, color=WHITE, bold=True), R(": reaction time, accuracy, omissions, false alarms", size=20)],
-        [R("Assessor tools", size=20, color=WHITE, bold=True), R(": freeze (F11) and live report overlay (F12)", size=20)],
-        [R("Export ", size=20), R("HTML report + per-task CSV", size=20, color=WHITE, bold=True), R(" per participant", size=20)],
-        [R("Local-only data", size=20, color=WHITE, bold=True), R(" — privacy by design, no network", size=20)],
-    ], marker="✓", mcolor=GREEN)
+        [R("Playable 10-min mission", size=22, color=WHITE, bold=True), R(" — tutorial + voice guidance, not a quiz", size=22)],
+        [R("Measure ", size=22), R("attention, working memory, inhibition, planning", size=22, color=WHITE, bold=True), R(" and response accuracy", size=22)],
+        [R("Per-trial logging", size=22, color=WHITE, bold=True), R(": reaction time, accuracy, omissions, false alarms", size=22)],
+        [R("Assessor tools", size=22, color=WHITE, bold=True), R(": freeze (F11) and live report overlay (F12)", size=22)],
+        [R("Export ", size=22), R("HTML report + per-task CSV", size=22, color=WHITE, bold=True), R(" per participant", size=22)],
+        [R("Local-only data", size=22, color=WHITE, bold=True), R(" — privacy by design, no network", size=22)],
+    ], size=22, marker="✓", mcolor=GREEN)
 
 
 def snapshots(x, y, w, h):
@@ -268,21 +297,21 @@ def snapshots(x, y, w, h):
                  radius=0.06, dash=MSO_LINE_DASH_STYLE.DASH)
             text(cx_, cy_ + ch / 2 - 5, cw, 10, [[R("SCREENSHOT SLOT", font=ORB, size=12, color=CYANSOFT)]],
                  align=PP_ALIGN.CENTER)
-        text(cx_, cy_ + ch + 2, cw, 12, [[R(cap, size=14, color=DIM)]], line_spacing=1.1)
+        text(cx_, cy_ + ch + 2, cw, 12, [[R(cap, size=15.5, color=DIM)]], line_spacing=1.1)
 
 
 # ---------- CENTER ----------
 def sys_flow(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "04", "System Flow")
     steps = [
-        ("1", "Participant Onboarding", [R("ID, age and session details collected on a station terminal", size=20)]),
-        ("2", "Interactive Tutorial", [R("Movement & console training — skippable for returning participants", size=20)]),
-        ("3", "The Mission — 10 minutes", [R("Tasks spawn at ", size=20), R("4 stations", size=20, color=CYANSOFT, bold=True),
-                                           R(" every ", size=20), R("15–25 s", size=20, color=CYANSOFT, bold=True),
-                                           R(", up to ", size=20), R("3 concurrent", size=20, color=CYANSOFT, bold=True)]),
-        ("4", "Silent Telemetry", [R("Every trial logged: ", size=20), R("reaction time, result, omissions, false alarms", size=20, color=CYANSOFT, bold=True)]),
-        ("5", "Assessor Report", [R("HTML profile", size=20, color=CYANSOFT, bold=True), R(" by domain + ", size=20),
-                                  R("Task-Summary CSV", size=20, color=CYANSOFT, bold=True), R(" + raw event log", size=20)]),
+        ("1", "Participant Onboarding", [R("ID, age and session details collected on a station terminal", size=22)]),
+        ("2", "Interactive Tutorial", [R("Movement & console training — skippable for returning participants", size=22)]),
+        ("3", "The Mission — 10 minutes", [R("Tasks spawn at ", size=22), R("4 stations", size=22, color=CYANSOFT, bold=True),
+                                           R(" every ", size=22), R("15–25 s", size=22, color=CYANSOFT, bold=True),
+                                           R(", up to ", size=22), R("3 concurrent", size=22, color=CYANSOFT, bold=True)]),
+        ("4", "Silent Telemetry", [R("Every trial logged: ", size=22), R("reaction time, result, omissions, false alarms", size=22, color=CYANSOFT, bold=True)]),
+        ("5", "Assessor Report", [R("HTML profile", size=22, color=CYANSOFT, bold=True), R(" by domain + ", size=22),
+                                  R("Task-Summary CSV", size=22, color=CYANSOFT, bold=True), R(" + raw event log", size=22)]),
     ]
     sy = y + PAD + 20
     row_h = (h - PAD - 24 - PAD) / 5
@@ -294,7 +323,7 @@ def sys_flow(x, y, w, h):
         c.fill.solid(); c.fill.fore_color.rgb = RGBColor(0x14, 0x30, 0x5C)
         c.line.color.rgb = CYAN; c.line.width = Pt(2); c.shadow.inherit = False
         text(x + PAD, yy + 3.2, 19, 12, [[R(n, font=ORB, size=21, color=CYAN, bold=True)]], align=PP_ALIGN.CENTER)
-        text(x + PAD + 26, yy - 1, w - 2 * PAD - 26, 12, [[R(t, size=23, color=WHITE, bold=True)]])
+        text(x + PAD + 26, yy - 1, w - 2 * PAD - 26, 12, [[R(t, size=24, color=WHITE, bold=True)]])
         text(x + PAD + 26, yy + 10.5, w - 2 * PAD - 26, row_h - 10, [drs], line_spacing=1.15)
 
 
@@ -302,21 +331,21 @@ def tasks(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "05", "Cognitive Tasks")
     data = [
         ("RADAR SCAN", "NAVIGATION STATION", "ATTENTION · TASK-MONITOR", CYAN,
-         [R("Spot rare asteroid contacts among streams of debris — ", size=19),
-          R("40 rapid trials", size=19, color=WHITE, bold=True), R(", 1-second window.", size=19)],
+         [R("Spot rare asteroid contacts among streams of debris — ", size=21),
+          R("40 rapid trials", size=21, color=WHITE, bold=True), R(", 1-second window.", size=21)],
          "Hits · False alarms · d′ sensitivity"),
         ("CODE RECALL", "ENGINE STATION", "WORKING MEMORY", VIOLET,
-         [R("Memorize a ", size=19), R("4-digit reactor code", size=19, color=WHITE, bold=True),
-          R(", hold it while crossing the station, recall it on a keypad.", size=19)],
+         [R("Memorize a ", size=21), R("4-digit reactor code", size=21, color=WHITE, bold=True),
+          R(", hold it while crossing the station, recall it on a keypad.", size=21)],
          "Recall accuracy · Typos · Timeout"),
         ("STROOP CONSOLE", "COMMS STATION", "INHIBITION", ORANGE,
-         [R("Word and ink color disagree — answer by ", size=19), R("color or meaning", size=19, color=WHITE, bold=True),
-          R(" as the rule flips. Plus a ", size=19), R("Go/No-Go", size=19, color=WHITE, bold=True), R(" variant.", size=19)],
+         [R("Word and ink color disagree — answer by ", size=21), R("color or meaning", size=21, color=WHITE, bold=True),
+          R(" as the rule flips. Plus a ", size=21), R("Go/No-Go", size=21, color=WHITE, bold=True), R(" variant.", size=21)],
          "RT mean/SD · Commissions · Post-error slowing"),
         ("POWER CELL RUN", "LIFE-SUPPORT STATION", "PLAN · ORGANIZE", GREEN,
-         [R("Fetch a power cell, route it across the station and ", size=19),
-          R("re-wire the socket", size=19, color=WHITE, bold=True), R(" before power drains — ", size=19),
-          R("100 s budget", size=19, color=WHITE, bold=True), R(".", size=19)],
+         [R("Fetch a power cell, route it across the station and ", size=21),
+          R("re-wire the socket", size=21, color=WHITE, bold=True), R(" before power drains — ", size=21),
+          R("100 s budget", size=21, color=WHITE, bold=True), R(".", size=21)],
          "Pickup latency · Wiring errors · Completion time"),
     ]
     cw = (w - 2 * PAD - 9) / 2
@@ -326,12 +355,12 @@ def tasks(x, y, w, h):
         cy_ = y + PAD + 18 + (i // 2) * (ch + 9)
         rect(cx_, cy_, cw, ch, CARD2, line=EDGE, radius=0.055)
         text(cx_ + 8, cy_ + 7, cw - 16, 12, [[R(t, font=ORB, size=20, color=WHITE, bold=True)]])
-        text(cx_ + 8, cy_ + 17.5, cw - 16, 9, [[R(st, size=14, color=DIM, bold=True)]])
-        pill_w = 6 + len(dom) * 3.1
+        text(cx_ + 8, cy_ + 17.5, cw - 16, 9, [[R(st, size=15, color=DIM, bold=True)]])
+        pill_w = 6 + len(dom) * 3.3
         rect(cx_ + 8, cy_ + 26.5, pill_w, 10.5, None, line=dc, line_w=1.2, radius=0.5)
-        text(cx_ + 8, cy_ + 28.6, pill_w, 7, [[R(dom, size=13, color=dc, bold=True)]], align=PP_ALIGN.CENTER)
+        text(cx_ + 8, cy_ + 28.4, pill_w, 7, [[R(dom, size=14, color=dc, bold=True)]], align=PP_ALIGN.CENTER)
         text(cx_ + 8, cy_ + 41, cw - 16, ch - 60, [desc], line_spacing=1.22)
-        text(cx_ + 8, cy_ + ch - 12.5, cw - 16, 10, [[R(chips, size=14, color=CYANSOFT, bold=True)]])
+        text(cx_ + 8, cy_ + ch - 12.5, cw - 16, 10, [[R(chips, size=15, color=CYANSOFT, bold=True)]])
 
 
 def pipeline(x, y, w, h):
@@ -348,8 +377,8 @@ def pipeline(x, y, w, h):
     for name, desc in rows:
         rect(x + PAD + 6, yy, w - 2 * PAD - 6, rh, RGBColor(0x0A, 0x15, 0x2E), line=EDGE, radius=0.18)
         text(x + PAD + 13, yy + rh / 2 - 5.5, w - 2 * PAD - 20, 10, [[
-            R(name, font=MONO, size=19, color=CYANSOFT, bold=True),
-            R("   " + desc, size=16.5, color=DIM),
+            R(name, font=MONO, size=20, color=CYANSOFT, bold=True),
+            R("   " + desc, size=18, color=DIM),
         ]])
         yy += rh + 4
     rect(x + PAD, y + PAD + 20, 1.2, h - 2 * PAD - 22, ORANGE)
@@ -373,8 +402,8 @@ def tech(x, y, w, h):
         rect(x + PAD, yy, w - 2 * PAD, rh, RGBColor(0x0A, 0x15, 0x2E), line=EDGE, radius=0.22)
         sq = rect(x + PAD + 5, yy + rh / 2 - 3.4, 6.8, 6.8, dc, radius=0.3)
         text(x + PAD + 16, yy + rh / 2 - 5.5, w - 2 * PAD - 22, 10, [[
-            R(name, size=19, color=WHITE, bold=True),
-            R("  — " + desc, size=16, color=DIM),
+            R(name, size=20, color=WHITE, bold=True),
+            R("  — " + desc, size=17.5, color=DIM),
         ]])
         yy += rh + 3.5
 
@@ -382,40 +411,40 @@ def tech(x, y, w, h):
 def testing(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "07", "Testing & Evaluation")
     bullets(x + PAD, y + PAD + 18, w - 2 * PAD, [
-        [R("Quick-test mode", size=19, color=WHITE, bold=True), R(" — the full pipeline exercised in 30-second missions", size=19)],
-        [R("Deterministic seeds", size=19, color=WHITE, bold=True), R(" — reproducible trial sequences for debugging", size=19)],
-        [R("Assessor console verified mid-mission", size=19, color=WHITE, bold=True), R(" — F11 freeze, F12 live report", size=19)],
-        [R("Locale-safe CSV", size=19, color=WHITE, bold=True), R(" — opens clean in Excel, R and Python", size=19)],
-        [R("Pilot playtests", size=19, color=WHITE, bold=True), R(" + peer-examiner demo ahead of the exhibition", size=19)],
-    ], size=19, gap=5)
+        [R("Quick-test mode", size=20.5, color=WHITE, bold=True), R(" — the full pipeline exercised in 30-second missions", size=20.5)],
+        [R("Deterministic seeds", size=20.5, color=WHITE, bold=True), R(" — reproducible trial sequences for debugging", size=20.5)],
+        [R("Assessor console verified mid-mission", size=20.5, color=WHITE, bold=True), R(" — F11 freeze, F12 live report", size=20.5)],
+        [R("Locale-safe CSV", size=20.5, color=WHITE, bold=True), R(" — opens clean in Excel, R and Python", size=20.5)],
+        [R("Pilot playtests", size=20.5, color=WHITE, bold=True), R(" + peer-examiner demo ahead of the exhibition", size=20.5)],
+    ], size=20.5, gap=5)
 
 
 def challenges(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "08", "Challenges & Insights")
     items = [
-        ("01", [R("Fun vs. validity", size=19, color=WHITE, bold=True), R(" — free-roam play, yet strict stimulus timing inside every console", size=19)]),
-        ("02", [R("Invisible measurement", size=19, color=WHITE, bold=True), R(" — world-space consoles and voice guidance keep the “test” out of sight", size=19)]),
-        ("03", [R("Many paradigms, one core", size=19, color=WHITE, bold=True), R(" — a shared task framework: a new task is one script, metrics flow automatically", size=19)]),
-        ("04", [R("AI asset pipeline", size=19, color=WHITE, bold=True), R(" — AI-generated 3D models needed URP material and scale rework", size=19)]),
+        ("01", [R("Fun vs. validity", size=20, color=WHITE, bold=True), R(" — free-roam play, yet strict stimulus timing inside every console", size=20)]),
+        ("02", [R("Invisible measurement", size=20, color=WHITE, bold=True), R(" — world-space consoles and voice guidance keep the “test” out of sight", size=20)]),
+        ("03", [R("Many paradigms, one core", size=20, color=WHITE, bold=True), R(" — a shared task framework: a new task is one script, metrics flow automatically", size=20)]),
+        ("04", [R("AI asset pipeline", size=20, color=WHITE, bold=True), R(" — AI-generated 3D models needed URP material and scale rework", size=20)]),
     ]
-    paras = [[R(n + "  ", font=ORB, size=16, color=ORANGE, bold=True)] + rs for n, rs in items]
+    paras = [[R(n + "  ", font=ORB, size=17, color=ORANGE, bold=True)] + rs for n, rs in items]
     text(x + PAD, y + PAD + 18, w - 2 * PAD, h - 70, paras, space_after=5, line_spacing=1.2)
     rect(x + PAD, y + h - 40, w - 2 * PAD, 29, RGBColor(0x10, 0x2A, 0x44), line=CYAN, line_w=1.5, radius=0.1)
     text(x + PAD + 6, y + h - 36, w - 2 * PAD - 12, 22, [[
         R("Players forget they are being measured — and strict timing is exactly what keeps the data meaningful.",
-          size=18, color=CYANSOFT, italic=True)]], line_spacing=1.15)
+          size=19, color=CYANSOFT, italic=True)]], line_spacing=1.15)
 
 
 def review(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "09", "Project Review")
     items = [
-        ("✔", GREEN, [R("Goals met", size=19, color=WHITE, bold=True), R(" — all four cognitive domains playable end-to-end", size=19)]),
-        ("✔", GREEN, [R("~26 metrics per session", size=19, color=WHITE, bold=True), R(" exported: HTML + CSV + raw event log", size=19)]),
-        ("✔", GREEN, [R("Demo-ready", size=19, color=WHITE, bold=True), R(" — stable 10-minute missions with assessor tools", size=19)]),
-        ("↻", ORANGE, [R("In hindsight", size=19, color=WHITE, bold=True), R(" — build the measurement core first, playtest earlier", size=19)]),
-        ("→", CYAN, [R("Next", size=19, color=WHITE, bold=True), R(" — validation study against standard BRIEF-A scores", size=19)]),
+        ("✔", GREEN, [R("Goals met", size=21, color=WHITE, bold=True), R(" — all four cognitive domains playable end-to-end", size=21)]),
+        ("✔", GREEN, [R("~26 metrics per session", size=21, color=WHITE, bold=True), R(" exported: HTML + CSV + raw event log", size=21)]),
+        ("✔", GREEN, [R("Demo-ready", size=21, color=WHITE, bold=True), R(" — stable 10-minute missions with assessor tools", size=21)]),
+        ("↻", ORANGE, [R("In hindsight", size=21, color=WHITE, bold=True), R(" — build the measurement core first, playtest earlier", size=21)]),
+        ("→", CYAN, [R("Next", size=21, color=WHITE, bold=True), R(" — validation study against standard BRIEF-A scores", size=21)]),
     ]
-    paras = [[R(m + "  ", size=19, color=c, bold=True)] + rs for m, c, rs in items]
+    paras = [[R(m + "  ", size=21, color=c, bold=True)] + rs for m, c, rs in items]
     text(x + PAD, y + PAD + 18, w - 2 * PAD, h - 40, paras, space_after=5, line_spacing=1.2)
 
 
@@ -425,11 +454,11 @@ def takeaway(x, y, w, h):
     rect(x + 0.6, y + 0.6, w - 1.2, h - 1.2, RGBColor(0x0B, 0x18, 0x34), radius=0.06)
     sec_title(x + PAD, y + PAD, w, "10", "Key Takeaway")
     text(x + PAD, y + PAD + 18, w - 2 * PAD, h - 40, [[
-        R("Assessment doesn't have to feel like a test. A ", size=22, color=INK),
-        R("10-minute space mission", size=22, color=ORANGE, bold=True),
-        R(" can quietly produce a ", size=22, color=INK),
-        R("full executive-function profile", size=22, color=CYAN, bold=True),
-        R(" — engagement and measurement in the same loop.", size=22, color=INK),
+        R("Assessment doesn't have to feel like a test. A ", size=23, color=INK),
+        R("10-minute space mission", size=23, color=ORANGE, bold=True),
+        R(" can quietly produce a ", size=23, color=INK),
+        R("full executive-function profile", size=23, color=CYAN, bold=True),
+        R(" — engagement and measurement in the same loop.", size=23, color=INK),
     ]], line_spacing=1.3)
 
 
@@ -437,16 +466,16 @@ def qr_row(x, y, w, h):
     rect(x + PAD - 4, y + 6, 48, 48, WHITE, radius=0.1)
     slide.shapes.add_picture(A("qr_github.png"), Mm(x + PAD - 1), Mm(y + 9), Mm(42), Mm(42))
     text(x + PAD + 50, y + 10, w - PAD - 60, 12, [[R("FULL CODE & DOCS", font=ORB, size=18, color=WHITE, bold=True)]])
-    text(x + PAD + 50, y + 22, w - PAD - 60, 12, [[R("github.com/lidorbenhamo26/Final-Project", size=16, color=CYANSOFT, bold=True)]])
-    text(x + PAD + 50, y + 32, w - PAD - 60, 12, [[R("Unity project · project book · demo video", size=15, color=DIM)]])
+    text(x + PAD + 50, y + 22, w - PAD - 60, 12, [[R("github.com/lidorbenhamo26/Final-Project", size=17, color=CYANSOFT, bold=True)]])
+    text(x + PAD + 50, y + 32, w - PAD - 60, 12, [[R("Unity project · project book · demo video", size=16, color=DIM)]])
 
 
 # ---------- build columns ----------
 stack(LX, LW, [
-    (158, bg_need),
-    (152, solution),
-    (185, requirements),
-    (310, snapshots),
+    (168, bg_need),
+    (190, solution),
+    (200, requirements),
+    (260, snapshots),
 ])
 stack(CX, CW, [
     (305, sys_flow),
@@ -457,7 +486,7 @@ stack(RX, RW, [
     (160, tech),
     (148, testing),
     (195, challenges),
-    (138, review),
+    (146, review),
     (92, takeaway),
     (58, qr_row),
 ])
@@ -471,7 +500,7 @@ cw_ = 150
 for i, (v, l, c) in enumerate(stats):
     sx = 40 + i * cw_
     text(sx, BY + 10, cw_, 24, [[R(v, font=ORB, size=44, color=c, bold=True)]], align=PP_ALIGN.CENTER)
-    text(sx, BY + 40, cw_, 12, [[R(l, size=16, color=DIM, bold=True)]], align=PP_ALIGN.CENTER)
+    text(sx, BY + 40, cw_, 12, [[R(l, size=17, color=DIM, bold=True)]], align=PP_ALIGN.CENTER)
     if i:
         rect(sx - 2, BY + 12, 0.5, 44, EDGE)
 # wave astronaut + bubble
@@ -483,9 +512,9 @@ text(648, BY + 9.4, 88, 9, [[R("Ready for launch!", size=16, color=CYANSOFT, bol
 rect(0, 1168, 841, 21, RGBColor(0x05, 0x0B, 0x1A), line=None)
 rect(0, 1168, 841, 0.8, EDGE)
 text(0, 1173.5, 841, 12, [[
-    R("Braude College of Engineering, Karmiel", size=16, color=SOFT, bold=True),
-    R("   ◆   Department of Software Engineering & Information Systems   ◆   Capstone Project 61999 — Phase B   ◆   ", size=16, color=DIM),
-    R("2026", size=16, color=SOFT, bold=True),
+    R("Braude College of Engineering, Karmiel", size=17, color=SOFT, bold=True),
+    R("   ◆   Department of Software Engineering & Information Systems   ◆   Capstone Project 61999 — Phase B   ◆   ", size=17, color=DIM),
+    R("2026", size=17, color=SOFT, bold=True),
 ]], align=PP_ALIGN.CENTER)
 
 out = os.path.join(HERE, "MissionFocus_Poster_A0.pptx")
