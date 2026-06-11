@@ -159,10 +159,14 @@ TOP, BOTTOM = 200, 1042
 
 
 def stack(x, w, cards):
-    """cards: list of (height, draw_fn(x, y, w, h)). Distributes leftover as equal gaps."""
+    """cards: list of (height, draw_fn(x, y, w, h)). Distributes leftover as equal gaps.
+    Never exceeds BOTTOM: gap floors at 3mm and a warning is printed if cards over-fill."""
     total = sum(h for h, _ in cards)
     gaps = len(cards) - 1
-    gap = max(8, (BOTTOM - TOP - total) / gaps) if gaps else 0
+    leftover = BOTTOM - TOP - total
+    if leftover < 3 * gaps:
+        print(f"WARNING: column at x={x} over budget by {3 * gaps - leftover:.0f}mm — shrink card heights")
+    gap = max(3, leftover / gaps) if gaps else 0
     y = TOP
     for h, fn in cards:
         rect(x, y, w, h, CARD, line=EDGE, radius=0.045)
@@ -228,28 +232,43 @@ def requirements(x, y, w, h):
 def snapshots(x, y, w, h):
     sec_title(x + PAD, y + PAD, w, "", "Mission Snapshots", title_size=24)
     cw = (w - 2 * PAD - 8) / 2
-    ch = (h - PAD - 22 - 26 - 14) / 2
+    ch = (h - PAD - 18 - PAD - 3 * 14 - 2 * 6) / 3  # 3 rows: cell + caption(14), 6mm row gaps
+    from PIL import Image as PILImage
     cells = [
-        (x + PAD, y + PAD + 16, "Radar Scan console — in-mission task UI", None),
-        (x + PAD + cw + 8, y + PAD + 16, "Aboard the station — free roam", None),
-        (x + PAD, y + PAD + 16 + ch + 14, "Assessor HTML report — EF profile", None),
-        (x + PAD + cw + 8, y + PAD + 16 + ch + 14, "Your astronaut — playable character", A("char_helmet_off.png")),
+        ("Radar Scan console — attention trials", A("shot_radar.png"), "shot"),
+        ("Aboard the station — memorize the code", A("shot_station.png"), "shot"),
+        ("Stroop console — match the ink color", A("shot_stroop.png"), "shot"),
+        ("Life-Support wires — planning task", A("shot_wires.png"), "shot"),
+        ("Your astronaut — playable character", A("char_standing.png"), "char"),
+        ("Assessor HTML report — EF profile", None, "slot"),
     ]
-    for cx_, cy_, cap, img in cells:
-        if img:
+    for i, (cap, img, kind) in enumerate(cells):
+        cx_ = x + PAD + (i % 2) * (cw + 8)
+        cy_ = y + PAD + 18 + (i // 2) * (ch + 14 + 6)
+        if kind == "shot":
             pic = slide.shapes.add_picture(img, Mm(cx_), Mm(cy_), Mm(cw), Mm(ch))
-            # crop 16:9 source to cell aspect
-            src_ar, cell_ar = 1280 / 720, cw / ch
+            iw, ih = PILImage.open(img).size  # crop source to cell aspect (center)
+            src_ar, cell_ar = iw / ih, cw / ch
             if src_ar > cell_ar:
                 cut = (1 - cell_ar / src_ar) / 2
                 pic.crop_left = cut; pic.crop_right = cut
+            else:
+                cut = (1 - src_ar / cell_ar) / 2
+                pic.crop_top = cut; pic.crop_bottom = cut
             pic.line.color.rgb = EDGE; pic.line.width = Pt(1)
+        elif kind == "char":
+            rect(cx_, cy_, cw, ch, RGBColor(0x10, 0x22, 0x44), line=EDGE, radius=0.06)
+            iw, ih = PILImage.open(img).size
+            img_h = ch - 4
+            img_w = img_h * iw / ih
+            slide.shapes.add_picture(img, Mm(cx_ + (cw - img_w) / 2), Mm(cy_ + ch - img_h - 1),
+                                     Mm(img_w), Mm(img_h))
         else:
             rect(cx_, cy_, cw, ch, RGBColor(0x09, 0x14, 0x2C), line=CYANSOFT, line_w=1.4,
                  radius=0.06, dash=MSO_LINE_DASH_STYLE.DASH)
-            text(cx_, cy_ + ch / 2 - 5, cw, 10, [[R("SCREENSHOT SLOT", font=ORB, size=13, color=CYANSOFT)]],
+            text(cx_, cy_ + ch / 2 - 5, cw, 10, [[R("SCREENSHOT SLOT", font=ORB, size=12, color=CYANSOFT)]],
                  align=PP_ALIGN.CENTER)
-        text(cx_, cy_ + ch + 2, cw, 12, [[R(cap, size=15, color=DIM)]], line_spacing=1.1)
+        text(cx_, cy_ + ch + 2, cw, 12, [[R(cap, size=14, color=DIM)]], line_spacing=1.1)
 
 
 # ---------- CENTER ----------
@@ -427,7 +446,7 @@ stack(LX, LW, [
     (158, bg_need),
     (152, solution),
     (185, requirements),
-    (300, snapshots),
+    (310, snapshots),
 ])
 stack(CX, CW, [
     (305, sys_flow),
@@ -435,12 +454,12 @@ stack(CX, CW, [
     (168, pipeline),
 ])
 stack(RX, RW, [
-    (172, tech),
-    (158, testing),
-    (205, challenges),
-    (148, review),
-    (95, takeaway),
-    (62, qr_row),
+    (160, tech),
+    (148, testing),
+    (195, challenges),
+    (138, review),
+    (92, takeaway),
+    (58, qr_row),
 ])
 
 # ============ STATS BAND ============

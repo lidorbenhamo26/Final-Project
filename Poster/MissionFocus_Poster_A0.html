@@ -255,23 +255,34 @@
   }
 
   /* ---------- snapshots ---------- */
-  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; }
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 6.5mm 8mm; }
   .shot { display: flex; flex-direction: column; }
   .shot .ph {
-    height: 104mm; border-radius: 4mm; overflow: hidden; position: relative;
+    height: 62mm; border-radius: 4mm; overflow: hidden; position: relative;
     border: 1mm dashed rgba(110,196,255,0.55);
     background:
       linear-gradient(135deg, rgba(79,216,255,0.05), rgba(177,140,255,0.05)),
       rgba(8,17,38,0.7);
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3.5mm;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3mm;
   }
-  .shot .ph svg { width: 18mm; height: 18mm; opacity: 0.8; }
+  .shot .ph svg { width: 15mm; height: 15mm; opacity: 0.8; }
   .shot .ph .lab {
-    font-family: 'Orbitron'; font-size: 14pt; letter-spacing: 2px; color: rgba(159,220,255,0.75);
+    font-family: 'Orbitron'; font-size: 12.5pt; letter-spacing: 2px; color: rgba(159,220,255,0.75);
   }
   .shot.real .ph { border: 0.55mm solid var(--card-edge); padding: 0; }
   .shot.real img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .shot .cap { font-size: 17.5pt; color: var(--ink-dim); margin-top: 3.4mm; line-height: 1.28; }
+  .shot.char .ph {
+    border: 0.55mm solid var(--card-edge); padding: 0;
+    background:
+      radial-gradient(closest-side at 50% 58%, rgba(79,216,255,0.22), rgba(79,216,255,0.05) 72%, transparent 75%),
+      linear-gradient(165deg, #122648, #081228);
+    justify-content: flex-end;
+  }
+  .shot.char .ph img {
+    height: 95%; width: auto; object-fit: contain; display: block;
+    filter: drop-shadow(0 0 4mm rgba(79,216,255,0.35));
+  }
+  .shot .cap { font-size: 15.5pt; color: var(--ink-dim); margin-top: 2.8mm; line-height: 1.26; }
   .shot .cap b { color: var(--ink-soft); }
 
   /* ---------- tech badges ---------- */
@@ -462,19 +473,25 @@
       <section class="card">
         <div class="sec-head"><h2 style="font-size:26pt">Mission Snapshots</h2><span class="sec-rule"></span></div>
         <div class="shots">
-          <div class="shot">
-            <div class="ph">
-              <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="12" width="40" height="28" rx="4" stroke="#9fdcff" stroke-width="2.5"/><circle cx="24" cy="26" r="8" stroke="#9fdcff" stroke-width="2.5"/><rect x="16" y="6" width="16" height="6" rx="2" fill="#9fdcff"/></svg>
-              <div class="lab">SCREENSHOT SLOT</div>
-            </div>
-            <div class="cap"><b>Radar Scan console</b> — in-mission task UI</div>
+          <div class="shot real">
+            <div class="ph"><img src="Assets/shot_radar.png" alt="Radar Scan task"></div>
+            <div class="cap"><b>Radar Scan console</b> — sustained-attention trials</div>
           </div>
-          <div class="shot">
-            <div class="ph">
-              <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="12" width="40" height="28" rx="4" stroke="#9fdcff" stroke-width="2.5"/><circle cx="24" cy="26" r="8" stroke="#9fdcff" stroke-width="2.5"/><rect x="16" y="6" width="16" height="6" rx="2" fill="#9fdcff"/></svg>
-              <div class="lab">SCREENSHOT SLOT</div>
-            </div>
-            <div class="cap"><b>Aboard the station</b> — free roam between task stations</div>
+          <div class="shot real">
+            <div class="ph"><img src="Assets/shot_station.png" alt="Aboard the station"></div>
+            <div class="cap"><b>Aboard the station</b> — memorize the reactor code</div>
+          </div>
+          <div class="shot real">
+            <div class="ph"><img src="Assets/shot_stroop.png" alt="Stroop task"></div>
+            <div class="cap"><b>Stroop console</b> — match the ink color, not the word</div>
+          </div>
+          <div class="shot real">
+            <div class="ph"><img src="Assets/shot_wires.png" alt="Wire panel task"></div>
+            <div class="cap"><b>Life-Support wire panel</b> — planning under pressure</div>
+          </div>
+          <div class="shot char">
+            <div class="ph"><img src="Assets/char_standing.png" alt="Mission Focus astronaut character"></div>
+            <div class="cap"><b>Your astronaut</b> — the playable character</div>
           </div>
           <div class="shot">
             <div class="ph">
@@ -482,10 +499,6 @@
               <div class="lab">SCREENSHOT SLOT</div>
             </div>
             <div class="cap"><b>Assessor HTML report</b> — executive-function profile</div>
-          </div>
-          <div class="shot real">
-            <div class="ph"><img src="Assets/char_helmet_off.png" alt="Mission Focus astronaut character"></div>
-            <div class="cap"><b>Your astronaut</b> — the playable Mission Focus character</div>
           </div>
         </div>
       </section>
