@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Mission Focus — A0 Poster</title>
+<style>
+  /* ============ PAGE / PRINT ============ */
+  @page { size: 841mm 1189mm; margin: 0; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  @font-face {
+    font-family: 'Orbitron';
+    src: url('Assets/fonts/Orbitron.ttf') format('truetype');
+    font-weight: 400 900;
+  }
+  @font-face {
+    font-family: 'Open Sans';
+    src: url('Assets/fonts/OpenSans.ttf') format('truetype');
+    font-weight: 300 800;
+  }
+
+  :root {
+    --bg-deep:   #040918;
+    --bg-mid:    #081229;
+    --card:      rgba(13, 26, 54, 0.88);
+    --card-edge: rgba(110, 196, 255, 0.30);
+    --ink:       #e8f0ff;
+    --ink-soft:  #c2d2ef;
+    --ink-dim:   #8da3c9;
+    --cyan:      #4fd8ff;
+    --cyan-soft: #9fdcff;
+    --orange:    #ff9b42;
+    --violet:    #b18cff;
+    --green:     #5ee6a8;
+    --r: 6mm;
+  }
+
+  html, body { width: 841mm; height: 1189mm; }
+  body {
+    font-family: 'Open Sans', 'Segoe UI', sans-serif;
+    color: var(--ink);
+    background:
+      radial-gradient(1200px 900px at 88% 4%,  rgba(79,216,255,0.10), transparent 60%),
+      radial-gradient(1400px 1100px at 6% 30%, rgba(177,140,255,0.07), transparent 60%),
+      radial-gradient(1300px 1000px at 92% 78%, rgba(255,155,66,0.05), transparent 60%),
+      linear-gradient(180deg, var(--bg-deep) 0%, var(--bg-mid) 48%, #050c20 100%);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* starfield layers */
+  .stars, .stars2 {
+    position: absolute; inset: 0; pointer-events: none;
+    background-repeat: repeat;
+  }
+  .stars {
+    background-image:
+      radial-gradient(1.1px 1.1px at 24px 41px,  rgba(255,255,255,0.85) 50%, transparent 51%),
+      radial-gradient(0.9px 0.9px at 137px 96px, rgba(255,255,255,0.55) 50%, transparent 51%),
+      radial-gradient(1.3px 1.3px at 73px 158px, rgba(190,230,255,0.75) 50%, transparent 51%),
+      radial-gradient(0.8px 0.8px at 191px 22px, rgba(255,255,255,0.45) 50%, transparent 51%),
+      radial-gradient(1px 1px at 102px 203px,    rgba(255,255,255,0.6)  50%, transparent 51%);
+    background-size: 230px 230px;
+  }
+  .stars2 {
+    background-image:
+      radial-gradient(1.6px 1.6px at 61px 33px,  rgba(159,220,255,0.9) 50%, transparent 51%),
+      radial-gradient(1.2px 1.2px at 150px 141px, rgba(255,255,255,0.5) 50%, transparent 51%),
+      radial-gradient(2px 2px at 218px 84px,     rgba(255,200,150,0.55) 50%, transparent 51%);
+    background-size: 340px 340px;
+  }
+
+  .frame { position: relative; width: 841mm; height: 1189mm; padding: 16mm 22mm 0 22mm; display: flex; flex-direction: column; }
+
+  /* ============ HEADER ============ */
+  header { position: relative; height: 178mm; flex: 0 0 auto; }
+
+  .top-strip { display: flex; justify-content: space-between; align-items: flex-start; }
+  .logo-chip {
+    background: #ffffff; border-radius: 4.5mm; padding: 5mm 8mm;
+    display: flex; align-items: center;
+    box-shadow: 0 0 14mm rgba(79,216,255,0.18);
+  }
+  .logo-chip img { height: 30mm; display: block; }
+
+  .badges { display: flex; gap: 5mm; align-items: center; }
+  .badge {
+    font-family: 'Orbitron'; font-weight: 700; letter-spacing: 1.5px;
+    font-size: 18pt; padding: 4mm 8mm; border-radius: 50mm;
+    border: 0.6mm solid var(--card-edge); color: var(--cyan-soft);
+    background: rgba(13,26,54,0.7);
+  }
+  .badge.team { color: #06121f; background: linear-gradient(135deg, #6fe3ff, #38b6ff); border-color: transparent; }
+
+  .head-main { display: flex; margin-top: 9mm; align-items: flex-start; }
+  .head-text { flex: 1 1 auto; padding-top: 4mm; }
+
+  h1.wordmark {
+    font-family: 'Orbitron'; font-weight: 900; font-size: 138pt; line-height: 1.0;
+    letter-spacing: 4px; white-space: nowrap;
+  }
+  h1 .w1 { color: #ffffff; text-shadow: 0 0 10mm rgba(79,216,255,0.30); }
+  h1 .w2 { color: #56d4ff; text-shadow: 0 0 12mm rgba(79,216,255,0.45); }
+  .subtitle {
+    margin-top: 8mm; font-size: 40pt; font-weight: 600; color: var(--cyan-soft); letter-spacing: 3px;
+  }
+  .authors {
+    margin-top: 11mm; font-size: 35pt; font-weight: 700; color: var(--ink); letter-spacing: 0.5px;
+  }
+  .authors .amp { color: var(--orange); font-weight: 800; padding: 0 2.5mm; }
+  .advisor { margin-top: 4mm; font-size: 26pt; color: var(--ink-soft); }
+  .advisor b { color: #ffffff; font-weight: 700; }
+
+  .hero {
+    flex: 0 0 auto; width: 212mm; height: 152mm; position: relative; margin-top: 0;
+  }
+  .hero .ring {
+    position: absolute; right: 14mm; top: 2mm; width: 138mm; height: 138mm; border-radius: 50%;
+    background:
+      radial-gradient(closest-side, rgba(79,216,255,0.16), rgba(79,216,255,0.05) 70%, transparent 72%);
+    border: 0.8mm solid rgba(110,196,255,0.35);
+  }
+  .hero .ring::after {
+    content: ''; position: absolute; inset: -7mm; border-radius: 50%;
+    border: 0.45mm dashed rgba(110,196,255,0.30);
+  }
+  .hero img.cut {
+    position: absolute; right: 38mm; bottom: 2mm; height: 148mm;
+    filter: drop-shadow(0 0 8mm rgba(79,216,255,0.30));
+  }
+
+  /* ============ BODY GRID ============ */
+  .grid {
+    display: grid; grid-template-columns: 250mm 277mm 250mm; gap: 10mm;
+    margin-top: 6mm; flex: 1 1 auto; align-content: stretch;
+  }
+  .col { display: flex; flex-direction: column; gap: 10mm; min-width: 0; justify-content: space-between; }
+
+  section.card {
+    background: var(--card); border: 0.55mm solid var(--card-edge);
+    border-radius: var(--r); padding: 10mm 11mm 11mm 11mm;
+    box-shadow: 0 4mm 12mm rgba(0,0,0,0.35), inset 0 0 22mm rgba(79,216,255,0.04);
+  }
+
+  .sec-head { display: flex; align-items: baseline; gap: 5mm; margin-bottom: 6.5mm; }
+  .sec-num {
+    font-family: 'Orbitron'; font-weight: 700; font-size: 19pt; color: var(--cyan);
+    opacity: 0.95; letter-spacing: 1px;
+  }
+  h2 {
+    font-family: 'Orbitron'; font-weight: 800; font-size: 30.5pt; letter-spacing: 1.2px;
+    color: #ffffff; text-transform: uppercase;
+  }
+  .sec-rule { flex: 1; height: 0.7mm; border-radius: 1mm; align-self: center;
+    background: linear-gradient(90deg, rgba(79,216,255,0.55), transparent); }
+
+  p.lead { font-size: 22pt; line-height: 1.42; color: var(--ink-soft); }
+  p.lead b, li b { color: #ffffff; }
+
+  ul.dots { list-style: none; margin-top: 5mm; }
+  ul.dots li {
+    font-size: 21pt; line-height: 1.38; color: var(--ink-soft);
+    padding-left: 11mm; position: relative; margin-top: 4.4mm;
+  }
+  ul.dots li::before {
+    content: ''; position: absolute; left: 1mm; top: 4.2mm;
+    width: 3.9mm; height: 3.9mm; border-radius: 1.1mm; transform: rotate(45deg);
+    background: linear-gradient(135deg, var(--cyan), #2f86ff);
+  }
+
+  .need-callout {
+    margin-top: 7mm; border-left: 1.8mm solid var(--orange);
+    background: rgba(255,155,66,0.10); border-radius: 0 3mm 3mm 0;
+    padding: 5mm 7mm; font-size: 21pt; line-height: 1.4; color: #ffd9b3; font-weight: 600;
+  }
+
+  ul.checks { list-style: none; }
+  ul.checks li {
+    font-size: 21pt; line-height: 1.36; color: var(--ink-soft);
+    padding-left: 12.5mm; position: relative; margin-top: 4.6mm;
+  }
+  ul.checks li::before {
+    content: ''; position: absolute; left: 0; top: 2.8mm; width: 7mm; height: 7mm;
+    border-radius: 1.8mm; background: rgba(94,230,168,0.16); border: 0.5mm solid rgba(94,230,168,0.65);
+  }
+  ul.checks li::after {
+    content: ''; position: absolute; left: 1.9mm; top: 4.6mm; width: 3mm; height: 1.7mm;
+    border-left: 0.9mm solid var(--green); border-bottom: 0.9mm solid var(--green);
+    transform: rotate(-50deg);
+  }
+
+  /* ---------- flow stepper ---------- */
+  .flow { display: flex; flex-direction: column; }
+  .step { display: flex; gap: 8mm; position: relative; padding-bottom: 16mm; }
+  .step:last-child { padding-bottom: 0; }
+  .step::before {
+    content: ''; position: absolute; left: 10mm; top: 20mm; bottom: -1mm; width: 0.9mm;
+    background: linear-gradient(180deg, rgba(79,216,255,0.6), rgba(79,216,255,0.12));
+  }
+  .step:last-child::before { display: none; }
+  .step .n {
+    flex: 0 0 auto; width: 20mm; height: 20mm; border-radius: 50%;
+    background: radial-gradient(circle at 32% 28%, #173764, #0b1c3c);
+    border: 0.8mm solid var(--cyan); color: var(--cyan);
+    font-family: 'Orbitron'; font-weight: 800; font-size: 22pt;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 0 6mm rgba(79,216,255,0.35);
+  }
+  .step .t { padding-top: 0.5mm; }
+  .step .t h3 { font-size: 24pt; font-weight: 800; color: #fff; letter-spacing: 0.4px; }
+  .step .t p { font-size: 21pt; line-height: 1.34; color: var(--ink-soft); margin-top: 2mm; }
+  .step .t p b { color: var(--cyan-soft); }
+
+  /* ---------- measurement pipeline ---------- */
+  .pipe { display: flex; flex-direction: column; gap: 4.5mm; position: relative; padding-left: 7mm; }
+  .pipe::before {
+    content: ''; position: absolute; left: 1.5mm; top: 6mm; bottom: 6mm; width: 0.9mm;
+    background: linear-gradient(180deg, var(--orange), rgba(255,155,66,0.15));
+    border-radius: 1mm;
+  }
+  .pnode {
+    display: flex; align-items: baseline; gap: 5mm;
+    background: rgba(10,21,46,0.9); border: 0.5mm solid rgba(110,196,255,0.30);
+    border-radius: 3.5mm; padding: 4.6mm 7mm;
+  }
+  .pnode b { font-family: Consolas, monospace; font-size: 19.5pt; color: var(--cyan-soft); flex: 0 0 auto; }
+  .pnode { font-size: 17pt; color: var(--ink-dim); }
+  .parr { display: none; }
+
+  /* ---------- task cards ---------- */
+  .tasks { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; }
+  .task {
+    border-radius: 5mm; padding: 10.5mm 10mm 11mm 10mm; position: relative;
+    background: linear-gradient(165deg, rgba(21,38,74,0.95), rgba(10,20,44,0.95));
+    border: 0.55mm solid rgba(110,196,255,0.26);
+  }
+  .task .icon { width: 16mm; height: 16mm; position: absolute; top: 8.5mm; right: 8.5mm; opacity: 0.95; }
+  .task h3 { font-family: 'Orbitron'; font-size: 20pt; font-weight: 800; color: #fff; letter-spacing: 0.8px; padding-right: 18mm; white-space: nowrap; }
+  .station { font-size: 15pt; font-weight: 700; letter-spacing: 2px; color: var(--ink-dim); margin-top: 1.8mm; text-transform: uppercase; }
+  .domain {
+    display: inline-block; margin-top: 3.8mm; font-size: 14pt; font-weight: 800;
+    letter-spacing: 1px; text-transform: uppercase; padding: 2mm 5mm; border-radius: 40mm;
+    white-space: nowrap;
+  }
+  .d-att { background: rgba(79,216,255,0.14);  color: #8ee6ff; border: 0.45mm solid rgba(79,216,255,0.5); }
+  .d-wm  { background: rgba(177,140,255,0.14); color: #cdb2ff; border: 0.45mm solid rgba(177,140,255,0.5); }
+  .d-inh { background: rgba(255,155,66,0.13);  color: #ffc08a; border: 0.45mm solid rgba(255,155,66,0.5); }
+  .d-pln { background: rgba(94,230,168,0.13);  color: #93f0c4; border: 0.45mm solid rgba(94,230,168,0.5); }
+  .task p { font-size: 20pt; line-height: 1.35; color: var(--ink-soft); margin-top: 4.2mm; }
+  .chips { display: flex; flex-wrap: wrap; gap: 2.8mm; margin-top: 4.2mm; }
+  .chip {
+    font-size: 14.5pt; font-weight: 700; color: var(--cyan-soft);
+    background: rgba(79,216,255,0.08); border: 0.4mm solid rgba(110,196,255,0.30);
+    padding: 1.7mm 4.2mm; border-radius: 40mm; white-space: nowrap;
+  }
+
+  /* ---------- snapshots ---------- */
+  .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; }
+  .shot { display: flex; flex-direction: column; }
+  .shot .ph {
+    height: 104mm; border-radius: 4mm; overflow: hidden; position: relative;
+    border: 1mm dashed rgba(110,196,255,0.55);
+    background:
+      linear-gradient(135deg, rgba(79,216,255,0.05), rgba(177,140,255,0.05)),
+      rgba(8,17,38,0.7);
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3.5mm;
+  }
+  .shot .ph svg { width: 18mm; height: 18mm; opacity: 0.8; }
+  .shot .ph .lab {
+    font-family: 'Orbitron'; font-size: 14pt; letter-spacing: 2px; color: rgba(159,220,255,0.75);
+  }
+  .shot.real .ph { border: 0.55mm solid var(--card-edge); padding: 0; }
+  .shot.real img { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .shot .cap { font-size: 17.5pt; color: var(--ink-dim); margin-top: 3.4mm; line-height: 1.28; }
+  .shot .cap b { color: var(--ink-soft); }
+
+  /* ---------- tech badges ---------- */
+  .tech { display: flex; flex-direction: column; gap: 4mm; }
+  .tk {
+    display: flex; align-items: center; gap: 5.5mm;
+    background: rgba(10,21,46,0.85); border: 0.5mm solid rgba(110,196,255,0.22);
+    border-radius: 3.5mm; padding: 4mm 6mm;
+  }
+  .tk .dot {
+    flex: 0 0 auto; width: 8.5mm; height: 8.5mm; border-radius: 2.5mm;
+    background: linear-gradient(135deg, var(--cyan), #2f86ff);
+    box-shadow: 0 0 4mm rgba(79,216,255,0.4);
+  }
+  .tk:nth-child(2) .dot { background: linear-gradient(135deg, #b18cff, #7a4fff); box-shadow: 0 0 4mm rgba(177,140,255,0.4); }
+  .tk:nth-child(3) .dot { background: linear-gradient(135deg, #5ee6a8, #1fb877); box-shadow: 0 0 4mm rgba(94,230,168,0.4); }
+  .tk:nth-child(4) .dot { background: linear-gradient(135deg, #ff9b42, #ff6a3d); box-shadow: 0 0 4mm rgba(255,155,66,0.4); }
+  .tk:nth-child(5) .dot { background: linear-gradient(135deg, #6fe3ff, #38b6ff); }
+  .tk:nth-child(6) .dot { background: linear-gradient(135deg, #cdb2ff, #8c5bff); }
+  .tk:nth-child(7) .dot { background: linear-gradient(135deg, #93f0c4, #2fc98e); }
+  .tk b  { font-size: 20pt; color: #fff; white-space: nowrap; }
+  .tk span { font-size: 17.5pt; color: var(--ink-dim); }
+
+  /* ---------- challenges ---------- */
+  ol.chal { list-style: none; counter-reset: c; }
+  ol.chal li {
+    counter-increment: c; position: relative; padding-left: 14mm;
+    font-size: 20pt; line-height: 1.34; color: var(--ink-soft); margin-top: 5mm;
+  }
+  ol.chal li:first-child { margin-top: 0; }
+  ol.chal li::before {
+    content: counter(c, decimal-leading-zero);
+    position: absolute; left: 0; top: 1mm;
+    font-family: 'Orbitron'; font-weight: 800; font-size: 17pt; color: var(--orange);
+  }
+  ol.chal li b { color: #fff; }
+  .insight {
+    margin-top: 6.5mm; border-left: 1.8mm solid var(--cyan);
+    background: rgba(79,216,255,0.08); border-radius: 0 3mm 3mm 0;
+    padding: 5mm 7mm; font-size: 19.5pt; line-height: 1.38; color: var(--cyan-soft); font-style: italic;
+  }
+
+  ul.review { list-style: none; }
+  ul.review li { font-size: 20pt; line-height: 1.34; color: var(--ink-soft); padding-left: 12mm; position: relative; margin-top: 4.4mm; }
+  ul.review li:first-child { margin-top: 0; }
+  ul.review li .m { position: absolute; left: 0; top: 0; font-weight: 800; font-size: 20pt; }
+  ul.review li .ok { color: var(--green); }
+  ul.review li .re { color: var(--orange); }
+  ul.review li .nx { color: var(--cyan); }
+  ul.review li b { color: #fff; }
+
+  /* ---------- takeaway + qr ---------- */
+  .takeaway {
+    border-radius: var(--r); padding: 1.1mm;
+    background: linear-gradient(120deg, var(--cyan), var(--violet) 55%, var(--orange));
+  }
+  .takeaway .inner {
+    border-radius: 5.2mm; background: linear-gradient(165deg, #0d1c3c, #081228);
+    padding: 9mm 10mm;
+  }
+  .takeaway h2 { margin-bottom: 0; }
+  .takeaway .sec-head { margin-bottom: 5mm; }
+  .takeaway p { font-size: 23.5pt; line-height: 1.42; color: #eaf3ff; font-weight: 600; }
+  .takeaway p b { color: var(--cyan); }
+  .takeaway p i { color: var(--orange); font-style: normal; font-weight: 800; }
+
+  .qr-row {
+    display: flex; align-items: center; gap: 8mm;
+    background: var(--card); border: 0.55mm solid var(--card-edge);
+    border-radius: var(--r); padding: 7mm 8mm;
+  }
+  .qr-chip { background: #fff; padding: 3mm; border-radius: 3mm; flex: 0 0 auto; }
+  .qr-chip img { width: 44mm; height: 44mm; display: block; }
+  .qr-t b { display: block; font-family: 'Orbitron'; font-size: 19pt; color: #fff; letter-spacing: 1px; }
+  .qr-t span { display: block; margin-top: 2.4mm; font-size: 16.5pt; color: var(--ink-dim); word-break: break-all; line-height: 1.3; }
+  .qr-t .gh { color: var(--cyan-soft); font-weight: 700; }
+
+  /* ---------- stats band ---------- */
+  .stats {
+    margin-top: 11mm; position: relative;
+    background: linear-gradient(100deg, rgba(13,26,54,0.95), rgba(9,18,40,0.95));
+    border: 0.55mm solid var(--card-edge); border-radius: var(--r);
+    display: flex; align-items: center; padding: 10mm 180mm 10mm 14mm;
+  }
+  .stat { flex: 1; text-align: center; position: relative; }
+  .stat + .stat::before {
+    content: ''; position: absolute; left: 0; top: 12%; bottom: 12%; width: 0.5mm;
+    background: linear-gradient(180deg, transparent, rgba(110,196,255,0.4), transparent);
+  }
+  .stat .v { font-family: 'Orbitron'; font-weight: 900; font-size: 46pt; }
+  .stat:nth-child(1) .v { color: var(--cyan); }
+  .stat:nth-child(2) .v { color: var(--orange); }
+  .stat:nth-child(3) .v { color: var(--violet); }
+  .stat:nth-child(4) .v { color: var(--green); }
+  .stat .l { margin-top: 2.6mm; font-size: 16.5pt; font-weight: 700; letter-spacing: 1.5px; color: var(--ink-dim); text-transform: uppercase; }
+  .stats .wave {
+    position: absolute; right: 24mm; bottom: 1mm; height: 68mm;
+    filter: drop-shadow(0 0 6mm rgba(79,216,255,0.3));
+  }
+  .stats .wave-bubble {
+    position: absolute; right: 102mm; bottom: 40mm;
+    background: rgba(79,216,255,0.12); border: 0.5mm solid rgba(110,196,255,0.45);
+    border-radius: 5mm 5mm 1mm 5mm; padding: 3.5mm 6mm;
+    font-size: 16pt; font-weight: 700; color: var(--cyan-soft); white-space: nowrap;
+  }
+
+  /* ============ FOOTER ============ */
+  footer {
+    flex: 0 0 auto; height: 20mm; margin: 10mm -22mm 0 -22mm; margin-top: auto;
+    border-top: 0.6mm solid rgba(110,196,255,0.35);
+    background: rgba(5,11,26,0.92);
+    display: flex; align-items: center; justify-content: center; gap: 7mm;
+    font-size: 16.5pt; color: var(--ink-dim); letter-spacing: 0.6px;
+  }
+  footer b { color: var(--ink-soft); font-weight: 700; }
+  footer .sep { color: var(--cyan); }
+</style>
+</head>
+<body>
+<div class="stars"></div>
+<div class="stars2"></div>
+<div class="frame">
+
+  <!-- ================= HEADER ================= -->
+  <header>
+    <div class="top-strip">
+      <div class="logo-chip"><img src="Assets/braude_logo.png" alt="Braude College of Engineering"></div>
+      <div class="badges">
+        <div class="badge">CAPSTONE PROJECT — PHASE B</div>
+        <div class="badge team">TEAM 26-1-D-17</div>
+      </div>
+    </div>
+
+    <div class="head-main">
+      <div class="head-text">
+        <h1 class="wordmark"><span class="w1">MISSION</span> <span class="w2">FOCUS</span></h1>
+        <div class="subtitle">A SPACE-STATION COGNITIVE ASSESSMENT GAME</div>
+        <div class="authors">Lidor Ben Hamo <span class="amp">&amp;</span> Yahli Rapaport</div>
+        <div class="advisor">Advisor: <b>Dr. Moshe Sulamy</b> &nbsp;·&nbsp; Department of Software Engineering &amp; Information Systems</div>
+      </div>
+      <div class="hero">
+        <div class="ring"></div>
+        <img class="cut" src="Assets/char_hero.png" alt="Mission Focus astronaut">
+      </div>
+    </div>
+  </header>
+
+  <!-- ================= BODY ================= -->
+  <div class="grid">
+
+    <!-- ============ LEFT ============ -->
+    <div class="col">
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">01</span><h2>Background &amp; Need</h2><span class="sec-rule"></span></div>
+        <p class="lead">Executive-function assessment still leans on <b>questionnaires (BRIEF-A)</b> and dry lab drills:</p>
+        <ul class="dots">
+          <li><b>Stressful &amp; repetitive</b> — scores drop with motivation, not ability</li>
+          <li><b>Low engagement</b>, especially for children and young adults</li>
+          <li><b>Subjective ratings</b> — little objective, trial-level performance data</li>
+        </ul>
+        <div class="need-callout">The need: measurement that is objective, repeatable — and actually fun to take.</div>
+      </section>
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">02</span><h2>The Solution</h2><span class="sec-rule"></span></div>
+        <p class="lead"><b>Mission Focus</b> turns assessment into a 10-minute space mission:</p>
+        <ul class="dots">
+          <li>A first-person astronaut keeps a failing station alive</li>
+          <li>Every repair console is a <b>cognitive paradigm in disguise</b></li>
+          <li>Every reaction is <b>silently logged</b> — no test anxiety, no clipboards</li>
+          <li>One click: <b>assessor-ready HTML report</b> + analysis-ready CSV</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">03</span><h2>Main Requirements</h2><span class="sec-rule"></span></div>
+        <ul class="checks">
+          <li><b>Playable 10-min mission</b> — tutorial + voice guidance, not a quiz</li>
+          <li>Measure <b>attention, working memory, inhibition, planning</b> and response accuracy</li>
+          <li><b>Per-trial logging</b>: reaction time, accuracy, omissions, false alarms</li>
+          <li><b>Assessor tools</b>: freeze (F11) and live report overlay (F12)</li>
+          <li>Export <b>HTML report + per-task CSV</b> summary per participant</li>
+          <li><b>Local-only data</b> — privacy by design, no network</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <div class="sec-head"><h2 style="font-size:26pt">Mission Snapshots</h2><span class="sec-rule"></span></div>
+        <div class="shots">
+          <div class="shot">
+            <div class="ph">
+              <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="12" width="40" height="28" rx="4" stroke="#9fdcff" stroke-width="2.5"/><circle cx="24" cy="26" r="8" stroke="#9fdcff" stroke-width="2.5"/><rect x="16" y="6" width="16" height="6" rx="2" fill="#9fdcff"/></svg>
+              <div class="lab">SCREENSHOT SLOT</div>
+            </div>
+            <div class="cap"><b>Radar Scan console</b> — in-mission task UI</div>
+          </div>
+          <div class="shot">
+            <div class="ph">
+              <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="12" width="40" height="28" rx="4" stroke="#9fdcff" stroke-width="2.5"/><circle cx="24" cy="26" r="8" stroke="#9fdcff" stroke-width="2.5"/><rect x="16" y="6" width="16" height="6" rx="2" fill="#9fdcff"/></svg>
+              <div class="lab">SCREENSHOT SLOT</div>
+            </div>
+            <div class="cap"><b>Aboard the station</b> — free roam between task stations</div>
+          </div>
+          <div class="shot">
+            <div class="ph">
+              <svg viewBox="0 0 48 48" fill="none"><rect x="4" y="12" width="40" height="28" rx="4" stroke="#9fdcff" stroke-width="2.5"/><circle cx="24" cy="26" r="8" stroke="#9fdcff" stroke-width="2.5"/><rect x="16" y="6" width="16" height="6" rx="2" fill="#9fdcff"/></svg>
+              <div class="lab">SCREENSHOT SLOT</div>
+            </div>
+            <div class="cap"><b>Assessor HTML report</b> — executive-function profile</div>
+          </div>
+          <div class="shot real">
+            <div class="ph"><img src="Assets/char_helmet_off.png" alt="Mission Focus astronaut character"></div>
+            <div class="cap"><b>Your astronaut</b> — the playable Mission Focus character</div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ============ CENTER ============ -->
+    <div class="col">
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">04</span><h2>System Flow</h2><span class="sec-rule"></span></div>
+        <div class="flow">
+          <div class="step"><div class="n">1</div><div class="t">
+            <h3>Participant Onboarding</h3><p>ID, age and session details collected on a station terminal</p>
+          </div></div>
+          <div class="step"><div class="n">2</div><div class="t">
+            <h3>Interactive Tutorial</h3><p>Movement &amp; console training — skippable for returning participants</p>
+          </div></div>
+          <div class="step"><div class="n">3</div><div class="t">
+            <h3>The Mission — 10 minutes</h3><p>Tasks spawn at <b>4 stations</b> every <b>15–25 s</b>, up to <b>3 concurrent</b> — the player chooses what to handle first</p>
+          </div></div>
+          <div class="step"><div class="n">4</div><div class="t">
+            <h3>Silent Telemetry</h3><p>Every trial logged: <b>reaction time, result, omissions, false alarms</b> + task-specific metrics</p>
+          </div></div>
+          <div class="step"><div class="n">5</div><div class="t">
+            <h3>Assessor Report</h3><p><b>HTML profile</b> by cognitive domain + <b>Task-Summary CSV</b> + raw event log</p>
+          </div></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">05</span><h2>Cognitive Tasks</h2><span class="sec-rule"></span></div>
+        <div class="tasks">
+
+          <div class="task">
+            <svg class="icon" viewBox="0 0 48 48" fill="none">
+              <circle cx="24" cy="24" r="20" stroke="#4fd8ff" stroke-width="2.5"/>
+              <circle cx="24" cy="24" r="12" stroke="#4fd8ff" stroke-width="1.6" opacity="0.6"/>
+              <path d="M24 24 L38 10" stroke="#4fd8ff" stroke-width="2.5" stroke-linecap="round"/>
+              <path d="M24 24 L38 10 A20 20 0 0 1 44 24 Z" fill="#4fd8ff" opacity="0.25"/>
+              <circle cx="16" cy="30" r="2.6" fill="#ff9b42"/>
+            </svg>
+            <h3>RADAR SCAN</h3>
+            <div class="station">Navigation Station</div>
+            <span class="domain d-att">Attention · Task-Monitor</span>
+            <p>Spot rare asteroid contacts among streams of debris — <b>40 rapid trials</b>, 1-second response window.</p>
+            <div class="chips"><span class="chip">Hits</span><span class="chip">False alarms</span><span class="chip">d′ sensitivity</span></div>
+          </div>
+
+          <div class="task">
+            <svg class="icon" viewBox="0 0 48 48" fill="none">
+              <rect x="7" y="5" width="34" height="38" rx="4" stroke="#b18cff" stroke-width="2.5"/>
+              <rect x="13" y="11" width="22" height="7" rx="2" fill="#b18cff" opacity="0.45"/>
+              <g fill="#b18cff"><circle cx="16" cy="26" r="2.6"/><circle cx="24" cy="26" r="2.6"/><circle cx="32" cy="26" r="2.6"/><circle cx="16" cy="34" r="2.6"/><circle cx="24" cy="34" r="2.6"/><circle cx="32" cy="34" r="2.6"/></g>
+            </svg>
+            <h3>CODE RECALL</h3>
+            <div class="station">Engine Station</div>
+            <span class="domain d-wm">Working Memory</span>
+            <p>Memorize a <b>4-digit reactor code</b>, keep it in mind while crossing the station, recall it on a keypad.</p>
+            <div class="chips"><span class="chip">Recall accuracy</span><span class="chip">Typos</span><span class="chip">Timeout</span></div>
+          </div>
+
+          <div class="task">
+            <svg class="icon" viewBox="0 0 48 48" fill="none">
+              <rect x="6" y="10" width="16" height="16" rx="3" fill="#ff9b42" opacity="0.85"/>
+              <rect x="26" y="10" width="16" height="16" rx="3" stroke="#ff9b42" stroke-width="2.5"/>
+              <path d="M10 36 h28" stroke="#ff9b42" stroke-width="3" stroke-linecap="round"/>
+              <path d="M10 42 h18" stroke="#ff9b42" stroke-width="3" stroke-linecap="round" opacity="0.55"/>
+            </svg>
+            <h3>STROOP CONSOLE</h3>
+            <div class="station">Comms Station</div>
+            <span class="domain d-inh">Inhibition</span>
+            <p>Word and ink color disagree — answer by <b>color or meaning</b> as the rule flips each round. Plus a <b>Go/No-Go</b> variant.</p>
+            <div class="chips"><span class="chip">RT mean / SD</span><span class="chip">Commissions</span><span class="chip">Post-error slowing</span></div>
+          </div>
+
+          <div class="task">
+            <svg class="icon" viewBox="0 0 48 48" fill="none">
+              <rect x="10" y="12" width="28" height="30" rx="4" stroke="#5ee6a8" stroke-width="2.5"/>
+              <rect x="18" y="5" width="12" height="7" rx="2" fill="#5ee6a8"/>
+              <path d="M25.5 19 L19 30 h6 l-3.5 8 L31 26 h-6 Z" fill="#5ee6a8" opacity="0.9"/>
+            </svg>
+            <h3>POWER CELL RUN</h3>
+            <div class="station">Life-Support Station</div>
+            <span class="domain d-pln">Plan · Organize</span>
+            <p>Fetch a power cell, route it across the station and <b>re-wire the socket</b> before power drains — <b>100 s budget</b>.</p>
+            <div class="chips"><span class="chip">Pickup latency</span><span class="chip">Wiring errors</span><span class="chip">Completion time</span></div>
+          </div>
+
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="sec-head"><h2 style="font-size:25pt">Under the Hood — Measurement Pipeline</h2><span class="sec-rule"></span></div>
+        <div class="pipe">
+          <span class="pnode"><b>TaskStation</b>spawns the task</span><span class="parr">→</span>
+          <span class="pnode"><b>CognitiveTaskBase</b>runs timed trials</span><span class="parr">→</span>
+          <span class="pnode"><b>AssessmentResults</b>collects metrics</span><span class="parr">→</span>
+          <span class="pnode"><b>SessionManager</b>logs every event</span><span class="parr">→</span>
+          <span class="pnode"><b>Exporters</b>HTML · CSV · raw log</span>
+        </div>
+      </section>
+
+    </div>
+
+    <!-- ============ RIGHT ============ -->
+    <div class="col">
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">06</span><h2>Technologies &amp; Tools</h2><span class="sec-rule"></span></div>
+        <div class="tech">
+          <div class="tk"><span class="dot"></span><b>Unity 6 · URP</b><span>— 3D engine &amp; rendering pipeline</span></div>
+          <div class="tk"><span class="dot"></span><b>C#</b><span>— gameplay &amp; assessment logic</span></div>
+          <div class="tk"><span class="dot"></span><b>Unity Input System</b><span>— first-person controls</span></div>
+          <div class="tk"><span class="dot"></span><b>TextMeshPro</b><span>— HUD &amp; console UI</span></div>
+          <div class="tk"><span class="dot"></span><b>ElevenLabs</b><span>— AI mission voice-overs</span></div>
+          <div class="tk"><span class="dot"></span><b>Meshy AI</b><span>— 3D station props &amp; consoles</span></div>
+          <div class="tk"><span class="dot"></span><b>Git · GitHub</b><span>— version control &amp; delivery</span></div>
+        </div>
+      </section>
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">07</span><h2>Testing &amp; Evaluation</h2><span class="sec-rule"></span></div>
+        <ul class="dots" style="margin-top:0">
+          <li><b>Quick-test mode</b> — the full pipeline exercised in 30-second missions</li>
+          <li><b>Deterministic seeds</b> — reproducible trial sequences for debugging</li>
+          <li><b>Assessor console verified mid-mission</b> — F11 freeze, F12 live report</li>
+          <li><b>Locale-safe CSV</b> — opens clean in Excel, R and Python</li>
+          <li><b>Pilot playtests</b> + peer-examiner demo ahead of the exhibition</li>
+        </ul>
+      </section>
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">08</span><h2>Challenges &amp; Insights</h2><span class="sec-rule"></span></div>
+        <ol class="chal">
+          <li><b>Fun vs. validity</b> — free-roam play, yet strict stimulus timing and response windows inside every console</li>
+          <li><b>Invisible measurement</b> — world-space consoles and voice guidance keep the "test" out of sight</li>
+          <li><b>Many paradigms, one core</b> — a shared task framework: a new cognitive task is one script, metrics flow to reports automatically</li>
+          <li><b>AI asset pipeline</b> — AI-generated 3D models needed URP material and scale rework</li>
+        </ol>
+        <div class="insight">Players forget they are being measured — and strict timing is exactly what keeps the data meaningful.</div>
+      </section>
+
+      <section class="card">
+        <div class="sec-head"><span class="sec-num">09</span><h2>Project Review</h2><span class="sec-rule"></span></div>
+        <ul class="review">
+          <li><span class="m ok">✔</span><b>Goals met</b> — all four cognitive domains playable end-to-end</li>
+          <li><span class="m ok">✔</span><b>~26 metrics per session</b> exported: HTML + CSV + raw event log</li>
+          <li><span class="m ok">✔</span><b>Demo-ready</b> — stable 10-minute missions with assessor tools</li>
+          <li><span class="m re">↻</span><b>In hindsight</b> — build the measurement core first, playtest earlier</li>
+          <li><span class="m nx">→</span><b>Next</b> — validation study against standard BRIEF-A scores</li>
+        </ul>
+      </section>
+
+      <section class="takeaway">
+        <div class="inner">
+          <div class="sec-head"><span class="sec-num">10</span><h2>Key Takeaway</h2></div>
+          <p>Assessment doesn't have to feel like a test. A <i>10-minute space mission</i> can quietly produce a <b>full executive-function profile</b> — engagement and measurement in the same loop.</p>
+        </div>
+      </section>
+
+      <div class="qr-row">
+        <div class="qr-chip"><img src="Assets/qr_github.png" alt="GitHub repository QR"></div>
+        <div class="qr-t">
+          <b>FULL CODE &amp; DOCS</b>
+          <span class="gh">github.com/lidorbenhamo26/Final-Project</span>
+          <span>Unity project · project book · demo video</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= STATS BAND ================= -->
+  <div class="stats">
+    <div class="stat"><div class="v">4</div><div class="l">Cognitive Stations</div></div>
+    <div class="stat"><div class="v">10<span style="font-size:26pt"> MIN</span></div><div class="l">One Full Mission</div></div>
+    <div class="stat"><div class="v">~26</div><div class="l">Metrics per Session</div></div>
+    <div class="stat"><div class="v">3</div><div class="l">Export Artifacts</div></div>
+    <div class="wave-bubble">Ready for launch!</div>
+    <img class="wave" src="Assets/char_wave.png" alt="Waving astronaut">
+  </div>
+
+  <!-- ================= FOOTER ================= -->
+  <footer>
+    <b>Braude College of Engineering, Karmiel</b><span class="sep">◆</span>
+    Department of Software Engineering &amp; Information Systems<span class="sep">◆</span>
+    Capstone Project 61999 — Phase B<span class="sep">◆</span><b>2026</b>
+  </footer>
+
+</div>
+</body>
+</html>
