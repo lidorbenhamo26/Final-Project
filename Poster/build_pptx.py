@@ -240,7 +240,7 @@ def snapshots(x, y, w, h):
         ("Stroop console — match the ink color", A("shot_stroop.png"), "shot"),
         ("Life-Support wires — planning task", A("shot_wires.png"), "shot"),
         ("Your astronaut — playable character", A("char_standing.png"), "char"),
-        ("Assessor HTML report — EF profile", None, "slot"),
+        ("Assessor HTML report — EF profile", A("shot_report.png"), "shot"),
     ]
     for i, (cap, img, kind) in enumerate(cells):
         cx_ = x + PAD + (i % 2) * (cw + 8)
