@@ -9,20 +9,25 @@ using UnityEngine;
 ///   Activate    -> spawn a power cell at the storage rack, show the objective
 ///                  HUD, play the request voice; the soft power timer drains.
 ///   Pick up (E) -> objective updates to "carry to Life Support".
-///   Install (E) -> Success.
-///   Timer ends  -> Fail.
+///   Console (E) -> opens the wire-matching puzzle (WiringPuzzlePanel).
+///   Puzzle done -> cell installs -> Success.
+///   Timer ends  -> Fail (the puzzle force-closes if open).
 ///
-/// Physical task: there is no docked canvas — the player walks, carries, installs.
+/// Physical task: there is no docked canvas — the player walks, carries, then
+/// routes wires in a screen-space overlay. Wiring errors, panel time and
+/// open count are reported as Plan/Organize metrics alongside delivery time.
 /// Resolving still fires MissionTask.OnTaskResolved so SessionManager logs it.
 /// </summary>
 public class BatteryDeliveryTask : MissionTask
 {
     private const float PowerDrainSeconds = 100f;
+    private const int WiringWireCount = 4;
 
     private GameObject battery;
     private CarryableBattery carryable;
     private BatterySocket socket;
     private BatteryMissionHUD hud;
+    private WiringPuzzlePanel puzzle;
     private bool pickedUp;
     private bool finished;
     private bool lowWarningPlayed;
@@ -60,7 +65,8 @@ public class BatteryDeliveryTask : MissionTask
 
         if (socket != null)
         {
-            socket.Arm(carryable);
+            socket.Arm(carryable, HandleInstallRequested);
+            socket.SetHintText("[E] OPEN WIRE PANEL");
             socket.OnBatteryInstalled += HandleInstalled;
         }
         else
@@ -93,6 +99,9 @@ public class BatteryDeliveryTask : MissionTask
 
         float frac = Mathf.Clamp01(1f - (Time.time - SpawnTime) / PowerDrainSeconds);
         if (hud != null) hud.SetPower(frac);
+        // The puzzle's dim layer covers the HUD bar, so the drain is mirrored
+        // inside the panel — the time pressure stays visible while wiring.
+        if (puzzle != null) puzzle.SetPower(frac);
 
         if (!lowWarningPlayed && frac <= 0.25f)
         {
@@ -107,9 +116,56 @@ public class BatteryDeliveryTask : MissionTask
         pickedUp = true;
         float latency = Time.time - SpawnTime;
         if (hud != null)
-            hud.SetObjective("CARRY THE CELL TO LIFE SUPPORT  -  [E] AT THE CONSOLE TO INSTALL");
+            hud.SetObjective("CARRY THE CELL TO LIFE SUPPORT  -  [E] AT THE CONSOLE TO OPEN THE WIRE PANEL");
         SessionManager.Instance?.LogCustomEvent("Battery_PickedUp", StationName,
             "t=" + latency.ToString("F2"));
+        AssessmentResults.Report(this, ("pickupLatencyS", Num.F2(latency)));
+    }
+
+    /// <summary>E at the socket while carrying: open the wiring puzzle instead
+    /// of installing. The install happens in HandlePuzzleSolved.</summary>
+    private void HandleInstallRequested(CarryableBattery b)
+    {
+        if (finished) return;
+
+        if (puzzle == null)
+        {
+            var go = new GameObject("WiringPuzzlePanel");
+            puzzle = go.AddComponent<WiringPuzzlePanel>();
+            puzzle.WireCount = WiringWireCount;
+            puzzle.ValidWhile = () => !finished && carryable != null && carryable.IsCarried;
+            puzzle.OnSolved += HandlePuzzleSolved;
+            puzzle.OnWireError += HandleWireError;
+            puzzle.OnClosed += HandlePanelClosed;
+            AudioManager.Instance.PlayVoice("battery_wiring");
+            SessionManager.Instance?.LogCustomEvent("Battery_PanelOpened", StationName, "first=true");
+        }
+        else
+        {
+            SessionManager.Instance?.LogCustomEvent("Battery_PanelOpened", StationName, "reopen=true");
+        }
+
+        puzzle.Show();
+    }
+
+    private void HandleWireError(int wireIdx, int socketIdx)
+    {
+        SessionManager.Instance?.LogCustomEvent("Battery_WireError", StationName,
+            "wire=" + wireIdx + " socket=" + socketIdx + " n=" + puzzle.ErrorCount);
+    }
+
+    private void HandlePanelClosed(bool autoClosed)
+    {
+        SessionManager.Instance?.LogCustomEvent("Battery_PanelClosed", StationName,
+            autoClosed ? "auto" : "esc");
+    }
+
+    private void HandlePuzzleSolved()
+    {
+        if (finished) return;
+        SessionManager.Instance?.LogCustomEvent("Battery_WiringSolved", StationName,
+            "errors=" + puzzle.ErrorCount + " t=" + Num.F2(puzzle.ActiveTimeS));
+        socket.CompleteInstall(); // -> OnBatteryInstalled -> HandleInstalled -> CoSucceed
     }
 
     private void HandleInstalled(CarryableBattery b)
@@ -121,6 +177,11 @@ public class BatteryDeliveryTask : MissionTask
 
     private IEnumerator CoSucceed()
     {
+        AssessmentResults.Report(this,
+            ("outcome", "Delivered"),
+            ("deliveredTimeS", Num.F2(Time.time - SpawnTime)),
+            ("timeLimitS", Num.F0(timeLimit)));
+        ReportWiringMetrics();
         if (hud != null)
         {
             hud.SetPower(1f);
@@ -138,11 +199,18 @@ public class BatteryDeliveryTask : MissionTask
     {
         if (finished) return;
         finished = true;
+        // Restore controls/cursor before the fail flow if the player timed out
+        // with the wiring panel still up. ForceClose skips OnClosed reentry.
+        if (puzzle != null && WiringPuzzlePanel.IsOpen) puzzle.ForceClose();
         StartCoroutine(CoFail());
     }
 
     private IEnumerator CoFail()
     {
+        AssessmentResults.Report(this,
+            ("outcome", "Timed out"),
+            ("timeLimitS", Num.F0(timeLimit)));
+        ReportWiringMetrics();
         if (hud != null)
         {
             hud.SetPower(0f);
@@ -154,6 +222,17 @@ public class BatteryDeliveryTask : MissionTask
         Resolve(TaskResult.Fail);
     }
 
+    // Wiring metrics ride along on both outcomes — the panel may have been
+    // opened (and errors made) even when the task ultimately timed out.
+    private void ReportWiringMetrics()
+    {
+        AssessmentResults.Report(this,
+            ("wiresTotal", puzzle != null ? puzzle.WireCount.ToString() : "0"),
+            ("wireErrorsCount", puzzle != null ? puzzle.ErrorCount.ToString() : "0"),
+            ("puzzleTimeS", Num.F2(puzzle != null ? puzzle.ActiveTimeS : 0f)),
+            ("panelOpens", puzzle != null ? puzzle.OpenCount.ToString() : "0"));
+    }
+
     private void OnDestroy()
     {
         if (carryable != null) carryable.OnPickedUp -= HandlePickedUp;
@@ -162,6 +241,9 @@ public class BatteryDeliveryTask : MissionTask
             socket.OnBatteryInstalled -= HandleInstalled;
             socket.Disarm();
         }
+        // The panel's own OnDestroy restores the player if it is somehow
+        // still open when the task is torn down.
+        if (puzzle != null) Destroy(puzzle.gameObject);
         if (hud != null) Destroy(hud.gameObject);
         // An installed cell is owned by the socket and cleared when the next
         // mission arms it; only destroy a cell that never reached the socket.

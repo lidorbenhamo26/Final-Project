@@ -24,6 +24,10 @@ public class BatterySocket : MonoBehaviour
     private CarryableBattery expected;
     private CarryableBattery installed;
     private bool armed;
+    // When set, an E press hands off to the mission (e.g. to open the wiring
+    // puzzle) instead of installing immediately; the mission confirms the
+    // physical install later via CompleteInstall().
+    private System.Action<CarryableBattery> onInstallRequested;
 
     private Transform player;
     private Transform slotPoint;
@@ -46,18 +50,42 @@ public class BatterySocket : MonoBehaviour
     /// <summary>Arms the socket for one mission battery, clearing any previous cell.</summary>
     public void Arm(CarryableBattery battery)
     {
+        Arm(battery, null);
+    }
+
+    /// <summary>
+    /// Arms the socket with an install interceptor: while set, pressing E hands
+    /// the request to the mission instead of installing the cell directly.
+    /// </summary>
+    public void Arm(CarryableBattery battery, System.Action<CarryableBattery> installInterceptor)
+    {
         if (installed != null) Destroy(installed.gameObject);
         installed = null;
         expected = battery;
         armed = true;
         IsFilled = false;
+        onInstallRequested = installInterceptor;
     }
 
     public void Disarm()
     {
         expected = null;
         armed = false;
+        onInstallRequested = null;
         SetHintAlpha(0f);
+    }
+
+    /// <summary>Physically installs the armed cell — the mission's confirm step
+    /// after its install interceptor (the wiring puzzle) succeeds.</summary>
+    public void CompleteInstall()
+    {
+        Install();
+    }
+
+    /// <summary>Replaces the floating "[E] ..." prompt text shown in range.</summary>
+    public void SetHintText(string text)
+    {
+        if (hintLabel != null) hintLabel.text = text;
     }
 
     private void Update()
@@ -87,7 +115,10 @@ public class BatterySocket : MonoBehaviour
         BillboardHint();
 
         if (canInstall && InteractInputBinding.InteractPressedThisFrame())
-            Install();
+        {
+            if (onInstallRequested != null) onInstallRequested(expected);
+            else Install();
+        }
     }
 
     private void Install()
