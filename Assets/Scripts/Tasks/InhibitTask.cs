@@ -296,7 +296,7 @@ public class InhibitTask : CognitiveTaskBase
         {
             phase = Phase.ISI;
             signalPanel.SetActive(false);
-            yield return new WaitForSeconds(Random.Range(IsiMin, IsiMax));
+            yield return FrozenWait(Random.Range(IsiMin, IsiMax));
             if (!IsActive) yield break;
 
             bool isGo = schedule[trialIdx];
@@ -318,6 +318,9 @@ public class InhibitTask : CognitiveTaskBase
             while (IsActive && phase == Phase.Signal && !responded
                    && (Time.time - signalStartTime) < SignalDuration)
             {
+                // Debug freeze (F11 / assessor report): pause the response
+                // window and keep the RT anchor honest.
+                if (GameManager.IsDebugFrozen) signalStartTime += Time.deltaTime;
                 yield return null;
             }
 
@@ -404,12 +407,23 @@ public class InhibitTask : CognitiveTaskBase
             pesStr = pes.ToString("F0");
         }
 
+        // "NA", not 0: a zero would read as a real 0 ms RT downstream, and an
+        // SD over a single observation is undefined.
+        string hitMeanStr = hitRTs.Count > 0 ? Num.F0(hitMean) : "NA";
+        string hitSdStr   = hitRTs.Count > 1 ? Num.F0(hitSD)   : "NA";
+
         SessionManager.Instance?.LogCustomEvent("INH_Summary", "CommsStation",
             "commission=" + commissionCount +
             ",omission=" + omissionCount +
-            ",hitRT_mean=" + hitMean.ToString("F0") +
-            ",hitRT_sd=" + hitSD.ToString("F0") +
+            ",hitRT_mean=" + hitMeanStr +
+            ",hitRT_sd=" + hitSdStr +
             ",postErrorSlowing=" + pesStr);
+        AssessmentResults.Report(this,
+            ("commission", commissionCount.ToString()),
+            ("omission", omissionCount.ToString()),
+            ("hitRtMeanMs", hitMeanStr),
+            ("hitRtSdMs", hitSdStr),
+            ("postErrorSlowingMs", pesStr));
 
         float commissionRate = nogoCount > 0 ? (float)commissionCount / nogoCount : 0f;
         float omissionRate   = goCount   > 0 ? (float)omissionCount   / goCount   : 0f;
@@ -419,7 +433,17 @@ public class InhibitTask : CognitiveTaskBase
         else if (commissionRate > CommissionThresh) result = TaskResult.Commission;
         else                                        result = TaskResult.Success;
 
+        ResolutionPending = true; // outcome computed — base expiry must not overwrite it
         StartCoroutine(CoFinish(result, commissionCount, omissionCount, goCount, nogoCount));
+    }
+
+    // Mission-level timeout mid-run: keep the error counts accumulated so far.
+    protected override void HandleExpiry()
+    {
+        AssessmentResults.Report(this,
+            ("commission", commissionCount.ToString()),
+            ("omission", omissionCount.ToString()));
+        base.HandleExpiry();
     }
 
     private IEnumerator CoFinish(TaskResult result, int comm, int omis, int goN, int nogoN)

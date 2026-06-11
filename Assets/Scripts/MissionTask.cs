@@ -20,6 +20,11 @@ public abstract class MissionTask : MonoBehaviour
 
     protected StationUI StationUI { get; private set; }
 
+    // Set by a task the moment its outcome is computed (metrics reported,
+    // celebration UI pending). Blocks the base time-limit expiry from racing
+    // the deferred Resolve and overwriting a real result with Omission.
+    protected bool ResolutionPending;
+
     public void SetStationUI(StationUI ui)
     {
         StationUI = ui;
@@ -45,6 +50,7 @@ public abstract class MissionTask : MonoBehaviour
             SpawnTime += Time.deltaTime;
             return;
         }
+        if (ResolutionPending) return;
         if (Time.time - SpawnTime >= timeLimit)
         {
             HandleExpiry();

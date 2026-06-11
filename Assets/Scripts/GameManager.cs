@@ -41,6 +41,12 @@ public class GameManager : MonoBehaviour
     // the grip indefinitely with no game pressure.
     public static bool IsDebugFrozen { get; private set; }
 
+    /// <summary>Set the debug-freeze state directly (used by F11 and the assessor report overlay).</summary>
+    public static void SetDebugFrozen(bool value)
+    {
+        IsDebugFrozen = value;
+    }
+
     public TaskStation ActiveTaskStation
     {
         get
@@ -106,12 +112,19 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        // Fresh mission = fresh session stats. SessionManager/AssessmentResults
+        // are DontDestroyOnLoad, so without this the tutorial practice task (and
+        // any record stuck mid-flight on a scene change) would leak into this
+        // participant's report and CSV exports.
+        if (SessionManager.Instance != null) SessionManager.Instance.ResetForNewMission();
+
         if (quickTestMode) Application.runInBackground = true;
         MissionTimeRemaining = quickTestMode ? quickTestDuration : missionDuration;
         MissionActive = true;
         if (SessionManager.Instance != null)
             SessionManager.Instance.LogCustomEvent("Mission_Start", "System", "Begin");
-        AudioManager.Instance.PlayMusic("gameplay_loop");
+        // Music is station-scoped: it starts on dock and fades out on exit
+        // (StationDockController), so free-roam is ambient-only — no global music here.
         AudioManager.Instance.PlayAmbient("station_hum");
         AudioManager.Instance.PlayVoice("mission_start");
         StartCoroutine(MissionCountdown());
@@ -136,12 +149,19 @@ public class GameManager : MonoBehaviour
         if (kb.f10Key.wasPressedThisFrame) ForceSpawnLifeSupportTask();
 
         // F11: debug freeze — pauses mission timer, task spawns, and all task drains.
-        if (kb.f11Key.wasPressedThisFrame)
+        // Ignored while the assessor report is open: the report owns the freeze
+        // then, and a hidden toggle would silently desync its restore snapshot.
+        if (kb.f11Key.wasPressedThisFrame
+            && (AssessmentReportController.Instance == null || !AssessmentReportController.Instance.IsVisible))
         {
-            IsDebugFrozen = !IsDebugFrozen;
+            SetDebugFrozen(!IsDebugFrozen);
             Debug.Log("[GameManager] Debug freeze: " + (IsDebugFrozen ? "ON" : "OFF"));
             HUDManager.Instance?.ShowAlertBanner(IsDebugFrozen ? "DEBUG FREEZE: ON" : "DEBUG FREEZE: OFF", 1.4f);
         }
+
+        // F12: toggle the assessor report overlay (freezes the mission while open).
+        if (kb.f12Key.wasPressedThisFrame)
+            AssessmentReportController.Instance?.ToggleDebug();
 
         // F8: debug — show the HUD code banner directly with "1234".
         if (kb.f8Key.wasPressedThisFrame)

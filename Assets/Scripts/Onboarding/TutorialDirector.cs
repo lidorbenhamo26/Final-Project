@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 public class TutorialDirector : MonoBehaviour
@@ -26,6 +27,9 @@ public class TutorialDirector : MonoBehaviour
     private Transform playerT;
     private TaskStation practiceStation;
     private Transform launchPad;
+    private InputAction moveAction;
+    private InputAction sprintAction;
+    private InputAction jumpAction;
 
     private TMP_Text promptLbl;
     private TMP_Text helperLbl;
@@ -35,7 +39,9 @@ public class TutorialDirector : MonoBehaviour
     private List<Step> steps;
     private int stepIndex = -1;
     private float speedHoldSeconds;
+    private bool jumpPressedThisStep;
     private bool taskResolvedThisStep;
+    private bool practiceTaskPrepared;
     private bool finished;
 
     private void Start()
@@ -76,6 +82,7 @@ public class TutorialDirector : MonoBehaviour
     private void Update()
     {
         if (finished || steps == null || stepIndex < 0 || stepIndex >= steps.Count) return;
+        if (stepIndex == 2 && JumpPressedThisFrame()) jumpPressedThisStep = true;
         if (steps[stepIndex].IsComplete(this)) Advance();
     }
 
@@ -88,6 +95,13 @@ public class TutorialDirector : MonoBehaviour
         {
             playerRb = player.GetComponent<Rigidbody>();
             playerT = player.transform;
+            var input = player.GetComponent<PlayerInput>();
+            if (input != null && input.actions != null)
+            {
+                moveAction = input.actions.FindAction("Move", throwIfNotFound: false);
+                sprintAction = input.actions.FindAction("Sprint", throwIfNotFound: false);
+                jumpAction = input.actions.FindAction("Jump", throwIfNotFound: false);
+            }
         }
 
         practiceStation = practiceStationOverride != null
@@ -116,17 +130,17 @@ public class TutorialDirector : MonoBehaviour
             new Step {
                 Prompt = "PRESS  W A S D  OR  ARROW KEYS  TO MOVE",
                 Helper = "Walk around to get a feel for the controls.",
-                IsComplete = d => d.SustainedSpeed(1.0f, 0.4f),
+                IsComplete = d => d.HasMoveInput() && d.SustainedSpeed(1.0f, 0.4f),
             },
             new Step {
                 Prompt = "HOLD  SHIFT  TO SPRINT",
                 Helper = "Try running across the bay.",
-                IsComplete = d => d.SustainedSpeed(3.5f, 0.4f),
+                IsComplete = d => d.HasMoveInput() && d.HasSprintInput() && d.SustainedSpeed(3.5f, 0.4f),
             },
             new Step {
                 Prompt = "PRESS  SPACE  TO JUMP",
                 Helper = "Hop into the air.",
-                IsComplete = d => d.playerRb != null && d.playerRb.linearVelocity.y > 1.0f,
+                IsComplete = d => d.jumpPressedThisStep && d.playerRb != null && d.playerRb.linearVelocity.y > 1.0f,
             },
             new Step {
                 Prompt = "WALK TO THE PRACTICE STATION",
@@ -136,7 +150,7 @@ public class TutorialDirector : MonoBehaviour
             new Step {
                 Prompt = "PRESS  E  TO DOCK",
                 Helper = "Engage with the station console.",
-                IsComplete = d => StationDockController.Instance != null && StationDockController.Instance.IsDocked,
+                IsComplete = d => d.EnsurePracticeTask() && StationDockController.Instance != null && StationDockController.Instance.IsDocked,
             },
             new Step {
                 Prompt = "COMPLETE THE PRACTICE TASK",
@@ -155,6 +169,7 @@ public class TutorialDirector : MonoBehaviour
     {
         stepIndex++;
         speedHoldSeconds = 0f;
+        jumpPressedThisStep = false;
         taskResolvedThisStep = false;
 
         if (stepIndex >= steps.Count) { Finish(); return; }
@@ -186,6 +201,19 @@ public class TutorialDirector : MonoBehaviour
         }
     }
 
+    private bool EnsurePracticeTask()
+    {
+        if (practiceTaskPrepared) return true;
+        if (practiceStation == null) return false;
+        if (practiceStation.HasActiveTask()) { practiceTaskPrepared = true; return true; }
+
+        var taskGO = new GameObject("TutorialPractice_CodeMemoryTask");
+        var task = taskGO.AddComponent<CodeMemoryTask>();
+        practiceStation.AssignTask(task);
+        practiceTaskPrepared = true;
+        return true;
+    }
+
     private void Finish()
     {
         if (finished) return;
@@ -213,6 +241,30 @@ public class TutorialDirector : MonoBehaviour
         if (HorizSpeed() > threshold) { speedHoldSeconds += Time.deltaTime; return speedHoldSeconds >= duration; }
         speedHoldSeconds = 0f;
         return false;
+    }
+
+    private bool HasMoveInput()
+    {
+        if (moveAction != null && moveAction.ReadValue<Vector2>().sqrMagnitude > 0.04f) return true;
+        var keyboard = Keyboard.current;
+        return keyboard != null && (
+            keyboard.wKey.isPressed || keyboard.aKey.isPressed || keyboard.sKey.isPressed || keyboard.dKey.isPressed ||
+            keyboard.upArrowKey.isPressed || keyboard.leftArrowKey.isPressed ||
+            keyboard.downArrowKey.isPressed || keyboard.rightArrowKey.isPressed);
+    }
+
+    private bool HasSprintInput()
+    {
+        if (sprintAction != null && sprintAction.IsPressed()) return true;
+        var keyboard = Keyboard.current;
+        return keyboard != null && (keyboard.leftShiftKey.isPressed || keyboard.rightShiftKey.isPressed);
+    }
+
+    private bool JumpPressedThisFrame()
+    {
+        if (jumpAction != null && jumpAction.WasPressedThisFrame()) return true;
+        var keyboard = Keyboard.current;
+        return keyboard != null && keyboard.spaceKey.wasPressedThisFrame;
     }
 
     private float HorizSpeed()

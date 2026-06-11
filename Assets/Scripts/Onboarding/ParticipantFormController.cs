@@ -16,6 +16,9 @@ public class ParticipantFormController : MonoBehaviour
     private static readonly Color LabelColor = new Color(0.85f, 0.88f, 0.92f, 1f);
     private static readonly Color ErrorColor = new Color(0.96f, 0.45f, 0.45f, 1f);
 
+    private const float LabelToFieldGap = 20f;
+    private const float ErrorGap = 18f;
+
     public Action OnSubmit;
 
     private TMP_InputField nameField, idField, ageField, sessionField, notesField;
@@ -25,25 +28,25 @@ public class ParticipantFormController : MonoBehaviour
 
     public RectTransform BuildUI(Transform parent)
     {
-        var panel = UIChrome.BuildScifiPanel(parent, new Vector2(640f, 800f), Vector2.zero);
+        var panel = UIChrome.BuildScifiPanel(parent, new Vector2(700f, 850f), Vector2.zero);
         panel.gameObject.name = "FormPanel";
 
-        SpawnLabel(panel, "PARTICIPANT INFO", 28, FontStyles.Bold,
-            TextAlignmentOptions.Center, new Vector2(0f, 360f), new Vector2(600f, 40f), Color.white);
+        SpawnLabel(panel, "PARTICIPANT INFO", 34, FontStyles.Bold,
+            TextAlignmentOptions.Center, new Vector2(0f, 382f), new Vector2(640f, 48f), Color.white);
 
-        BuildRow(panel, "Full name *",          labelY:  300f, fieldWidth: 540f, fieldHeight: 44f,
+        BuildRow(panel, "Full name *",          labelY:  315f, fieldWidth: 580f, fieldHeight: 56f,
             multiline: false, charLimit: 60, contentType: TMP_InputField.ContentType.Standard,
             out nameField, out nameError);
-        BuildRow(panel, "Participant ID *",     labelY:  170f, fieldWidth: 540f, fieldHeight: 44f,
+        BuildRow(panel, "Participant ID *",     labelY:  180f, fieldWidth: 580f, fieldHeight: 56f,
             multiline: false, charLimit: 30, contentType: TMP_InputField.ContentType.Standard,
             out idField, out idError);
-        BuildRow(panel, "Age (optional)",       labelY:   40f, fieldWidth: 200f, fieldHeight: 44f,
+        BuildRow(panel, "Age (optional)",       labelY:   45f, fieldWidth: 230f, fieldHeight: 56f,
             multiline: false, charLimit: 3, contentType: TMP_InputField.ContentType.IntegerNumber,
             out ageField, out ageError);
-        BuildRow(panel, "Session # (optional)", labelY:  -90f, fieldWidth: 200f, fieldHeight: 44f,
+        BuildRow(panel, "Session # (optional)", labelY:  -90f, fieldWidth: 230f, fieldHeight: 56f,
             multiline: false, charLimit: 4, contentType: TMP_InputField.ContentType.IntegerNumber,
             out sessionField, out sessionError);
-        BuildRow(panel, "Notes (optional)",     labelY: -220f, fieldWidth: 540f, fieldHeight: 90f,
+        BuildRow(panel, "Notes (optional)",     labelY: -225f, fieldWidth: 580f, fieldHeight: 96f,
             multiline: true, charLimit: 500, contentType: TMP_InputField.ContentType.Standard,
             out notesField, out _);
 
@@ -62,11 +65,11 @@ public class ParticipantFormController : MonoBehaviour
         float fieldHeight, bool multiline, int charLimit, TMP_InputField.ContentType contentType,
         out TMP_InputField field, out TMP_Text errorLabel)
     {
-        float fieldY = labelY - 16f - fieldHeight / 2f;
-        float errorY = fieldY - fieldHeight / 2f - 14f;
+        float fieldY = labelY - LabelToFieldGap - fieldHeight / 2f;
+        float errorY = fieldY - fieldHeight / 2f - ErrorGap;
 
-        SpawnLabel(parent, label, 18, FontStyles.Normal, TextAlignmentOptions.MidlineLeft,
-            new Vector2(0f, labelY), new Vector2(fieldWidth, 22f), LabelColor);
+        SpawnLabel(parent, label, 22, FontStyles.Bold, TextAlignmentOptions.MidlineLeft,
+            new Vector2(0f, labelY), new Vector2(fieldWidth, 28f), LabelColor);
 
         var fieldRT = NewRect("Field_" + label, parent,
             new Vector2(fieldWidth, fieldHeight), new Vector2(0f, fieldY));
@@ -75,17 +78,25 @@ public class ParticipantFormController : MonoBehaviour
 
         var textRT = NewRect("Text", fieldRT, Vector2.zero, Vector2.zero);
         textRT.anchorMin = Vector2.zero; textRT.anchorMax = Vector2.one;
-        textRT.offsetMin = new Vector2(12f, 8f); textRT.offsetMax = new Vector2(-12f, -8f);
+        textRT.offsetMin = new Vector2(16f, 10f); textRT.offsetMax = new Vector2(-16f, -10f);
         var text = textRT.gameObject.AddComponent<TextMeshProUGUI>();
-        text.fontSize = 22; text.color = FieldText;
+        text.fontSize = multiline ? 24 : 26;
+        text.color = FieldText;
+        text.enableAutoSizing = true;
+        text.fontSizeMin = multiline ? 16 : 18;
+        text.fontSizeMax = multiline ? 24 : 26;
         text.enableWordWrapping = multiline;
         text.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
 
         var phRT = NewRect("Placeholder", fieldRT, Vector2.zero, Vector2.zero);
         phRT.anchorMin = Vector2.zero; phRT.anchorMax = Vector2.one;
-        phRT.offsetMin = new Vector2(12f, 8f); phRT.offsetMax = new Vector2(-12f, -8f);
+        phRT.offsetMin = new Vector2(16f, 10f); phRT.offsetMax = new Vector2(-16f, -10f);
         var placeholder = phRT.gameObject.AddComponent<TextMeshProUGUI>();
-        placeholder.fontSize = 22; placeholder.color = FieldPlaceholder;
+        placeholder.fontSize = multiline ? 24 : 26;
+        placeholder.color = FieldPlaceholder;
+        placeholder.enableAutoSizing = true;
+        placeholder.fontSizeMin = multiline ? 16 : 18;
+        placeholder.fontSizeMax = multiline ? 24 : 26;
         placeholder.fontStyle = FontStyles.Italic;
         placeholder.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
         placeholder.text = "";
@@ -98,13 +109,13 @@ public class ParticipantFormController : MonoBehaviour
         field.contentType = contentType;
         field.characterLimit = charLimit;
 
-        errorLabel = SpawnLabel(parent, "", 16, FontStyles.Normal, TextAlignmentOptions.MidlineLeft,
-            new Vector2(0f, errorY), new Vector2(fieldWidth, 20f), ErrorColor);
+        errorLabel = SpawnLabel(parent, "", 18, FontStyles.Normal, TextAlignmentOptions.MidlineLeft,
+            new Vector2(0f, errorY), new Vector2(fieldWidth, 24f), ErrorColor);
     }
 
     private Button BuildContinueButton(Transform parent)
     {
-        var rt = NewRect("ContinueButton", parent, new Vector2(320f, 64f), new Vector2(0f, -360f));
+        var rt = NewRect("ContinueButton", parent, new Vector2(340f, 70f), new Vector2(0f, -380f));
         continueButtonImg = rt.gameObject.AddComponent<Image>();
         continueButtonImg.color = OkColor;
         var btn = rt.gameObject.AddComponent<Button>();
@@ -116,7 +127,10 @@ public class ParticipantFormController : MonoBehaviour
         lblRT.offsetMin = Vector2.zero; lblRT.offsetMax = Vector2.zero;
         var lbl = lblRT.gameObject.AddComponent<TextMeshProUGUI>();
         lbl.text = "CONTINUE";
-        lbl.fontSize = 28;
+        lbl.fontSize = 30;
+        lbl.enableAutoSizing = true;
+        lbl.fontSizeMin = 18;
+        lbl.fontSizeMax = 30;
         lbl.fontStyle = FontStyles.Bold;
         lbl.color = Color.white;
         lbl.alignment = TextAlignmentOptions.Center;
@@ -143,6 +157,9 @@ public class ParticipantFormController : MonoBehaviour
         var lbl = rt.gameObject.AddComponent<TextMeshProUGUI>();
         lbl.text = text;
         lbl.fontSize = size;
+        lbl.enableAutoSizing = true;
+        lbl.fontSizeMin = Mathf.Max(12f, size * 0.65f);
+        lbl.fontSizeMax = size;
         lbl.fontStyle = style;
         lbl.color = color;
         lbl.alignment = align;

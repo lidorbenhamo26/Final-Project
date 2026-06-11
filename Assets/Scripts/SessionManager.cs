@@ -31,6 +31,9 @@ public class SessionManager : MonoBehaviour
         Instance = this;
         DontDestroyOnLoad(gameObject);
         logBuffer = new StringBuilder();
+        // Structured per-task store for the assessor report — created here so
+        // it is subscribed to MissionTask events before the first spawn.
+        AssessmentResults.EnsureExists();
     }
 
     public void ResetForNewMission()
@@ -40,6 +43,7 @@ public class SessionManager : MonoBehaviour
         TasksFailed = 0;
         TotalReactionTime = 0f;
         logOpen = false;
+        AssessmentResults.Instance.Clear();
     }
 
     private void EnsureLogOpen()

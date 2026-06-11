@@ -11,6 +11,7 @@ public class BatteryMissionHUD : MonoBehaviour
 {
     private const float BarInnerWidth = 712f;
 
+    private Canvas canvas;
     private TMP_Text objectiveText;
     private RectTransform powerFillRT;
     private Image powerFillImg;
@@ -19,6 +20,16 @@ public class BatteryMissionHUD : MonoBehaviour
     private void Awake()
     {
         Build();
+    }
+
+    private void Update()
+    {
+        // Hide the power bar while docked at a station — it's a bottom-center
+        // overlay that otherwise blocks the console view. The task keeps
+        // draining underneath; only the rendering is toggled.
+        if (canvas == null) return;
+        bool docked = StationDockController.Instance != null && StationDockController.Instance.IsDocked;
+        if (canvas.enabled == docked) canvas.enabled = !docked;
     }
 
     public void SetObjective(string text)
@@ -54,7 +65,7 @@ public class BatteryMissionHUD : MonoBehaviour
     {
         var canvasGO = new GameObject("BatteryMissionHUD_Canvas");
         canvasGO.transform.SetParent(transform, false);
-        var canvas = canvasGO.AddComponent<Canvas>();
+        canvas = canvasGO.AddComponent<Canvas>();
         canvas.renderMode = RenderMode.ScreenSpaceOverlay;
         canvas.sortingOrder = 96;
         var scaler = canvasGO.AddComponent<CanvasScaler>();

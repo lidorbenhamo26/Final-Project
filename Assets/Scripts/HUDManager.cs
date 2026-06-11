@@ -10,7 +10,7 @@ public class HUDManager : MonoBehaviour
     [SerializeField] private TMP_Text timerText;
     [SerializeField] private TMP_Text taskListText;
 
-    private MissionEndUI missionEndUI;
+    private AssessmentReportController reportController;
     private bool wasMissionActive;
     private TMP_Text alertBannerText;
     private Coroutine alertBannerCo;
@@ -23,7 +23,7 @@ public class HUDManager : MonoBehaviour
     {
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
-        missionEndUI = gameObject.AddComponent<MissionEndUI>();
+        reportController = gameObject.AddComponent<AssessmentReportController>();
         EnsureLiveHud();
     }
 
@@ -33,7 +33,7 @@ public class HUDManager : MonoBehaviour
 
         bool active = GameManager.Instance.MissionActive;
         if (wasMissionActive && !active)
-            missionEndUI.Show();
+            reportController.ShowMissionEnd();
         wasMissionActive = active;
 
         if (timerText != null)

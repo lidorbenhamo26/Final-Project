@@ -198,10 +198,21 @@ public class RadarScanTask : CognitiveTaskBase
             currentResponded = false;
             lastContactOnset = Time.time;
 
-            yield return new WaitForSeconds(ResponseWindow);
+            // Response window, pausable by the debug freeze (F11 / assessor
+            // report); the RT anchor slides so reaction times stay correct.
+            float waited = 0f;
+            while (waited < ResponseWindow)
+            {
+                if (GameManager.IsDebugFrozen) lastContactOnset += Time.deltaTime;
+                else waited += Time.deltaTime;
+                yield return null;
+            }
 
             if (!currentResponded)
             {
+                // Consume the trial: a late press during the ISI tail must not
+                // re-score it as a hit/false alarm on top of this miss/CR.
+                currentResponded = true;
                 string outcome;
                 if (type == ContactType.Asteroid)
                 {
@@ -219,7 +230,7 @@ public class RadarScanTask : CognitiveTaskBase
                     Fmt(("trialIdx", trialIdx), ("rtMs", -1), ("outcome", outcome)));
             }
 
-            yield return new WaitForSeconds(TrialIsi - ResponseWindow);
+            yield return FrozenWait(TrialIsi - ResponseWindow);
 
             if (trialInBlock == blockSize - 1) CommitBlockSummary(blockIdx);
         }
@@ -303,9 +314,46 @@ public class RadarScanTask : CognitiveTaskBase
         float faRate  = nonTargets > 0 ? (float)fas  / nonTargets : 0f;
         bool pass = hitRate >= HitRateThreshold && faRate <= FaRateThreshold;
 
+        AssessmentResults.Report(this,
+            ("mode", quickMode ? "quick" : "full"),
+            ("hits", hits.ToString()),
+            ("misses", misses.ToString()),
+            ("falseAlarms", fas.ToString()),
+            ("correctRejects", crs.ToString()),
+            ("hitRate", Num.F3(hitRate)),
+            ("faRate", Num.F3(faRate)),
+            ("dPrime", Num.F3(dPrime)),
+            ("vigilanceSlope", Num.F4(slope)),
+            ("deltaDPrime", Num.F3(deltaDP)),
+            ("rtMeanMs", Num.F0(rtMean)),
+            ("rtSdMs", Num.F0(rtSd)));
+
         phase = Phase.Done;
+        ResolutionPending = true; // outcome computed — base expiry must not overwrite it
         StartCoroutine(CoFinish(pass ? TaskResult.Success : TaskResult.Fail,
                                 hits, targets, fas, nonTargets));
+    }
+
+    // Mission-level timeout mid-run (docked too late): keep the trial counts
+    // accumulated so far so the Omission row isn't empty.
+    protected override void HandleExpiry()
+    {
+        if (blockHits != null)
+        {
+            int hits = 0, misses = 0, fas = 0, crs = 0;
+            for (int i = 0; i < blockCount; i++)
+            {
+                hits += blockHits[i]; misses += blockMisses[i];
+                fas += blockFAs[i]; crs += blockCRs[i];
+            }
+            AssessmentResults.Report(this,
+                ("mode", quickMode ? "quick" : "full"),
+                ("hits", hits.ToString()),
+                ("misses", misses.ToString()),
+                ("falseAlarms", fas.ToString()),
+                ("correctRejects", crs.ToString()));
+        }
+        base.HandleExpiry();
     }
 
     private IEnumerator CoFinish(TaskResult result, int hits, int targets, int fas, int nonTargets)

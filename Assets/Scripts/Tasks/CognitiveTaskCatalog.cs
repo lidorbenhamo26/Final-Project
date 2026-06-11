@@ -13,7 +13,7 @@ public static class CognitiveTaskCatalog
         {
             "EngineStation"      => host.AddComponent<WorkingMemoryTask>(),
             "NavigationStation"  => host.AddComponent<RadarScanTask>(),
-            "CommsStation"       => host.AddComponent<InhibitTask>(),
+            "CommsStation"       => host.AddComponent<StroopTask>(),
             "LifeSupportStation" => host.AddComponent<BatteryDeliveryTask>(),
             _                    => host.AddComponent<EngineTask>(),
         };
