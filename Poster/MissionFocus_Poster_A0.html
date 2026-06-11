@@ -22,11 +22,11 @@
   :root {
     --bg-deep:   #040918;
     --bg-mid:    #081229;
-    --card:      rgba(13, 26, 54, 0.88);
+    --card:      rgba(10, 20, 44, 0.93);
     --card-edge: rgba(110, 196, 255, 0.30);
     --ink:       #e8f0ff;
-    --ink-soft:  #c2d2ef;
-    --ink-dim:   #8da3c9;
+    --ink-soft:  #dfe9fb;
+    --ink-dim:   #aabddf;
     --cyan:      #4fd8ff;
     --cyan-soft: #9fdcff;
     --orange:    #ff9b42;
@@ -154,12 +154,12 @@
   .sec-rule { flex: 1; height: 0.7mm; border-radius: 1mm; align-self: center;
     background: linear-gradient(90deg, rgba(79,216,255,0.55), transparent); }
 
-  p.lead { font-size: 22pt; line-height: 1.42; color: var(--ink-soft); }
+  p.lead { font-size: 24pt; line-height: 1.42; color: var(--ink-soft); }
   p.lead b, li b { color: #ffffff; }
 
   ul.dots { list-style: none; margin-top: 5mm; }
   ul.dots li {
-    font-size: 21pt; line-height: 1.38; color: var(--ink-soft);
+    font-size: 23pt; line-height: 1.38; color: var(--ink-soft);
     padding-left: 11mm; position: relative; margin-top: 4.4mm;
   }
   ul.dots li::before {
@@ -171,12 +171,26 @@
   .need-callout {
     margin-top: 7mm; border-left: 1.8mm solid var(--orange);
     background: rgba(255,155,66,0.10); border-radius: 0 3mm 3mm 0;
-    padding: 5mm 7mm; font-size: 21pt; line-height: 1.4; color: #ffd9b3; font-weight: 600;
+    padding: 5mm 7mm; font-size: 23pt; line-height: 1.4; color: #ffd9b3; font-weight: 600;
   }
+
+  /* ---------- solution problem→answer rows ---------- */
+  .fix-row { display: flex; align-items: flex-start; gap: 5.5mm; margin-top: 5mm; }
+  .fix-tag {
+    flex: 0 0 46mm; margin-top: 1.2mm;
+    font-family: 'Orbitron'; font-weight: 800; font-size: 13.5pt; letter-spacing: 1px;
+    text-transform: uppercase; text-align: center; line-height: 1.25;
+    color: #ffc08a; background: rgba(255,155,66,0.13);
+    border: 0.5mm solid rgba(255,155,66,0.55); border-radius: 2.5mm;
+    padding: 2.6mm 2mm;
+  }
+  .fix-txt { font-size: 22.5pt; line-height: 1.32; color: var(--ink); }
+  .fix-txt b { color: #ffffff; }
+  .fix-txt i { color: var(--cyan-soft); font-style: italic; }
 
   ul.checks { list-style: none; }
   ul.checks li {
-    font-size: 21pt; line-height: 1.36; color: var(--ink-soft);
+    font-size: 23pt; line-height: 1.36; color: var(--ink-soft);
     padding-left: 12.5mm; position: relative; margin-top: 4.6mm;
   }
   ul.checks li::before {
@@ -191,7 +205,7 @@
 
   /* ---------- flow stepper ---------- */
   .flow { display: flex; flex-direction: column; }
-  .step { display: flex; gap: 8mm; position: relative; padding-bottom: 16mm; }
+  .step { display: flex; gap: 8mm; position: relative; padding-bottom: 13mm; }
   .step:last-child { padding-bottom: 0; }
   .step::before {
     content: ''; position: absolute; left: 10mm; top: 20mm; bottom: -1mm; width: 0.9mm;
@@ -207,8 +221,8 @@
     box-shadow: 0 0 6mm rgba(79,216,255,0.35);
   }
   .step .t { padding-top: 0.5mm; }
-  .step .t h3 { font-size: 24pt; font-weight: 800; color: #fff; letter-spacing: 0.4px; }
-  .step .t p { font-size: 21pt; line-height: 1.34; color: var(--ink-soft); margin-top: 2mm; }
+  .step .t h3 { font-size: 25pt; font-weight: 800; color: #fff; letter-spacing: 0.4px; }
+  .step .t p { font-size: 23pt; line-height: 1.34; color: var(--ink-soft); margin-top: 2mm; }
   .step .t p b { color: var(--cyan-soft); }
 
   /* ---------- measurement pipeline ---------- */
@@ -223,8 +237,8 @@
     background: rgba(10,21,46,0.9); border: 0.5mm solid rgba(110,196,255,0.30);
     border-radius: 3.5mm; padding: 4.6mm 7mm;
   }
-  .pnode b { font-family: Consolas, monospace; font-size: 19.5pt; color: var(--cyan-soft); flex: 0 0 auto; }
-  .pnode { font-size: 17pt; color: var(--ink-dim); }
+  .pnode b { font-family: Consolas, monospace; font-size: 20.5pt; color: var(--cyan-soft); flex: 0 0 auto; }
+  .pnode { font-size: 18.5pt; color: var(--ink-dim); }
   .parr { display: none; }
 
   /* ---------- task cards ---------- */
@@ -236,9 +250,9 @@
   }
   .task .icon { width: 16mm; height: 16mm; position: absolute; top: 8.5mm; right: 8.5mm; opacity: 0.95; }
   .task h3 { font-family: 'Orbitron'; font-size: 20pt; font-weight: 800; color: #fff; letter-spacing: 0.8px; padding-right: 18mm; white-space: nowrap; }
-  .station { font-size: 15pt; font-weight: 700; letter-spacing: 2px; color: var(--ink-dim); margin-top: 1.8mm; text-transform: uppercase; }
+  .station { font-size: 16pt; font-weight: 700; letter-spacing: 2px; color: var(--ink-dim); margin-top: 1.8mm; text-transform: uppercase; }
   .domain {
-    display: inline-block; margin-top: 3.8mm; font-size: 14pt; font-weight: 800;
+    display: inline-block; margin-top: 3.8mm; font-size: 15pt; font-weight: 800;
     letter-spacing: 1px; text-transform: uppercase; padding: 2mm 5mm; border-radius: 40mm;
     white-space: nowrap;
   }
@@ -246,10 +260,10 @@
   .d-wm  { background: rgba(177,140,255,0.14); color: #cdb2ff; border: 0.45mm solid rgba(177,140,255,0.5); }
   .d-inh { background: rgba(255,155,66,0.13);  color: #ffc08a; border: 0.45mm solid rgba(255,155,66,0.5); }
   .d-pln { background: rgba(94,230,168,0.13);  color: #93f0c4; border: 0.45mm solid rgba(94,230,168,0.5); }
-  .task p { font-size: 20pt; line-height: 1.35; color: var(--ink-soft); margin-top: 4.2mm; }
+  .task p { font-size: 22pt; line-height: 1.35; color: var(--ink-soft); margin-top: 4.2mm; }
   .chips { display: flex; flex-wrap: wrap; gap: 2.8mm; margin-top: 4.2mm; }
   .chip {
-    font-size: 14.5pt; font-weight: 700; color: var(--cyan-soft);
+    font-size: 15.5pt; font-weight: 700; color: var(--cyan-soft);
     background: rgba(79,216,255,0.08); border: 0.4mm solid rgba(110,196,255,0.30);
     padding: 1.7mm 4.2mm; border-radius: 40mm; white-space: nowrap;
   }
@@ -258,7 +272,7 @@
   .shots { display: grid; grid-template-columns: 1fr 1fr; gap: 6.5mm 8mm; }
   .shot { display: flex; flex-direction: column; }
   .shot .ph {
-    height: 62mm; border-radius: 4mm; overflow: hidden; position: relative;
+    height: 55mm; border-radius: 4mm; overflow: hidden; position: relative;
     border: 1mm dashed rgba(110,196,255,0.55);
     background:
       linear-gradient(135deg, rgba(79,216,255,0.05), rgba(177,140,255,0.05)),
@@ -282,7 +296,7 @@
     height: 95%; width: auto; object-fit: contain; display: block;
     filter: drop-shadow(0 0 4mm rgba(79,216,255,0.35));
   }
-  .shot .cap { font-size: 15.5pt; color: var(--ink-dim); margin-top: 2.8mm; line-height: 1.26; }
+  .shot .cap { font-size: 17.5pt; color: var(--ink-dim); margin-top: 2.8mm; line-height: 1.26; }
   .shot .cap b { color: var(--ink-soft); }
 
   /* ---------- tech badges ---------- */
@@ -303,14 +317,14 @@
   .tk:nth-child(5) .dot { background: linear-gradient(135deg, #6fe3ff, #38b6ff); }
   .tk:nth-child(6) .dot { background: linear-gradient(135deg, #cdb2ff, #8c5bff); }
   .tk:nth-child(7) .dot { background: linear-gradient(135deg, #93f0c4, #2fc98e); }
-  .tk b  { font-size: 20pt; color: #fff; white-space: nowrap; }
-  .tk span { font-size: 17.5pt; color: var(--ink-dim); }
+  .tk b  { font-size: 21pt; color: #fff; white-space: nowrap; }
+  .tk span { font-size: 19pt; color: var(--ink-dim); }
 
   /* ---------- challenges ---------- */
   ol.chal { list-style: none; counter-reset: c; }
   ol.chal li {
     counter-increment: c; position: relative; padding-left: 14mm;
-    font-size: 20pt; line-height: 1.34; color: var(--ink-soft); margin-top: 5mm;
+    font-size: 22pt; line-height: 1.34; color: var(--ink-soft); margin-top: 5mm;
   }
   ol.chal li:first-child { margin-top: 0; }
   ol.chal li::before {
@@ -322,13 +336,13 @@
   .insight {
     margin-top: 6.5mm; border-left: 1.8mm solid var(--cyan);
     background: rgba(79,216,255,0.08); border-radius: 0 3mm 3mm 0;
-    padding: 5mm 7mm; font-size: 19.5pt; line-height: 1.38; color: var(--cyan-soft); font-style: italic;
+    padding: 5mm 7mm; font-size: 21pt; line-height: 1.38; color: var(--cyan-soft); font-style: italic;
   }
 
   ul.review { list-style: none; }
-  ul.review li { font-size: 20pt; line-height: 1.34; color: var(--ink-soft); padding-left: 12mm; position: relative; margin-top: 4.4mm; }
+  ul.review li { font-size: 22pt; line-height: 1.34; color: var(--ink-soft); padding-left: 12mm; position: relative; margin-top: 4.4mm; }
   ul.review li:first-child { margin-top: 0; }
-  ul.review li .m { position: absolute; left: 0; top: 0; font-weight: 800; font-size: 20pt; }
+  ul.review li .m { position: absolute; left: 0; top: 0; font-weight: 800; font-size: 22pt; }
   ul.review li .ok { color: var(--green); }
   ul.review li .re { color: var(--orange); }
   ul.review li .nx { color: var(--cyan); }
@@ -357,7 +371,7 @@
   .qr-chip { background: #fff; padding: 3mm; border-radius: 3mm; flex: 0 0 auto; }
   .qr-chip img { width: 44mm; height: 44mm; display: block; }
   .qr-t b { display: block; font-family: 'Orbitron'; font-size: 19pt; color: #fff; letter-spacing: 1px; }
-  .qr-t span { display: block; margin-top: 2.4mm; font-size: 16.5pt; color: var(--ink-dim); word-break: break-all; line-height: 1.3; }
+  .qr-t span { display: block; margin-top: 2.4mm; font-size: 18pt; color: var(--ink-dim); word-break: break-all; line-height: 1.3; }
   .qr-t .gh { color: var(--cyan-soft); font-weight: 700; }
 
   /* ---------- stats band ---------- */
@@ -377,7 +391,7 @@
   .stat:nth-child(2) .v { color: var(--orange); }
   .stat:nth-child(3) .v { color: var(--violet); }
   .stat:nth-child(4) .v { color: var(--green); }
-  .stat .l { margin-top: 2.6mm; font-size: 16.5pt; font-weight: 700; letter-spacing: 1.5px; color: var(--ink-dim); text-transform: uppercase; }
+  .stat .l { margin-top: 2.6mm; font-size: 17.5pt; font-weight: 700; letter-spacing: 1.5px; color: var(--ink-dim); text-transform: uppercase; }
   .stats .wave {
     position: absolute; right: 24mm; bottom: 1mm; height: 68mm;
     filter: drop-shadow(0 0 6mm rgba(79,216,255,0.3));
@@ -395,7 +409,7 @@
     border-top: 0.6mm solid rgba(110,196,255,0.35);
     background: rgba(5,11,26,0.92);
     display: flex; align-items: center; justify-content: center; gap: 7mm;
-    font-size: 16.5pt; color: var(--ink-dim); letter-spacing: 0.6px;
+    font-size: 17.5pt; color: var(--ink-dim); letter-spacing: 0.6px;
   }
   footer b { color: var(--ink-soft); font-weight: 700; }
   footer .sep { color: var(--cyan); }
@@ -449,13 +463,23 @@
 
       <section class="card">
         <div class="sec-head"><span class="sec-num">02</span><h2>The Solution</h2><span class="sec-rule"></span></div>
-        <p class="lead"><b>Mission Focus</b> turns assessment into a 10-minute space mission:</p>
-        <ul class="dots">
-          <li>A first-person astronaut keeps a failing station alive</li>
-          <li>Every repair console is a <b>cognitive paradigm in disguise</b></li>
-          <li>Every reaction is <b>silently logged</b> — no test anxiety, no clipboards</li>
-          <li>One click: <b>assessor-ready HTML report</b> + analysis-ready CSV</li>
-        </ul>
+        <p class="lead"><b>Mission Focus</b> embeds the assessment inside a 10-minute space mission — each problem above gets a built-in answer:</p>
+        <div class="fix-row">
+          <span class="fix-tag">Stress</span>
+          <p class="fix-txt">Assessment is embedded inside <b>meaningful repair tasks</b> — participants play rather than feel tested, so performance is <b>less distorted by test anxiety</b>.</p>
+        </div>
+        <div class="fix-row">
+          <span class="fix-tag">Boredom</span>
+          <p class="fix-txt">A live mission with a real goal — keep the station alive — <b>sustains motivation</b> for the full session, for kids and adults.</p>
+        </div>
+        <div class="fix-row">
+          <span class="fix-tag">Subjective<br>data</span>
+          <p class="fix-txt">The scientific core: a silent <b>behavioral log</b> of what participants actually <i>do</i> — <b>RT, accuracy, omissions, impulsive actions, task completion</b> — objective evidence that <b>complements</b> BRIEF-style ratings and clinical judgment, not replaces them.</p>
+        </div>
+        <div class="fix-row">
+          <span class="fix-tag">Paperwork</span>
+          <p class="fix-txt">One click → <b>assessor-ready HTML report</b> + analysis-ready <b>CSV</b> — no manual scoring.</p>
+        </div>
       </section>
 
       <section class="card">
