@@ -452,7 +452,7 @@ text(0, 1173.5, 841, 12, [[
 # ============ GAME LOGO + HERO ASTRONAUT (on top, header right) ============
 # astronaut sits left of the logo (raised) so the emblem badge stays fully visible
 slide.shapes.add_picture(A("logo_game.png"), Mm(674), Mm(56), height=Mm(138))
-slide.shapes.add_picture(A("char_hero.png"), Mm(553), Mm(70), height=Mm(112))
+slide.shapes.add_picture(A("char_hero.png"), Mm(558), Mm(70), height=Mm(112))
 
 out = os.path.join(HERE, "MissionFocus_Poster_A0.pptx")
 prs.save(out)
