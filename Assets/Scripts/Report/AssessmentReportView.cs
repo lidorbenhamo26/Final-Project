@@ -83,6 +83,7 @@ public static class AssessmentReportView
         AddDemoItem(grid, "SESSION DATE", data.StartedUtc == default
             ? data.GeneratedLocal.ToString("yyyy-MM-dd HH:mm")
             : data.StartedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
+        AddDemoItem(grid, "DURATION", data.DurationMinutes > 0 ? data.DurationMinutes + " min" : "—");
         AddDemoItem(grid, "SESSION GUID", Safe(data.SessionGuid));
 
         if (!string.IsNullOrWhiteSpace(data.Notes))

@@ -147,16 +147,19 @@ public class StationDockController : MonoBehaviour
                     var station = current.GetComponent<TaskStation>();
                     if (station != null)
                     {
-                        // If the random TaskSpawnLoop hasn't yet picked this station,
-                        // spawn a cognitive task on demand so docking always shows
-                        // a working minigame instead of an empty console.
-                        if (!station.HasActiveTask())
+                        // Only dock when the station has a live, system-spawned task.
+                        // Pressing E with no active task must NOT spawn one on demand:
+                        // that produced a half-initialized task outside the GameManager
+                        // spawn loop and polluted the assessment with player-cued
+                        // (rather than system-cued) trials. No task => no interaction.
+                        if (station.HasActiveTask())
                         {
-                            var taskGO = new GameObject(station.stationName + "_Task");
-                            var task = CognitiveTaskCatalog.CreateTaskForStation(taskGO, station.stationName);
-                            station.AssignTask(task);
+                            EnterDock(station);
                         }
-                        EnterDock(station);
+                        else
+                        {
+                            HUDManager.Instance?.ShowAlertBanner("No task here right now", 1.2f);
+                        }
                     }
                 }
             }

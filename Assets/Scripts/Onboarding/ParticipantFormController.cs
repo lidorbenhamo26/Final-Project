@@ -19,34 +19,45 @@ public class ParticipantFormController : MonoBehaviour
     private const float LabelToFieldGap = 20f;
     private const float ErrorGap = 18f;
 
+    // Assessment length bounds (whole minutes). Adjust if the team prefers a
+    // different range.
+    private const int MinMinutes = 1;
+    private const int MaxMinutes = 60;
+    private const int DefaultMinutes = 10;
+
     public Action OnSubmit;
 
-    private TMP_InputField nameField, idField, ageField, sessionField, notesField;
-    private TMP_Text nameError, idError, ageError, sessionError;
+    private TMP_InputField nameField, idField, ageField, sessionField, notesField, lengthField;
+    private TMP_Text nameError, idError, ageError, sessionError, lengthError;
     private Button continueButton;
     private Image continueButtonImg;
 
+    private readonly int[] quickOptions = { 5, 10, 15 };
+    private Image[] quickBtnImgs;
+    private int selectedMinutes = DefaultMinutes;
+
     public RectTransform BuildUI(Transform parent)
     {
-        var panel = UIChrome.BuildScifiPanel(parent, new Vector2(700f, 850f), Vector2.zero);
+        var panel = UIChrome.BuildScifiPanel(parent, new Vector2(700f, 940f), Vector2.zero);
         panel.gameObject.name = "FormPanel";
 
         SpawnLabel(panel, "PARTICIPANT INFO", 34, FontStyles.Bold,
-            TextAlignmentOptions.Center, new Vector2(0f, 382f), new Vector2(640f, 48f), Color.white);
+            TextAlignmentOptions.Center, new Vector2(0f, 400f), new Vector2(640f, 48f), Color.white);
 
-        BuildRow(panel, "Full name *",          labelY:  315f, fieldWidth: 580f, fieldHeight: 56f,
+        BuildRow(panel, "Full name *",          labelY:  328f, fieldWidth: 580f, fieldHeight: 56f,
             multiline: false, charLimit: 60, contentType: TMP_InputField.ContentType.Standard,
             out nameField, out nameError);
-        BuildRow(panel, "Participant ID *",     labelY:  180f, fieldWidth: 580f, fieldHeight: 56f,
+        BuildRow(panel, "Participant ID *",     labelY:  212f, fieldWidth: 580f, fieldHeight: 56f,
             multiline: false, charLimit: 30, contentType: TMP_InputField.ContentType.Standard,
             out idField, out idError);
-        BuildRow(panel, "Age (optional)",       labelY:   45f, fieldWidth: 230f, fieldHeight: 56f,
+        BuildRow(panel, "Age (optional)",       labelY:   96f, fieldWidth: 230f, fieldHeight: 56f,
             multiline: false, charLimit: 3, contentType: TMP_InputField.ContentType.IntegerNumber,
             out ageField, out ageError);
-        BuildRow(panel, "Session # (optional)", labelY:  -90f, fieldWidth: 230f, fieldHeight: 56f,
+        BuildRow(panel, "Session # (optional)", labelY:  -20f, fieldWidth: 230f, fieldHeight: 56f,
             multiline: false, charLimit: 4, contentType: TMP_InputField.ContentType.IntegerNumber,
             out sessionField, out sessionError);
-        BuildRow(panel, "Notes (optional)",     labelY: -225f, fieldWidth: 580f, fieldHeight: 96f,
+        BuildLengthRow(panel, labelY: -136f);
+        BuildRow(panel, "Notes (optional)",     labelY: -252f, fieldWidth: 580f, fieldHeight: 80f,
             multiline: true, charLimit: 500, contentType: TMP_InputField.ContentType.Standard,
             out notesField, out _);
 
@@ -71,10 +82,64 @@ public class ParticipantFormController : MonoBehaviour
         SpawnLabel(parent, label, 22, FontStyles.Bold, TextAlignmentOptions.MidlineLeft,
             new Vector2(0f, labelY), new Vector2(fieldWidth, 28f), LabelColor);
 
-        var fieldRT = NewRect("Field_" + label, parent,
-            new Vector2(fieldWidth, fieldHeight), new Vector2(0f, fieldY));
-        var fieldImg = fieldRT.gameObject.AddComponent<Image>();
-        fieldImg.color = FieldBg;
+        field = BuildInput(parent, "Field_" + label, new Vector2(fieldWidth, fieldHeight),
+            new Vector2(0f, fieldY), contentType, charLimit, multiline);
+
+        errorLabel = SpawnLabel(parent, "", 18, FontStyles.Normal, TextAlignmentOptions.MidlineLeft,
+            new Vector2(0f, errorY), new Vector2(fieldWidth, 24f), ErrorColor);
+    }
+
+    // The "Assessment length" row: an integer-minutes input (source of truth) on
+    // the left with 5 / 10 / 15 quick-pick buttons on the right that just fill it.
+    private void BuildLengthRow(Transform parent, float labelY)
+    {
+        const float fieldHeight = 56f;
+        float fieldY = labelY - LabelToFieldGap - fieldHeight / 2f;
+        float errorY = fieldY - fieldHeight / 2f - ErrorGap;
+
+        SpawnLabel(parent, "Assessment length (minutes) *", 22, FontStyles.Bold, TextAlignmentOptions.MidlineLeft,
+            new Vector2(0f, labelY), new Vector2(580f, 28f), LabelColor);
+
+        lengthField = BuildInput(parent, "Field_Length", new Vector2(230f, fieldHeight),
+            new Vector2(-175f, fieldY), TMP_InputField.ContentType.IntegerNumber, 3, multiline: false);
+
+        quickBtnImgs = new Image[quickOptions.Length];
+        for (int i = 0; i < quickOptions.Length; i++)
+        {
+            int minutes = quickOptions[i];
+            var rt = NewRect("Quick_" + minutes, parent, new Vector2(86f, 46f), new Vector2(20f + i * 105f, fieldY));
+            var img = rt.gameObject.AddComponent<Image>();
+            var btn = rt.gameObject.AddComponent<Button>();
+            btn.targetGraphic = img;
+            // Quick-pick just fills the number field; onValueChanged re-validates.
+            btn.onClick.AddListener(() => lengthField.text = minutes.ToString());
+            quickBtnImgs[i] = img;
+
+            var lblRT = NewRect("Label", rt, Vector2.zero, Vector2.zero);
+            lblRT.anchorMin = Vector2.zero; lblRT.anchorMax = Vector2.one;
+            lblRT.offsetMin = Vector2.zero; lblRT.offsetMax = Vector2.zero;
+            var lbl = lblRT.gameObject.AddComponent<TextMeshProUGUI>();
+            lbl.text = minutes + "m";
+            lbl.fontSize = 22;
+            lbl.fontStyle = FontStyles.Bold;
+            lbl.color = Color.white;
+            lbl.alignment = TextAlignmentOptions.Center;
+        }
+
+        lengthError = SpawnLabel(parent, "", 18, FontStyles.Normal, TextAlignmentOptions.MidlineLeft,
+            new Vector2(0f, errorY), new Vector2(580f, 24f), ErrorColor);
+
+        int initial = Mathf.Clamp(PlayerPrefs.GetInt("MissionMinutes", DefaultMinutes), MinMinutes, MaxMinutes);
+        selectedMinutes = initial;
+        lengthField.text = initial.ToString();
+        lengthField.onValueChanged.AddListener(_ => Validate());
+    }
+
+    private TMP_InputField BuildInput(Transform parent, string name, Vector2 size, Vector2 pos,
+        TMP_InputField.ContentType contentType, int charLimit, bool multiline)
+    {
+        var fieldRT = NewRect(name, parent, size, pos);
+        fieldRT.gameObject.AddComponent<Image>().color = FieldBg;
 
         var textRT = NewRect("Text", fieldRT, Vector2.zero, Vector2.zero);
         textRT.anchorMin = Vector2.zero; textRT.anchorMax = Vector2.one;
@@ -85,7 +150,7 @@ public class ParticipantFormController : MonoBehaviour
         text.enableAutoSizing = true;
         text.fontSizeMin = multiline ? 16 : 18;
         text.fontSizeMax = multiline ? 24 : 26;
-        text.enableWordWrapping = multiline;
+        text.textWrappingMode = multiline ? TextWrappingModes.Normal : TextWrappingModes.NoWrap;
         text.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
 
         var phRT = NewRect("Placeholder", fieldRT, Vector2.zero, Vector2.zero);
@@ -94,28 +159,23 @@ public class ParticipantFormController : MonoBehaviour
         var placeholder = phRT.gameObject.AddComponent<TextMeshProUGUI>();
         placeholder.fontSize = multiline ? 24 : 26;
         placeholder.color = FieldPlaceholder;
-        placeholder.enableAutoSizing = true;
-        placeholder.fontSizeMin = multiline ? 16 : 18;
-        placeholder.fontSizeMax = multiline ? 24 : 26;
         placeholder.fontStyle = FontStyles.Italic;
         placeholder.alignment = multiline ? TextAlignmentOptions.TopLeft : TextAlignmentOptions.MidlineLeft;
         placeholder.text = "";
 
-        field = fieldRT.gameObject.AddComponent<TMP_InputField>();
+        var field = fieldRT.gameObject.AddComponent<TMP_InputField>();
         field.textViewport = fieldRT;
         field.textComponent = text;
         field.placeholder = placeholder;
         field.lineType = multiline ? TMP_InputField.LineType.MultiLineNewline : TMP_InputField.LineType.SingleLine;
         field.contentType = contentType;
         field.characterLimit = charLimit;
-
-        errorLabel = SpawnLabel(parent, "", 18, FontStyles.Normal, TextAlignmentOptions.MidlineLeft,
-            new Vector2(0f, errorY), new Vector2(fieldWidth, 24f), ErrorColor);
+        return field;
     }
 
     private Button BuildContinueButton(Transform parent)
     {
-        var rt = NewRect("ContinueButton", parent, new Vector2(340f, 70f), new Vector2(0f, -380f));
+        var rt = NewRect("ContinueButton", parent, new Vector2(340f, 70f), new Vector2(0f, -392f));
         continueButtonImg = rt.gameObject.AddComponent<Image>();
         continueButtonImg.color = OkColor;
         var btn = rt.gameObject.AddComponent<Button>();
@@ -169,7 +229,7 @@ public class ParticipantFormController : MonoBehaviour
 
     private void Validate()
     {
-        bool ok = ValidateName() & ValidateId() & ValidateAge() & ValidateSession();
+        bool ok = ValidateName() & ValidateId() & ValidateAge() & ValidateSession() & ValidateLength();
         SetContinueEnabled(ok);
     }
 
@@ -212,6 +272,29 @@ public class ParticipantFormController : MonoBehaviour
         return true;
     }
 
+    // Required: whole-number minutes within [MinMinutes, MaxMinutes]. The typed
+    // value wins; a custom number (e.g. 7) un-highlights the quick-pick buttons.
+    private bool ValidateLength()
+    {
+        if (lengthField == null) return true;
+        string v = (lengthField.text ?? "").Trim();
+        if (v.Length == 0) { lengthError.text = "Enter minutes (" + MinMinutes + "-" + MaxMinutes + ")."; RefreshQuickButtons(); return false; }
+        if (!int.TryParse(v, out int n)) { lengthError.text = "Whole numbers only."; RefreshQuickButtons(); return false; }
+        if (n < MinMinutes || n > MaxMinutes) { lengthError.text = "Must be " + MinMinutes + "-" + MaxMinutes + " minutes."; RefreshQuickButtons(); return false; }
+        selectedMinutes = n;
+        lengthError.text = "";
+        RefreshQuickButtons();
+        return true;
+    }
+
+    private void RefreshQuickButtons()
+    {
+        if (quickBtnImgs == null) return;
+        for (int i = 0; i < quickOptions.Length; i++)
+            if (quickBtnImgs[i] != null)
+                quickBtnImgs[i].color = quickOptions[i] == selectedMinutes ? OkColor : FieldBg;
+    }
+
     private void SetContinueEnabled(bool enabled)
     {
         continueButton.interactable = enabled;
@@ -220,7 +303,7 @@ public class ParticipantFormController : MonoBehaviour
 
     private void TrySubmit()
     {
-        if (!(ValidateName() & ValidateId() & ValidateAge() & ValidateSession())) return;
+        if (!(ValidateName() & ValidateId() & ValidateAge() & ValidateSession() & ValidateLength())) return;
 
         var ctx = SessionContext.Instance;
         ctx.FullName = nameField.text.Trim();
@@ -228,7 +311,10 @@ public class ParticipantFormController : MonoBehaviour
         ctx.Age = int.TryParse(ageField.text.Trim(), out int a) ? a : (int?)null;
         ctx.SessionNumber = int.TryParse(sessionField.text.Trim(), out int s) ? s : (int?)null;
         ctx.Notes = string.IsNullOrEmpty(notesField.text) ? null : notesField.text;
+        ctx.MissionMinutes = selectedMinutes;
         ctx.StartedUtc = DateTime.UtcNow;
+
+        PlayerPrefs.SetInt("MissionMinutes", selectedMinutes); // remember last choice
 
         OnSubmit?.Invoke();
     }

@@ -55,7 +55,9 @@ public class ThirdPersonCamera : MonoBehaviour
         Mouse mouse = Mouse.current;
         if (kb != null && kb.escapeKey.wasPressedThisFrame) SetCursorLock(!cursorLocked);
 
-        if (cursorLocked && mouse != null)
+        // Only steer with the mouse while the cursor is actually locked. Anything
+        // that frees the cursor (assessor pause, docking, report) stops the look.
+        if (cursorLocked && Cursor.lockState == CursorLockMode.Locked && mouse != null)
         {
             Vector2 d = mouse.delta.ReadValue();
             yaw += d.x * yawSpeed;

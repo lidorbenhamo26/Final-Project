@@ -9,17 +9,36 @@ public class GameManager : MonoBehaviour
     [Header("Mission Settings")]
     [SerializeField] private float missionDuration = 600f;
 
-    [Header("Task Spawn Pacing")]
-    [SerializeField, Tooltip("Maximum number of tasks that can be active at the same time across all stations.")]
-    private int maxConcurrentTasks = 3;
-    [SerializeField, Tooltip("Minimum seconds between consecutive task spawns.")]
-    private float minSpawnInterval = 15f;
-    [SerializeField, Tooltip("Maximum seconds between consecutive task spawns. Spawn delay is randomized between min and max.")]
-    private float maxSpawnInterval = 25f;
+    [Header("Task Spawn — Difficulty Ramp")]
+    [SerializeField, Tooltip("Opening calm window: no task pressure (difficulty 0) for this many seconds so the player can settle in.")]
+    private float calmIntroSeconds = 75f;
+    [SerializeField, Tooltip("Maps mission progress AFTER the calm intro (0..1) to difficulty (0..1). Ease-in keeps it gentle then ramps.")]
+    private AnimationCurve difficultyCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    [SerializeField, Tooltip("Spawn interval (min,max seconds) at difficulty 0 (calm).")]
+    private Vector2 spawnIntervalCalm = new Vector2(20f, 28f);
+    [SerializeField, Tooltip("Spawn interval (min,max seconds) at difficulty 1 (intense) — the cap, so it never becomes impossible.")]
+    private Vector2 spawnIntervalIntense = new Vector2(6f, 10f);
+    [SerializeField, Tooltip("Max concurrent tasks at difficulty 0 (one at a time).")]
+    private int maxConcurrentCalm = 1;
+    [SerializeField, Tooltip("Max concurrent tasks at difficulty 1 (the cap).")]
+    private int maxConcurrentIntense = 3;
+    [SerializeField, Tooltip("Multiplier on each task's response window (time limit) at difficulty 0 — a little extra time.")]
+    private float responseFactorCalm = 1.15f;
+    [SerializeField, Tooltip("Multiplier on each task's response window at difficulty 1 — tighter, but never below the floor.")]
+    private float responseFactorIntense = 0.65f;
+    [SerializeField, Tooltip("Never shorten a task's response window below this many seconds (keeps it fair).")]
+    private float minResponseWindow = 7f;
     [SerializeField, Tooltip("After a task resolves at a station, wait this many seconds before that station can receive a new task.")]
     private float stationCooldownAfterResolve = 15f;
     [SerializeField, Tooltip("How often (seconds) the spawner re-checks when it's blocked (max concurrent reached or no eligible station). Keep small.")]
     private float spawnRecheckInterval = 1.5f;
+
+    /// <summary>Current mission difficulty in 0..1 (0 during the calm intro). Read by the HUD and DistractionDirector.</summary>
+    public float CurrentDifficulty { get; private set; }
+
+    [Header("Tutorial")]
+    [SerializeField, Tooltip("If checked, this GameManager sets up (Instance + station refs) but does NOT start the mission timer or task spawning. The TutorialDirector drives the flow instead. Used by TutorialScene.")]
+    private bool tutorialMode = false;
 
     [Header("Debug / Quick Test")]
     [SerializeField, Tooltip("If checked, mission uses Quick Test Duration instead of Mission Duration. Leave OFF for normal 10-min runs.")]
@@ -45,6 +64,41 @@ public class GameManager : MonoBehaviour
     public static void SetDebugFrozen(bool value)
     {
         IsDebugFrozen = value;
+    }
+
+    /// <summary>True while the assessor has paused the session (distinct from F11 debug freeze).</summary>
+    public bool MissionPaused { get; private set; }
+
+    /// <summary>
+    /// Assessor pause/resume. Reuses the freeze plumbing so the mission timer,
+    /// task spawning, and every task's internal timer halt together — and
+    /// MissionTask slides its SpawnTime forward while frozen, so reaction times
+    /// are not corrupted by the paused interval. Resume continues exactly.
+    /// </summary>
+    public void SetPaused(bool paused)
+    {
+        if (!MissionActive || MissionPaused == paused) return;
+        MissionPaused = paused;
+        SetDebugFrozen(paused);
+        if (SessionManager.Instance != null)
+            SessionManager.Instance.LogCustomEvent(paused ? "Mission_Paused" : "Mission_Resumed",
+                "Assessor", "t=" + Mathf.RoundToInt(MissionTimeRemaining) + "s");
+    }
+
+    /// <summary>
+    /// Assessor "Stop": end the session early. The mission loops finalize on their
+    /// next tick and HUDManager shows the report with whatever data was collected,
+    /// so the session is never lost.
+    /// </summary>
+    public void EndMissionEarly()
+    {
+        if (!MissionActive) return;
+        if (SessionManager.Instance != null)
+            SessionManager.Instance.LogCustomEvent("Mission_Stopped_Early", "Assessor",
+                "t=" + Mathf.RoundToInt(MissionTimeRemaining) + "s diff=" + CurrentDifficulty.ToString("F2"));
+        MissionPaused = false;
+        SetDebugFrozen(false);
+        MissionActive = false; // MissionCountdown/TaskSpawnLoop exit; HUD shows the report
     }
 
     public TaskStation ActiveTaskStation
@@ -88,6 +142,21 @@ public class GameManager : MonoBehaviour
     {
         if (task == null || string.IsNullOrEmpty(task.StationName)) return;
         lastResolvedAt[task.StationName] = Time.time;
+        // Log difficulty alongside the outcome so the report can plot performance
+        // against how hard the mission was at that moment.
+        if (SessionManager.Instance != null)
+            SessionManager.Instance.LogCustomEvent("Difficulty", task.StationName,
+                result + " diff=" + CurrentDifficulty.ToString("F2"));
+    }
+
+    private float ComputeDifficulty()
+    {
+        float total = quickTestMode ? quickTestDuration : missionDuration;
+        float elapsed = total - MissionTimeRemaining;
+        if (elapsed <= calmIntroSeconds) return 0f;
+        float denom = Mathf.Max(1f, total - calmIntroSeconds);
+        float p = Mathf.Clamp01((elapsed - calmIntroSeconds) / denom);
+        return Mathf.Clamp01(difficultyCurve.Evaluate(p));
     }
 
     private void AutoBindStations()
@@ -118,6 +187,21 @@ public class GameManager : MonoBehaviour
         // participant's report and CSV exports.
         if (SessionManager.Instance != null) SessionManager.Instance.ResetForNewMission();
 
+        // Tutorial: keep Instance + station bindings live (so docking, the HUD and
+        // proximity prompts work) but don't run the real mission — the
+        // TutorialDirector spawns its own practice task and drives the flow.
+        if (tutorialMode)
+        {
+            AudioManager.Instance.PlayAmbient("station_hum");
+            return;
+        }
+
+        // Assessor-chosen length (from the intake form) overrides the serialized
+        // default, so both the mission timer and the difficulty ramp (which reads
+        // missionDuration) scale to it.
+        if (SessionContext.Instance != null && SessionContext.Instance.MissionMinutes > 0)
+            missionDuration = SessionContext.Instance.MissionMinutes * 60f;
+
         if (quickTestMode) Application.runInBackground = true;
         MissionTimeRemaining = quickTestMode ? quickTestDuration : missionDuration;
         MissionActive = true;
@@ -133,6 +217,8 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
+        if (MissionActive) CurrentDifficulty = ComputeDifficulty();
+
         var kb = UnityEngine.InputSystem.Keyboard.current;
         if (kb == null) return;
 
@@ -276,7 +362,12 @@ public class GameManager : MonoBehaviour
                 yield return new WaitForSeconds(spawnRecheckInterval);
                 continue;
             }
-            if (CountActiveTasks() >= maxConcurrentTasks)
+
+            CurrentDifficulty = ComputeDifficulty();
+            int maxConcurrent = Mathf.Max(1, Mathf.RoundToInt(
+                Mathf.Lerp(maxConcurrentCalm, maxConcurrentIntense, CurrentDifficulty)));
+
+            if (CountActiveTasks() >= maxConcurrent)
             {
                 yield return new WaitForSeconds(spawnRecheckInterval);
                 continue;
@@ -293,8 +384,10 @@ public class GameManager : MonoBehaviour
             SpawnTaskAt(chosen);
             lastSpawnedStationName = chosen.stationName;
 
-            float wait = Random.Range(minSpawnInterval, maxSpawnInterval);
-            yield return new WaitForSeconds(wait);
+            // Spawn cadence tightens as difficulty climbs (capped by the intense range).
+            float min = Mathf.Lerp(spawnIntervalCalm.x, spawnIntervalIntense.x, CurrentDifficulty);
+            float max = Mathf.Lerp(spawnIntervalCalm.y, spawnIntervalIntense.y, CurrentDifficulty);
+            yield return new WaitForSeconds(Random.Range(min, max));
         }
     }
 
@@ -340,6 +433,16 @@ public class GameManager : MonoBehaviour
     private void SpawnTaskAt(TaskStation station)
     {
         var go = new GameObject(station.stationName + "Task");
-        station.AssignTask(CognitiveTaskCatalog.CreateTaskForStation(go, station.stationName));
+        var task = CognitiveTaskCatalog.CreateTaskForStation(go, station.stationName);
+        station.AssignTask(task);
+
+        // Tighten the response window as difficulty climbs, but never below the
+        // fairness floor. Applied AFTER Activate so it scales the task's own limit.
+        float factor = Mathf.Lerp(responseFactorCalm, responseFactorIntense, CurrentDifficulty);
+        task.timeLimit = Mathf.Max(minResponseWindow, task.timeLimit * factor);
+
+        if (SessionManager.Instance != null)
+            SessionManager.Instance.LogCustomEvent("Task_Spawn", station.stationName,
+                "diff=" + CurrentDifficulty.ToString("F2"));
     }
 }

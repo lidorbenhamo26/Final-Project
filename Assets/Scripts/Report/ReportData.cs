@@ -26,6 +26,7 @@ public class ReportData
     public string Notes;
     public string SessionGuid;
     public DateTime StartedUtc;
+    public int DurationMinutes;
 
     // Session
     public int TasksTotal;
@@ -101,6 +102,7 @@ public class ReportData
             data.Notes = ctx.Notes;
             data.SessionGuid = ctx.SessionGuid;
             data.StartedUtc = ctx.StartedUtc;
+            data.DurationMinutes = ctx.MissionMinutes;
         }
 
         var sm = SessionManager.Instance;

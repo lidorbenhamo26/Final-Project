@@ -32,7 +32,7 @@ public static class ReportCsvExporter
 
         var sb = new StringBuilder(8 * 1024);
 
-        sb.Append("ParticipantId,FullName,Age,SessionNumber,SessionGuid,StartedUtc,");
+        sb.Append("ParticipantId,FullName,Age,SessionNumber,SessionGuid,StartedUtc,DurationMin,");
         sb.Append("TaskName,BriefScale,Station,Priority,Result,ReactionTimeS");
         foreach (var col in MetricColumns) sb.Append(',').Append(col);
         sb.AppendLine(",ExtraMetrics");
@@ -43,7 +43,8 @@ public static class ReportCsvExporter
             (data.Age.HasValue ? data.Age.Value.ToString() : "") + "," +
             (data.SessionNumber.HasValue ? data.SessionNumber.Value.ToString() : "") + "," +
             Csv(data.SessionGuid) + "," +
-            (data.StartedUtc == default ? "" : data.StartedUtc.ToString("o"));
+            (data.StartedUtc == default ? "" : data.StartedUtc.ToString("o")) + "," +
+            (data.DurationMinutes > 0 ? data.DurationMinutes.ToString() : "");
 
         foreach (var section in data.Sections)
         {
