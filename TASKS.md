@@ -190,3 +190,115 @@ Verified via MCP: compiles clean, no errors. Script-only (form built at runtime)
 no scene change. NOT playtested — needs a human to confirm the row position, typing
 a custom value, validation, and that the mission timer + ramp + report use it.
 A difficulty-preset picker was left out.
+
+---
+
+# BATCH 2 — playtest feedback (Tasks 7–16)
+
+All ⬜ not started. Suggested order (do related items together):
+1. **Fairness (do first):** 9 (alien knocks battery), 11 (task while docked),
+   10 (movement/camera), 7 (first-time instructions), 8 (names/floating text).
+2. **Clarity:** 15 (priority colors — merge with Task 4), 12 (Stroop rule).
+3. **Pacing/variety:** 13 (shorten radar), 14 (early variety), 16 (task variants).
+
+Cross-links: 15 + parts of 14 ARE the Task-4 work; 7/8/12/15 feed the Task-1
+tutorial — whoever touches Task 4 / Task 1 should pick these up together.
+
+Codebase pointers (verified this session):
+- Spawn loop / selection: `GameManager.TaskSpawnLoop`, `PickStation`,
+  `BuildEligibleStationList`, `SpawnTaskAt`. Station→task map:
+  `CognitiveTaskCatalog.CreateTaskForStation` (Engine=`WorkingMemoryTask`,
+  Navigation=`RadarScanTask`, Comms=`StroopTask`, LifeSupport=`BatteryDeliveryTask`).
+- Docked state: `StationDockController.Instance.IsDocked` / `.CurrentStation`.
+- HUD task list + the current "+N MORE" / station accents / urgency: `UI/TaskListHUD.cs`.
+- Station display name comes from `TaskStation.stationName` (raw, e.g.
+  "EngineStation"); `TaskListHUD.PrettyStation()` already maps to "Engine" etc.
+- Unused task variants to wire in (Task 16): `Tasks/CodeMemoryTask.cs` (used only
+  by the tutorial now), `Tasks/InhibitTask.cs` (Go/No-Go — not in the catalog).
+- Alien NPCs (Task 9): `WanderingAI.cs`, `AlienCuriosity.cs`; carry logic in
+  `Interaction/CarryableBattery.cs` + `AstronautHandGrip`.
+- Camera (Task 10): `ThirdPersonCamera.cs` (mouse-look, occlusion SphereCast).
+
+## ⬜ Task 7 — First-time written instructions before each task type
+First time each of the 4 task types appears, pause it and show a short instruction
+card (1–2 lines + controls) with a "Got it" button; never count time/score until
+dismissed; show once per session.
+- Track first occurrence in a `seenTaskTypes` set on `SessionContext`.
+- Reuse the freeze plumbing (`GameManager.SetDebugFrozen`/pause) so the trial
+  clock doesn't run while the card is up (same pattern as the report/pause).
+- Reuse the per-task copy for the Task-1 tutorial.
+- Code: task spawn flow (`GameManager` / `CognitiveTaskBase.OnPlayerEnter`) + a
+  small reusable instruction UI; copy in `Scripts/Onboarding`.
+
+## ⬜ Task 8 — Fix station name formatting + remove stray floating text
+- Show spaced/proper names everywhere ("Engine Station" / "Comms Station" …) — be
+  consistent across tutorial, door labels (DoorFixup), and HUD. `PrettyStation()`
+  already does the mapping; the tutorial/other spots use raw `stationName`.
+- Find & remove the unexplained floating text at a station (likely a leftover
+  `StationUI` placeholder / debug label) or replace with a real prompt.
+- Audit all on-screen strings for run-together/placeholder text.
+- Code: station prefabs / `StationUI`, `Scripts/Onboarding`, HUD.
+
+## ⬜ Task 9 — Alien must not knock the battery out of the player's hand
+- Make the alien non-colliding with the player + carried battery (collision
+  layer/matrix, or trigger-only), so it can't dislodge the carry.
+- Battery only droppable by intended logic (deliver/install), never by collision.
+- Keep the alien as a visual distractor (still wanders, no physical effect).
+- Code: alien controller(s), Physics layer matrix, `Interaction/CarryableBattery`.
+
+## ⬜ Task 10 — Smooth movement & camera through doors / between rooms
+- Camera: gently auto-align/recenter behind the player toward the movement
+  direction in corridors/doorways (smooth lerp, no snap) to cut manual mouse
+  correction; ensure no clip/jerk at doorframes.
+- Doors: widen triggers/colliders so the player never catches (ties to Task 3's
+  jamb colliders in DoorFixup).
+- Reduce dead travel time: slightly faster base move, and/or a waypoint arrow to
+  the active station; ensure travel time doesn't cause task failures (lengthen
+  response windows or shorten distances so failures reflect cognition).
+- Code: `ThirdPersonCamera`, door triggers (`Scripts/Interaction`), `GameManager`
+  response-window timing.
+
+## ⬜ Task 11 — Don't start an attention task while the player is docked elsewhere
+- While `StationDockController.IsDocked`, defer/suppress spawning of tasks that
+  need the player to see the main screen (at minimum the code-memory display);
+  re-evaluate the spawn queue on undock; never deadlock the spawner.
+- Code: `GameManager.TaskSpawnLoop` + docking state. Connects to Task 4 + Task 2.
+
+## ⬜ Task 12 — Comms (Stroop): make the rule clear, stop confusing mid-task switching
+- Option A: one rule per task instance, fixed banner ("Respond to the INK color.").
+- Option B: switch only between clearly separated rounds with a big banner + sound
+  ("NEW RULE: respond to the WORD."). Always show the current rule each trial.
+- Add the rule to the Task-7 first-time card.
+- Code: `Tasks/StroopTask.cs`, Comms UI.
+
+## ⬜ Task 13 — Shorten the Radar (CPT) task
+- Expose trial count + inter-stimulus interval as serialized fields and lower them
+  (~half, tune with team); keep enough trials for hit/false-alarm/d-prime and ≥2
+  blocks for vigilance-decrement. Code: `Tasks/RadarScanTask.cs`.
+
+## ⬜ Task 14 — Vary tasks from the start (kill early repetition)
+- Early spawns rotated only code-memory + radar; rotate across all 4 from the
+  start. Avoid immediate repeats (anti-repeat already partly in `PickStation` via
+  `lastSpawnedStationName` — strengthen it / ensure all 4 are eligible early).
+  Keep Task-4's calm pace but make variety present from the start.
+- Code: `GameManager` spawn selection. Connects to Task 4 + Task 16.
+
+## ⬜ Task 15 — Clear color-coded task priority + teach it in the tutorial
+- Replace the unclear "+N MORE" with explicit priority levels (Red=critical,
+  Yellow=medium, Green=low) on each HUD task row and ideally the station/door.
+- With two active tasks the colors make the choice obvious; optional per-task
+  countdown bars (the active row already has one).
+- Teach it in the Task-1 tutorial ("Red tasks are urgent — do them first.").
+- Code: `UI/TaskListHUD.cs` (currently shows most-urgent + "+N MORE" + station
+  accent — extend to a real priority enum→color), task data model (`MissionTask`
+  has `priority` Critical/NonCritical — may need 3 levels), tutorial copy.
+- **Merge with Task 4** (this is its "clear priority" half).
+
+## ⬜ Task 16 — Add a second alternating task variant to some stations
+- For 1–2 stations, alternate two variants (e.g. Comms: Stroop ↔ Go/No-Go;
+  Engine: WorkingMemory code ↔ CodeMemory). Wire in the existing unused variants
+  (`CodeMemoryTask`, `InhibitTask`) instead of leaving them dead.
+- Each variant must still report to the same BRIEF-A scale; make alternation
+  configurable (on/off or weighting).
+- Code: `Tasks/*`, `CognitiveTaskCatalog`, `GameManager`. Connects to Task 14 and
+  resolves the book's "use-or-remove unused variants" point.
