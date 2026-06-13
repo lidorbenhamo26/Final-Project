@@ -70,13 +70,14 @@ public class StationProximityPrompt : MonoBehaviour
 
         bool inRange = IsPlayerInRange();
         bool stationDocked = StationDockController.Instance != null && StationDockController.Instance.IsDocked;
+        bool hasTask = _station != null && _station.HasActiveTask();
 
-        // Player can dock at any time — if no task is active, the dock controller
-        // spawns a fresh cognitive task on entry. This makes every station
-        // interactive on demand instead of waiting for the random spawn loop.
-        bool shouldPrompt = inRange && !stationDocked;
+        // Register as the in-range prompt whenever the player is near and not
+        // already docked, so the dock controller can respond to an E press here
+        // (dock if a task is live, otherwise flash "No task here right now").
+        bool inReach = inRange && !stationDocked;
 
-        if (shouldPrompt)
+        if (inReach)
         {
             CurrentPrompt = this;
         }
@@ -85,8 +86,10 @@ public class StationProximityPrompt : MonoBehaviour
             CurrentPrompt = null;
         }
 
-        // Fade label alpha toward target
-        float target = shouldPrompt ? 1f : 0f;
+        // Only invite interaction (the floating [E] INTERACT hint) when the
+        // station actually has a live, system-spawned task. An empty console
+        // shows no hint — interaction is system-cued, never on-demand.
+        float target = (inReach && hasTask) ? 1f : 0f;
         _alpha = Mathf.MoveTowards(_alpha, target, fadeRate * Time.deltaTime);
         SetHintAlpha(_alpha);
 

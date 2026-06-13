@@ -35,6 +35,8 @@ public class TaskListHUD : MonoBehaviour
     private Row activeRow;
     private Row[] recentRows = new Row[2];
     private MissionTask currentTask;
+    private readonly List<MissionTask> activeTasks = new List<MissionTask>();
+    private TextMeshProUGUI activeBadge;
     private Dictionary<string, Sprite> iconByStation;
     private Sprite fallbackIcon;
     private Sprite panelFrameSprite;
@@ -277,6 +279,35 @@ public class TaskListHUD : MonoBehaviour
         img.fillOrigin = (int)Image.OriginHorizontal.Left;
         img.fillAmount = 1f;
         activeRow.TimeBar = img;
+
+        // "+N MORE" badge (top-right) so the player knows other tasks are also live.
+        var badge = new GameObject("Badge", typeof(RectTransform));
+        badge.transform.SetParent(activeRow.Root, false);
+        var bRt = (RectTransform)badge.transform;
+        bRt.anchorMin = new Vector2(1f, 1f); bRt.anchorMax = new Vector2(1f, 1f);
+        bRt.pivot = new Vector2(1f, 1f);
+        bRt.anchoredPosition = new Vector2(-10f, -6f);
+        bRt.sizeDelta = new Vector2(120f, 20f);
+        activeBadge = badge.AddComponent<TextMeshProUGUI>();
+        activeBadge.fontSize = 13f;
+        activeBadge.fontStyle = FontStyles.Bold;
+        activeBadge.alignment = TextAlignmentOptions.TopRight;
+        activeBadge.color = ColorUrgent;
+        activeBadge.raycastTarget = false;
+        activeBadge.text = "";
+    }
+
+    // Per-station accent, matching the door labels and color-coding elsewhere.
+    private static Color StationAccent(string stationName)
+    {
+        switch (stationName)
+        {
+            case "EngineStation":      return new Color(1f, 0.30f, 0.30f);
+            case "NavigationStation":  return new Color(0.30f, 0.62f, 1f);
+            case "CommsStation":       return new Color(1f, 0.90f, 0.30f);
+            case "LifeSupportStation": return new Color(0.30f, 1f, 0.45f);
+        }
+        return ColorActive;
     }
 
     // Procedural fallback when panel_frame_corners sprite is missing: a 32x32
@@ -458,20 +489,14 @@ public class TaskListHUD : MonoBehaviour
     private void HandleSpawn(MissionTask task)
     {
         if (task == null) return;
-        currentTask = task;
-        Sprite icon = LookupIcon(task.StationName);
-        if (activeRow.Icon != null) { activeRow.Icon.sprite = icon; activeRow.Icon.color = Color.white; }
-        if (activeRow.Pill != null) activeRow.Pill.color = ColorActive;
-        if (activeRow.StationLabel != null) { activeRow.StationLabel.text = PrettyStation(task.StationName).ToUpperInvariant(); activeRow.StationLabel.color = ColorTextPri; }
-        if (activeRow.ResultLabel != null) activeRow.ResultLabel.text = task.TaskName != null ? task.TaskName : "Task";
-        if (activeRow.TimeBar != null) { activeRow.TimeBar.color = ColorActive; activeRow.TimeBar.fillAmount = 1f; }
-        if (activeFrameImg != null) activeFrameImg.color = new Color(ColorActive.r, ColorActive.g, ColorActive.b, 1f);
+        if (!activeTasks.Contains(task)) activeTasks.Add(task);
+        RefreshActiveDisplay(force: true);
     }
 
     private void HandleResolved(MissionTask task, TaskResult result, float reactionTime)
     {
         if (task == null) return;
-        bool isCurrent = ReferenceEquals(task, currentTask);
+        activeTasks.Remove(task);
         if (!_hasRecent)
         {
             // First resolved task: replace the empty-state placeholder before shifting.
@@ -480,7 +505,62 @@ public class TaskListHUD : MonoBehaviour
         }
         ShiftRecentsDown();
         WriteRecent(0, task, result, reactionTime);
-        if (isCurrent) { ClearActiveRow(); _urgencyActive = false; }
+        RefreshActiveDisplay(force: true);
+    }
+
+    // Picks the MOST URGENT active task (least time remaining) to show in the
+    // active row, so when several tasks are live the player is steered to the one
+    // about to expire. Shows a "+N MORE" badge for the rest.
+    private void RefreshActiveDisplay(bool force = false)
+    {
+        for (int i = activeTasks.Count - 1; i >= 0; i--)
+            if (activeTasks[i] == null || !activeTasks[i].IsActive) activeTasks.RemoveAt(i);
+
+        MissionTask urgent = null;
+        float best = float.MaxValue;
+        foreach (var t in activeTasks)
+        {
+            float remaining = t.timeLimit - (Time.time - t.SpawnTime);
+            if (remaining < best) { best = remaining; urgent = t; }
+        }
+
+        if (urgent == null)
+        {
+            if (currentTask != null || force) { ClearActiveRow(); _urgencyActive = false; }
+            currentTask = null;
+            UpdateBadge();
+            return;
+        }
+
+        if (!ReferenceEquals(urgent, currentTask) || force)
+        {
+            currentTask = urgent;
+            PopulateActiveRow(urgent);
+        }
+        UpdateBadge();
+    }
+
+    private void PopulateActiveRow(MissionTask task)
+    {
+        Color accent = StationAccent(task.StationName);
+        if (activeRow.Icon != null) { activeRow.Icon.sprite = LookupIcon(task.StationName); activeRow.Icon.color = Color.white; }
+        if (activeRow.Pill != null) activeRow.Pill.color = accent;
+        if (activeRow.StationLabel != null)
+        {
+            string pri = task.Priority == TaskPriority.Critical ? "  <color=#EF4444>PRIORITY</color>" : "";
+            activeRow.StationLabel.text = PrettyStation(task.StationName).ToUpperInvariant() + pri;
+            activeRow.StationLabel.color = ColorTextPri;
+        }
+        if (activeRow.ResultLabel != null) activeRow.ResultLabel.text = task.TaskName != null ? task.TaskName : "Task";
+        if (activeRow.TimeBar != null) { activeRow.TimeBar.color = accent; activeRow.TimeBar.fillAmount = 1f; }
+        if (activeFrameImg != null) activeFrameImg.color = accent;
+    }
+
+    private void UpdateBadge()
+    {
+        if (activeBadge == null) return;
+        int extra = activeTasks.Count - 1;
+        activeBadge.text = extra > 0 ? "+" + extra + " MORE" : "";
     }
 
     private void ShiftRecentsDown()
@@ -550,6 +630,10 @@ public class TaskListHUD : MonoBehaviour
 
     private void Update()
     {
+        // Re-evaluate which active task is most urgent (it can change as windows
+        // tick down) and prune resolved/expired tasks.
+        RefreshActiveDisplay();
+
         if (currentTask == null || !currentTask.IsActive)
         {
             if (_urgencyActive) _urgencyActive = false;
@@ -569,12 +653,13 @@ public class TaskListHUD : MonoBehaviour
         {
             _urgencyActive = false;
         }
-        Color c = urgent ? ColorUrgent : ColorActive;
+        // Station accent normally; flips to red and pulses when about to expire.
+        Color accent = StationAccent(currentTask.StationName);
+        Color c = urgent ? ColorUrgent : accent;
         if (activeRow.Pill != null) activeRow.Pill.color = c;
         if (activeRow.TimeBar != null) activeRow.TimeBar.color = c;
         if (activeFrameImg != null)
         {
-            // Pulse the frame alpha while urgent so the panel reads as 'in danger'.
             float a = urgent ? 0.55f + 0.45f * Mathf.PingPong(Time.time * 2f, 1f) : 1f;
             activeFrameImg.color = new Color(c.r, c.g, c.b, a);
         }

@@ -28,6 +28,9 @@ public class SessionContext : MonoBehaviour
     public bool TutorialCompleted;
     public bool ShipMapViewed;
 
+    // Assessor-chosen assessment length in minutes (set on the intake form).
+    public int MissionMinutes = 10;
+
     private void Awake()
     {
         if (_instance != null && _instance != this) { Destroy(gameObject); return; }
@@ -51,5 +54,7 @@ public class SessionContext : MonoBehaviour
         StartedUtc = default;
         TutorialCompleted = false;
         ShipMapViewed = false;
+        // MissionMinutes is intentionally NOT reset — the assessor's chosen length
+        // persists across the reset that happens when a report is dismissed.
     }
 }

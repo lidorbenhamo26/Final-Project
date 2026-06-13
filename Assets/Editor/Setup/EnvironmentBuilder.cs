@@ -152,6 +152,11 @@ namespace FinalProject.EditorTools.Setup
                 // ---- Skybox ----
                 ApplySkybox();
 
+                // ---- Make every doorway passable + labeled ----
+                // Widens the opening (hides the closed slab), removes the gate's
+                // snag colliders in favour of clean jambs, and signs each door.
+                DoorFixup.FixAllDoorsInLoadedScenes();
+
                 // ---- Mark scene dirty + finalise undo ----
                 Undo.CollapseUndoOperations(undoGroup);
                 EditorSceneManager.MarkSceneDirty(SceneManager.GetActiveScene());

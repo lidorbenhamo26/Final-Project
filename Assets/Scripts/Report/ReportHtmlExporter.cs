@@ -74,6 +74,8 @@ public static class ReportHtmlExporter
         sb.AppendLine("  </tr><tr>");
         DemoCell(sb, "Session #", data.SessionNumber.HasValue ? data.SessionNumber.Value.ToString() : "—");
         DemoCell(sb, "Session date", sessionDate);
+        DemoCell(sb, "Duration", data.DurationMinutes > 0 ? data.DurationMinutes + " min" : "—");
+        sb.AppendLine("  </tr><tr>");
         DemoCell(sb, "Session GUID", data.SessionGuid);
         sb.AppendLine("  </tr>");
         if (!string.IsNullOrWhiteSpace(data.Notes))
