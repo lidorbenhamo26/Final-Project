@@ -77,8 +77,8 @@ public class AlienCuriosity : MonoBehaviour
     public float knockUpForce = 1.3f;
     [Tooltip("SFX id played as the alien lunges in for the swat.")]
     public string swatChirpId = "alien_curious_chirp_a";
-    [Tooltip("Master switch for the battery-snatch behaviour. When ON the alien chases the player and knocks the carried cell loose. Turn OFF to make the alien ignore the cell (pesters only).")]
-    public bool snatchCarriedCell = true;
+    [Tooltip("Master switch for the battery-snatch behaviour. When ON the alien chases the player and knocks the carried cell loose. OFF (default) makes the alien a harmless visual distractor that only wanders/pesters — it never knocks the battery loose.")]
+    public bool snatchCarriedCell = false;
 
     private static bool _firstSightNotified;
 
@@ -93,6 +93,7 @@ public class AlienCuriosity : MonoBehaviour
     private CarryableBattery _cell;
     private float _swatTimer;
     private bool _windingUp;
+    private bool _collisionIgnored;
 
     private void Awake()
     {
@@ -131,6 +132,10 @@ public class AlienCuriosity : MonoBehaviour
             ResolvePlayer();
             if (_player == null) return;
         }
+
+        // The alien is a visual/ecological distractor only — never let its body
+        // physically push the player or the carried cell.
+        if (!_collisionIgnored) IgnorePlayerCollision();
 
         _cell = FindAnyObjectByType<CarryableBattery>();
 
@@ -329,6 +334,23 @@ public class AlienCuriosity : MonoBehaviour
             if (AudioManager.Instance != null) AudioManager.Instance.PlaySfx(id, pesterChirpVolume);
             _chirpTimer = Random.Range(chirpInterval.x, chirpInterval.y);
         }
+    }
+
+    // Disable physics collision between the alien's colliders and the player's,
+    // so the alien can never shove the astronaut (or dislodge a carried cell)
+    // while it wanders/pesters. Walls/floor collision is unaffected.
+    private void IgnorePlayerCollision()
+    {
+        if (_player == null) return;
+        var mine = GetComponentsInChildren<Collider>(true);
+        var theirs = _player.GetComponentsInChildren<Collider>(true);
+        foreach (var a in mine)
+        {
+            if (a == null) continue;
+            foreach (var b in theirs)
+                if (b != null) Physics.IgnoreCollision(a, b, true);
+        }
+        _collisionIgnored = true;
     }
 
     private bool PlayerHasCell()

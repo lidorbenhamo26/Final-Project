@@ -239,12 +239,18 @@ dismissed; show once per session.
 - Audit all on-screen strings for run-together/placeholder text.
 - Code: station prefabs / `StationUI`, `Scripts/Onboarding`, HUD.
 
-## ⬜ Task 9 — Alien must not knock the battery out of the player's hand
-- Make the alien non-colliding with the player + carried battery (collision
-  layer/matrix, or trigger-only), so it can't dislodge the carry.
-- Battery only droppable by intended logic (deliver/install), never by collision.
-- Keep the alien as a visual distractor (still wanders, no physical effect).
-- Code: alien controller(s), Physics layer matrix, `Interaction/CarryableBattery`.
+## ✅ Task 9 — Alien must not knock the battery out of the player's hand  (DONE — pending playtest)
+- Root cause: `AlienCuriosity` had a battery-SNATCH behaviour (chase + swat ->
+  `CarryableBattery.Drop()`) gated by `snatchCarriedCell` (was true).
+- Fix: default `snatchCarriedCell = false` AND set it false on the scene alien
+  ("AlienBuddy") so it never chases/knocks the cell — it only wanders/pesters now.
+- Added `IgnorePlayerCollision()` (Physics.IgnoreCollision between the alien's and
+  player's colliders, once) so the body can never push the player either. (The
+  alien root has no collider anyway, so the snatch was the whole problem.)
+- Battery is only droppable via `Drop()` which only the snatch called -> now never;
+  carry stays kinematic + collider-off. Alien remains a visual distractor.
+- Verified: compiles, no runtime errors, alien still present in the hub. Needs a
+  human playtest carrying the cell to confirm it's never knocked loose.
 
 ## ⬜ Task 10 — Smooth movement & camera through doors / between rooms
 - Camera: gently auto-align/recenter behind the player toward the movement

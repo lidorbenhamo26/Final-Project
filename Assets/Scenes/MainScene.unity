@@ -23481,7 +23481,7 @@ MonoBehaviour:
   knockForce: 1.6
   knockUpForce: 1.3
   swatChirpId: alien_curious_chirp_a
-  snatchCarriedCell: 1
+  snatchCarriedCell: 0
 --- !u!1001 &1438030299
 PrefabInstance:
   m_ObjectHideFlags: 0
