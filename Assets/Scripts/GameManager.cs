@@ -32,6 +32,8 @@ public class GameManager : MonoBehaviour
     private float stationCooldownAfterResolve = 15f;
     [SerializeField, Tooltip("How often (seconds) the spawner re-checks when it's blocked (max concurrent reached or no eligible station). Keep small.")]
     private float spawnRecheckInterval = 1.5f;
+    [SerializeField, Tooltip("Alternate task variants at stations that have two (Engine: Working Memory <-> Code Memory; Comms: Stroop <-> Go/No-Go). Both variants of a pair score the same BRIEF-A scale. Off = original task every time.")]
+    private bool alternateTaskVariants = true;
 
     /// <summary>Current mission difficulty in 0..1 (0 during the calm intro). Read by the HUD and DistractionDirector.</summary>
     public float CurrentDifficulty { get; private set; }
@@ -122,6 +124,8 @@ public class GameManager : MonoBehaviour
     // When each station last SPAWNED a task. Drives least-recently-spawned
     // rotation so all 4 task types appear early and don't cluster/repeat.
     private readonly Dictionary<string, float> lastSpawnedAt = new Dictionary<string, float>();
+    // How many times each station has spawned, used to alternate task variants.
+    private readonly Dictionary<string, int> spawnCountByStation = new Dictionary<string, int>();
 
     private void Awake()
     {
@@ -463,7 +467,18 @@ public class GameManager : MonoBehaviour
     private void SpawnTaskAt(TaskStation station)
     {
         var go = new GameObject(station.stationName + "Task");
-        var task = CognitiveTaskCatalog.CreateTaskForStation(go, station.stationName);
+
+        // Alternate variants at stations that have two (each pair scores the same
+        // BRIEF-A scale). The per-station counter gives strict A/B/A/B alternation.
+        int variant = 0;
+        if (alternateTaskVariants)
+        {
+            spawnCountByStation.TryGetValue(station.stationName, out int c);
+            variant = c;
+            spawnCountByStation[station.stationName] = c + 1;
+        }
+
+        var task = CognitiveTaskCatalog.CreateTaskForStation(go, station.stationName, variant);
         station.AssignTask(task);
 
         // Tighten the response window as difficulty climbs, but never below the

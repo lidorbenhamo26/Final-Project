@@ -72,6 +72,21 @@ public class InhibitTask : CognitiveTaskBase
         timeLimit = 120f; // 20 trials * ~2s + intro/outro buffer
     }
 
+    // Never let the spawner scale the window below the run's own length
+    // (trials * (signal + mean ISI)) + travel/READY buffer.
+    public override float MinResponseWindowSeconds =>
+        TotalTrials * (SignalDuration + (IsiMin + IsiMax) * 0.5f) + 18f;
+
+    protected override string InstructionTitle => "COMMS - GO / NO-GO";
+    protected override string[] InstructionBody => new[]
+    {
+        "Signals flash one at a time.",
+        "RED alert = press EXECUTE fast.",
+        "YELLOW drill = do NOT press, just wait.",
+        "",
+        "Hold back on the yellow ones.",
+    };
+
     public override void Activate()
     {
         base.Activate();
