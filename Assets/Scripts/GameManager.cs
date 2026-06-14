@@ -18,8 +18,8 @@ public class GameManager : MonoBehaviour
     private Vector2 spawnIntervalCalm = new Vector2(20f, 28f);
     [SerializeField, Tooltip("Spawn interval (min,max seconds) at difficulty 1 (intense) — the cap, so it never becomes impossible.")]
     private Vector2 spawnIntervalIntense = new Vector2(6f, 10f);
-    [SerializeField, Tooltip("Max concurrent tasks at difficulty 0 (one at a time).")]
-    private int maxConcurrentCalm = 1;
+    [SerializeField, Tooltip("Max concurrent tasks at difficulty 0. Kept at 2 (not 1) so a second task can spawn while one sits unattended — otherwise the spawner stalls until the lone task expires.")]
+    private int maxConcurrentCalm = 2;
     [SerializeField, Tooltip("Max concurrent tasks at difficulty 1 (the cap).")]
     private int maxConcurrentIntense = 3;
     [SerializeField, Tooltip("Multiplier on each task's response window (time limit) at difficulty 0 — a little extra time.")]

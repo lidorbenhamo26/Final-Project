@@ -193,6 +193,30 @@ A difficulty-preset picker was left out.
 
 ---
 
+# BATCH 2 — bug fixes from playtest after Tasks 9–11
+
+## ✅ Bug B — spawner stalled (one active task, nothing else spawned)  (DONE — pending playtest)
+- Root cause: `maxConcurrentCalm` was 1, so with the slow difficulty ramp
+  `maxConcurrent` rounded to 1 for the first several minutes — while one task sat
+  unattended (~90s window) nothing else could spawn. (Task 11's docked-suppression
+  was NOT the cause; the player was roaming.)
+- Fix: `maxConcurrentCalm = 2` (code default + set on the MainScene GameManager).
+  Now a 2nd task spawns alongside an ignored one; ramps to 3 with difficulty.
+- Confirmed the base time-limit expiry DOES fire for an undocked task
+  (RadarScanTask.Update calls base.Update; timeLimit 90 -> Omission). So unattended
+  tasks expire; the stall was purely the concurrency cap.
+
+## ◑ Bug A — Engine code not seen before the task  (MITIGATED — pending playtest)
+- `WorkingMemoryTask` already shows the code reliably (a "AUTH CODE — MEMORIZE"
+  panel + big digits via HUDManager.ShowCodeBanner) and only spawning is gated by
+  Task 11 — the display is never cancelled. MainScene's HUDManager is enabled
+  (only the tutorial copy was disabled), so the banner does render.
+- Most likely the 4s flash was missed while travelling. Mitigation: alert 1.5->2.5s,
+  code display 4->6s for more time to notice/memorise.
+- Task 7 (first-time instruction card) will properly teach "watch for the code,
+  then enter it at Engine" — the real fix for not knowing to look. If a re-test
+  still shows NO code panel at all, it points to a scene/HUD issue needing a repro.
+
 # BATCH 2 — playtest feedback (Tasks 7–16)
 
 All ⬜ not started. Suggested order (do related items together):
