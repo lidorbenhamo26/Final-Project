@@ -252,17 +252,22 @@ dismissed; show once per session.
 - Verified: compiles, no runtime errors, alien still present in the hub. Needs a
   human playtest carrying the cell to confirm it's never knocked loose.
 
-## ⬜ Task 10 — Smooth movement & camera through doors / between rooms
-- Camera: gently auto-align/recenter behind the player toward the movement
-  direction in corridors/doorways (smooth lerp, no snap) to cut manual mouse
-  correction; ensure no clip/jerk at doorframes.
-- Doors: widen triggers/colliders so the player never catches (ties to Task 3's
-  jamb colliders in DoorFixup).
-- Reduce dead travel time: slightly faster base move, and/or a waypoint arrow to
-  the active station; ensure travel time doesn't cause task failures (lengthen
-  response windows or shorten distances so failures reflect cognition).
-- Code: `ThirdPersonCamera`, door triggers (`Scripts/Interaction`), `GameManager`
-  response-window timing.
+## ◑ Task 10 — Smooth movement & camera through doors / between rooms  (CORE DONE — pending playtest)
+- DONE — camera auto-align: `ThirdPersonCamera` now smoothly swings the yaw behind
+  the player's travel direction when moving and not using the mouse (serialized
+  `autoAlign`, `autoAlignDelay` 0.4s, `autoAlignSpeed` 3, `autoAlignMinSpeed` 1.2,
+  `mouseActiveThreshold`). Mouse always takes priority; holding forward is stable;
+  smooth LerpAngle, never snaps. This addresses the main "constantly fix the camera"
+  complaint. Applies to both scenes (shared camera).
+- Doors already widened/unstuck in Task 3 (DoorFixup jamb colliders) — no catch.
+- DEFERRED / inspector-tunable (left for the team to dial in): faster base move
+  speed (`AstronautController.moveSpeed`, currently 2.2 — bump in the inspector if
+  travel feels slow) and a waypoint arrow to the active station (pairs with Task 15).
+  Travel-time-causing-failures is partly mitigated by Task 4's response-window
+  scaling + Task 11 (no spawn while docked); revisit windows/distances if a
+  playtest still shows travel-driven misses.
+- Verified: compiles, no errors. Camera feel needs a human playtest (motion — not
+  screenshot-able). Tune `autoAlignSpeed`/`autoAlignDelay` if it feels off.
 
 ## ✅ Task 11 — Don't start a task while the player is docked elsewhere  (DONE — pending playtest)
 - `GameManager.TaskSpawnLoop` now skips spawning (rechecks every
