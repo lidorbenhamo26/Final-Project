@@ -809,6 +809,10 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0.14057207
       objectReference: {fileID: 0}
+    - target: {fileID: 5961068995558378275, guid: ce76ae51d6a96e64389b0968965cffa6, type: 3}
+      propertyPath: moveSpeed
+      value: 3.2
+      objectReference: {fileID: 0}
     - target: {fileID: 6300402803125039518, guid: ce76ae51d6a96e64389b0968965cffa6, type: 3}
       propertyPath: m_Material
       value: 
@@ -21767,9 +21771,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   missionDuration: 600
-  maxConcurrentTasks: 3
-  minSpawnInterval: 15
-  maxSpawnInterval: 25
+  calmIntroSeconds: 45
+  difficultyRampExponent: 2
+  spawnIntervalCalm: {x: 20, y: 28}
+  spawnIntervalIntense: {x: 6, y: 10}
+  maxConcurrentCalm: 2
+  maxConcurrentIntense: 3
+  responseFactorCalm: 1.15
+  responseFactorIntense: 0.65
+  minResponseWindow: 7
   stationCooldownAfterResolve: 15
   spawnRecheckInterval: 1.5
   tutorialMode: 1
@@ -29991,6 +30001,11 @@ MonoBehaviour:
   yawSpeed: 0.18
   pitchSpeed: 0.15
   positionLerp: 18
+  autoAlign: 1
+  autoAlignDelay: 0.4
+  autoAlignSpeed: 3
+  autoAlignMinSpeed: 1.2
+  mouseActiveThreshold: 0.6
   occluderLayers:
     serializedVersion: 2
     m_Bits: 4294967295

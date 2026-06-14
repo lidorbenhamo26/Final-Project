@@ -79,6 +79,12 @@ public class RadarScanTask : CognitiveTaskBase
         timeLimit = 90f;
     }
 
+    // The scan has a fixed internal duration (nTrials * ISI). The spawner must
+    // never shrink the response window below that (+ travel/READY buffer), or the
+    // task becomes impossible to finish in time at high difficulty.
+    public override float MinResponseWindowSeconds =>
+        (nTrials > 0 ? nTrials * TrialIsi : 60f) + 14f;
+
     public override void Activate()
     {
         base.Activate();

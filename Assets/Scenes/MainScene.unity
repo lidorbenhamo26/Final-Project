@@ -809,6 +809,10 @@ PrefabInstance:
       propertyPath: m_LocalRotation.z
       value: 0.14057207
       objectReference: {fileID: 0}
+    - target: {fileID: 5961068995558378275, guid: ce76ae51d6a96e64389b0968965cffa6, type: 3}
+      propertyPath: moveSpeed
+      value: 3.2
+      objectReference: {fileID: 0}
     - target: {fileID: 6300402803125039518, guid: ce76ae51d6a96e64389b0968965cffa6, type: 3}
       propertyPath: m_Material
       value: 
@@ -11377,6 +11381,50 @@ Transform:
   - {fileID: 315502361}
   m_Father: {fileID: 645929435}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!1 &813223700
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 813223702}
+  - component: {fileID: 813223701}
+  m_Layer: 0
+  m_Name: StationWaypointArrow
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &813223701
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 813223700}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ff8158f7c4c00304f95edb95839ab97b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StationWaypointArrow
+--- !u!4 &813223702
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 813223700}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &823088930
 GameObject:
   m_ObjectHideFlags: 0
@@ -21860,31 +21908,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::GameManager
   missionDuration: 600
-  calmIntroSeconds: 75
-  difficultyCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    - serializedVersion: 3
-      time: 1
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0
-      outWeight: 0
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
+  calmIntroSeconds: 45
+  difficultyRampExponent: 2
   spawnIntervalCalm: {x: 20, y: 28}
   spawnIntervalIntense: {x: 6, y: 10}
   maxConcurrentCalm: 2
@@ -37308,3 +37333,4 @@ SceneRoots:
   - {fileID: 1856488930}
   - {fileID: 175287344}
   - {fileID: 1001415216}
+  - {fileID: 813223702}
