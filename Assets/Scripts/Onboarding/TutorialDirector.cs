@@ -340,15 +340,19 @@ public class TutorialDirector : MonoBehaviour
         switch (stepIndex)
         {
             case StepWalk1:
+                if (station1 != null) highlight.SetTarget(station1.transform, station1Label, "WALK HERE"); else highlight.Hide();
+                break;
             case StepDock1:
-                if (station1 != null) highlight.SetTarget(station1.transform, station1Label); else highlight.Hide();
+                if (station1 != null) highlight.SetTarget(station1.transform, station1Label, "DOCK HERE"); else highlight.Hide();
                 break;
             case StepWalk2:
+                if (station2 != null) highlight.SetTarget(station2.transform, station2Label, "WALK HERE"); else highlight.Hide();
+                break;
             case StepDock2:
-                if (station2 != null) highlight.SetTarget(station2.transform, station2Label); else highlight.Hide();
+                if (station2 != null) highlight.SetTarget(station2.transform, station2Label, "DOCK HERE"); else highlight.Hide();
                 break;
             case StepReturn:
-                if (hubMarker != null) highlight.SetTarget(hubMarker, "CENTRAL HUB"); else highlight.Hide();
+                if (hubMarker != null) highlight.SetTarget(hubMarker, "CENTRAL HUB", "RETURN HERE"); else highlight.Hide();
                 break;
             case StepTour:
                 break; // managed in TickTour
@@ -415,7 +419,7 @@ public class TutorialDirector : MonoBehaviour
         {
             tourIndex = idx;
             var entry = tourStations[idx];
-            highlight.SetTarget(entry.station.transform, entry.label);
+            highlight.SetTarget(entry.station.transform, entry.label, "STATION");
             if (helperLbl != null) helperLbl.text = entry.label;
         }
     }

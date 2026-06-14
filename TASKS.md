@@ -289,7 +289,14 @@ Codebase pointers (verified this session):
 - Code: `Tasks/CognitiveTaskBase.cs`, `Onboarding/SessionContext.cs`, the 3 task
   files. TODO (later): reuse this copy in the Task-1 tutorial.
 
-## ◑ Task 8 — Fix station name formatting + remove stray floating text  (NAMES DONE; floating-text not reproduced)
+## ✅ Task 8 — Fix station name formatting + remove stray floating text  (DONE — pending playtest)
+- FLOATING TEXT (resolved): the user identified it as the tutorial's `TutorialHighlight`
+  marker, which showed a generic pulsing "OBJECTIVE" word above a station. Replaced
+  with a real contextual prompt: the big line is now the target NAME and the small
+  line the action — tour "ENGINE / STATION", walk "ENGINE / WALK HERE", dock
+  "ENGINE / DOCK HERE", return "CENTRAL HUB / RETURN HERE". `SetTarget(t, title,
+  action)`; the "OBJECTIVE" placeholder is gone. Code: `Onboarding/TutorialHighlight.cs`,
+  `Onboarding/TutorialDirector.cs`.
 - NAMES: standardized on the spaced/proper `PrettyStation()` form everywhere a
   name is shown. Fixed the two raw-`stationName` leaks:
   - `TutorialDirector` station labels (were "ENGINESTATION" -> now "ENGINE").
