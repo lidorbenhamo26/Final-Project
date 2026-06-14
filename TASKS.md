@@ -378,12 +378,17 @@ Codebase pointers (verified this session):
   still has ~3 asteroids (6 total) for a valid hit/FA/d-prime, and 2 blocks remain
   for the vigilance-decrement comparison. Code: `Tasks/RadarScanTask.cs`.
 
-## ⬜ Task 14 — Vary tasks from the start (kill early repetition)
-- Early spawns rotated only code-memory + radar; rotate across all 4 from the
-  start. Avoid immediate repeats (anti-repeat already partly in `PickStation` via
-  `lastSpawnedStationName` — strengthen it / ensure all 4 are eligible early).
-  Keep Task-4's calm pace but make variety present from the start.
-- Code: `GameManager` spawn selection. Connects to Task 4 + Task 16.
+## ✅ Task 14 — Vary tasks from the start (kill early repetition)  (DONE — verified)
+- Replaced the weak anti-immediate-repeat (`lastSpawnedStationName`) with
+  least-recently-spawned rotation in `GameManager.PickStation`: among eligible
+  stations, pick the one spawned longest ago (never-spawned = oldest), random
+  tie-break. This guarantees all 4 task types cycle in before any repeat and an
+  immediate repeat can't happen. New `lastSpawnedAt` dict tracks per-station times.
+- Calm pace (Task 4 ramp) unchanged — only the *selection* changed.
+- VERIFIED via the spawn CSV (ran with quickTestMode for run-in-background, then
+  reverted): first spawns were Engine -> LifeSupport -> Comms (3 distinct types,
+  no clustering) vs the old Engine/Navigation-only pattern.
+- Code: `GameManager.cs`. Connects to Task 4 + Task 16.
 
 ## ⬜ Task 15 — Clear color-coded task priority + teach it in the tutorial
 - Replace the unclear "+N MORE" with explicit priority levels (Red=critical,
