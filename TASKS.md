@@ -2,6 +2,91 @@
 
 Working tracker for the capstone polish pass. Status as of 2026-06-13.
 
+---
+
+# DESIGN REVISION — v1 Executive-Function events (approved 2026-06-14)
+
+Supersedes the implicit "race-to-arrive" loop. Driven by playtest analysis of
+`MissionFocus_20260614_141451.csv` (6 Success / 7 Omission / **0 accuracy
+failures** — the old loop scored logistics, not cognition). Goal: measure
+**cognitive performance** and **executive function** as two *separate, clean*
+signals, while keeping the experience immersive (you always feel like you're
+operating the ship — no separate "mode").
+
+## Philosophy
+- **Baseline (most of the mission): one active task at a time.** Cognition is
+  measured cleanly inside each task (accuracy, RT, commission/omission). The WM
+  "ambient code -> walk over -> enter" loop recurs often here.
+- **EF moments (in-flow, diegetic): occasional high-workload situations** where
+  2-3 tasks arrive at once. These measure planning / prioritization / switching.
+  They happen *inside normal gameplay* using the existing HUD/notification/code
+  UI — NO world fade, NO full-screen banner, NO dedicated decision screen.
+- Travel/arrival is **transit, not the test** — it never deletes a task or fails
+  you. Pressure lives in the short decision window and inside each task.
+
+## Cadence
+- Count-based: one EF moment every **3-4 baseline tasks** (randomized in range).
+- **2-3** tasks per EF moment. Configurable (frequency, count, enabled types).
+
+## EF moment types (v1 = three)
+1. **Triage** — 2-3 tasks appear together on the existing HUD rows (tier color +
+   deadline bar). A brief comms alert + chime (notification feed, not a takeover).
+   The player gets a **4s decision window** to set the order (click rows / press
+   1-2-3). Then performs them **in the chosen order** — all are completed, none
+   deleted. Measures Plan/Organize + Task Monitor.
+2. **Interruption** — while docked in task A, a higher-criticality task arrives
+   (its HUD row flashes + chime + "priority task incoming" line). Short window to
+   switch or continue; the player resumes A afterward. Measures **Shift** +
+   Inhibit + WM (resume). Diegetic — it's just docking/undocking.
+3. **WM + Prioritization** — the ambient code appears AND a second task is offered
+   at the same time; the player holds the code while choosing order / doing the
+   other task, then enters it. Measures Working Memory under prioritization load.
+
+## The Priority Protocol (the transparent, learnable "optimal")
+Taught in the tutorial; both cues always visible on every task card:
+- **Criticality**: RED critical / YELLOW medium / GREEN low (Task-15 colors).
+- **Urgency**: explicit per-task deadline ("START WITHIN 0:45" + shrinking bar).
+
+Rule (fixed, consistent, no hidden info):
+> 1. Do the most critical task first (red -> yellow -> green).
+> 2. If equally critical, do the one with the nearer deadline first.
+
+Optimal order = sort by (tier desc, then deadline asc) -> `was_optimal` /
+`optimality_score` computable for every event. **Option (a), score-only:**
+out-of-order ordering lowers the *prioritization score only* — it never deletes a
+task, applies no extra penalty, and the task's cognitive score is still earned.
+v1 option-sets are built so the optimal is unambiguous (sets differ clearly on
+criticality OR deadline; no "safe-red vs expiring-yellow" traps until v2).
+
+## Two independent metric sets
+- **Cognitive performance** (per task, unchanged): accuracy, RT, hit/FA/d',
+  commission/omission, error type -> Inhibit / WorkingMemory / PlanOrganize /
+  TaskMonitor scales.
+- **Executive-function behavior** (per EF moment, new): see schema below ->
+  Plan/Organize, **Shift** (new scale), Inhibit, Task Monitor, *behaviorally*
+  (never pass/fail).
+
+### EF logging schema
+Common: `event_type, event_id, t_offer, n_options, options[]={task,tier,deadline},
+decision_latency_s, chosen_order, optimal_order, chosen_first, was_optimal,
+optimality_score(0-1), changed_mind_count, no_choice_timeout`.
+Per type: Triage -> order vs optimal (rank corr / edit distance); Interruption ->
+`switch_decision, switch_latency_s, resumed_first_task, resume_accuracy_delta,
+resume_rt_cost, perseveration`; WM+Prioritization -> `code_recalled_correct,
+chose_code_task_in_time`.
+
+## Presentation (immersive, not a mode switch)
+Existing HUD rows light up with the offered tasks (colors + deadline bars), a
+comms chime + a one-line notification ("Multiple tasks incoming — set your
+order"), and 1/2/3 order markers on stations/waypoint after commit. No fade, no
+full-screen banner. Time is not frozen; urgency is score-only so not freezing is
+fair.
+
+## Status
+Direction approved. Next: implementation plan (architecture: `EFEventDirector`,
+HUD order-selection, EF logging, GameManager scheduler hook, `Shift` scale +
+report section) -> approval -> code. **No gameplay code yet.**
+
 **Priority order:** Task 2 → Task 3 → Task 1 → Task 4, plus Task 5 & Task 6.
 
 **How the world is built:** the ship interior is generated procedurally by editor
