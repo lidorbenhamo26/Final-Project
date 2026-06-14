@@ -21,8 +21,8 @@ public class WorkingMemoryTask : CognitiveTaskBase
 {
     private enum Phase { Idle, Alert, DisplayCode, HiddenWaitingForDock, Recall, Done }
 
-    private const float AlertDuration   = 1.5f;
-    private const float DisplayDuration = 4f;
+    private const float AlertDuration   = 2.5f;
+    private const float DisplayDuration = 6f;
     private const float RecallDeadline  = 25f;
     private const int CodeLength = 4;
 
