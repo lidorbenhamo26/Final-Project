@@ -47,6 +47,20 @@ public class CodeMemoryTask : CognitiveTaskBase
         timeLimit = 45f;
     }
 
+    // Never let the spawner scale the window below the time it takes to show the
+    // sequence and recall it (+ travel/READY buffer).
+    public override float MinResponseWindowSeconds =>
+        SequenceLength * (ColorOnTime + ColorOffTime) + RecallDeadline + 18f;
+
+    protected override string InstructionTitle => "ENGINE - SEQUENCE RECALL";
+    protected override string[] InstructionBody => new[]
+    {
+        "A sequence of colored squares flashes one by one.",
+        "Watch the order, then press READY.",
+        "",
+        "Repeat the colors in the same order on the pads.",
+    };
+
     public override void Activate()
     {
         base.Activate();

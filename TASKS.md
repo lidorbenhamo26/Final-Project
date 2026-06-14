@@ -407,11 +407,19 @@ Codebase pointers (verified this session):
 - Code: `UI/TaskListHUD.cs`, `Onboarding/TutorialDirector.cs`. **Merges with Task 4**
   (its "clear priority" half).
 
-## ⬜ Task 16 — Add a second alternating task variant to some stations
-- For 1–2 stations, alternate two variants (e.g. Comms: Stroop ↔ Go/No-Go;
-  Engine: WorkingMemory code ↔ CodeMemory). Wire in the existing unused variants
-  (`CodeMemoryTask`, `InhibitTask`) instead of leaving them dead.
-- Each variant must still report to the same BRIEF-A scale; make alternation
-  configurable (on/off or weighting).
-- Code: `Tasks/*`, `CognitiveTaskCatalog`, `GameManager`. Connects to Task 14 and
-  resolves the book's "use-or-remove unused variants" point.
+## ✅ Task 16 — Add a second alternating task variant to some stations  (DONE — verified)
+- Wired in the two previously-dead variants. Engine alternates Working Memory <->
+  Code Memory (both score WorkingMemory); Comms alternates Stroop <-> Go/No-Go
+  (`InhibitTask`, both score Inhibit) — scale-compatible per `AssessmentResults.ScaleMap`,
+  so the report is unaffected. Nav/Life Support keep their single task.
+- `CognitiveTaskCatalog.CreateTaskForStation(host, station, variant)`: odd variant =
+  second task (variant 0 keeps the original, so 2-arg callers/F-key force-spawns are
+  unchanged). `GameManager` keeps a per-station spawn counter for strict A/B/A/B
+  alternation, gated by a new `alternateTaskVariants` toggle (default on; off =
+  original task every time).
+- Both variants now have the Task-#2 response-window floor (MinResponseWindowSeconds)
+  and Task-#7 first-time instruction cards.
+- VERIFIED live (quickTestMode, reverted): Comms spawned twice and `INH_Spawned`
+  appeared (Go/No-Go now live), Engine's spawn logged `WM_Spawned` (variant 0).
+- Code: `Tasks/CodeMemoryTask.cs`, `Tasks/InhibitTask.cs`, `CognitiveTaskCatalog.cs`,
+  `GameManager.cs`. Resolves the book's "use-or-remove unused variants" point.

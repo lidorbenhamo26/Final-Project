@@ -7,15 +7,21 @@ using UnityEngine;
 /// </summary>
 public static class CognitiveTaskCatalog
 {
-    public static MissionTask CreateTaskForStation(GameObject host, string stationName)
+    // Some stations alternate two task variants that measure the SAME BRIEF-A
+    // scale (so the report is unaffected): Engine = Working Memory <-> Code Memory
+    // (both WorkingMemory scale), Comms = Stroop <-> Go/No-Go (both Inhibit scale).
+    // `variant` is an alternation counter from the spawner; odd = second variant.
+    // variant 0 always yields the original task, so 2-arg callers are unchanged.
+    public static MissionTask CreateTaskForStation(GameObject host, string stationName, int variant = 0)
     {
-        return stationName switch
+        bool alt = (variant % 2) == 1;
+        switch (stationName)
         {
-            "EngineStation"      => host.AddComponent<WorkingMemoryTask>(),
-            "NavigationStation"  => host.AddComponent<RadarScanTask>(),
-            "CommsStation"       => host.AddComponent<StroopTask>(),
-            "LifeSupportStation" => host.AddComponent<BatteryDeliveryTask>(),
-            _                    => host.AddComponent<EngineTask>(),
-        };
+            case "EngineStation":      return alt ? host.AddComponent<CodeMemoryTask>() : host.AddComponent<WorkingMemoryTask>();
+            case "NavigationStation":  return host.AddComponent<RadarScanTask>();
+            case "CommsStation":       return alt ? host.AddComponent<InhibitTask>()    : host.AddComponent<StroopTask>();
+            case "LifeSupportStation": return host.AddComponent<BatteryDeliveryTask>();
+            default:                   return host.AddComponent<EngineTask>();
+        }
     }
 }
