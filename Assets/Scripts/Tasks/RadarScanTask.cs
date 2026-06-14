@@ -16,7 +16,8 @@ using UnityEngine.UI;
 /// (~36 s, tunable via the serialized fields). Quick mode (F6 debug) = 20
 /// trials in 2 blocks of 10 (~30 s). Trial count + ISI are inspector-tunable.
 ///
-/// Pass: hit rate >= 0.70 AND false-alarm rate <= 0.10.
+/// Pass: hit rate >= 0.60 AND false-alarm rate <= 0.20 (forgiving game bar; the
+/// shorter run has fewer targets so each miss counts for more).
 /// d' is still computed and logged for research; it no longer gates the UX.
 /// </summary>
 public class RadarScanTask : CognitiveTaskBase
@@ -37,8 +38,8 @@ public class RadarScanTask : CognitiveTaskBase
     private const float ContactVisible = 0.25f;
     private const float ResponseWindow = 1.0f;
     private const int QuickBlockSize = 10, QuickBlocks = 2;
-    private const float HitRateThreshold = 0.70f;
-    private const float FaRateThreshold = 0.10f;
+    private const float HitRateThreshold = 0.60f;
+    private const float FaRateThreshold = 0.20f;
     private const float FeedbackDuration = 0.45f;
 
     private ContactType[] schedule;

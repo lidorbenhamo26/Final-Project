@@ -241,8 +241,9 @@ difficulty ~0 for the first ~100s; WM code shown but missed while travelling).
   difficulty hits ~0.25 by 2 min / ~0.7 by 5 min instead of ~0 for the first
   several minutes. Concurrency (2->3) and faster spawns now arrive by ~3-4 min.
 
-Still to do from the balance review: Task 13 (shorten radar), Task 7 (first-time
-cards incl. "watch for the code"), and loosen the radar pass bar.
+Balance review follow-ups: Task 13 (shorten radar) DONE, Task 7 (first-time cards
+incl. "watch for the code") DONE, radar pass bar loosened (hitRate 0.70->0.60,
+faRate 0.10->0.20) DONE.
 
 # BATCH 2 — playtest feedback (Tasks 7–16)
 
