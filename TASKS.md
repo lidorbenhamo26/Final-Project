@@ -358,12 +358,18 @@ Codebase pointers (verified this session):
   Needs a human playtest: dock at one station and confirm nothing spawns until
   undock.
 
-## ⬜ Task 12 — Comms (Stroop): make the rule clear, stop confusing mid-task switching
-- Option A: one rule per task instance, fixed banner ("Respond to the INK color.").
-- Option B: switch only between clearly separated rounds with a big banner + sound
-  ("NEW RULE: respond to the WORD."). Always show the current rule each trial.
-- Add the rule to the Task-7 first-time card.
-- Code: `Tasks/StroopTask.cs`, Comms UI.
+## ✅ Task 12 — Comms (Stroop): make the rule clear  (DONE — pending playtest)
+- Implemented Option B. The rule no longer flips every round; the 6 rounds are now
+  TWO blocks of 3 with exactly ONE rule switch. Each block's rule is announced:
+  a plain "RULE" intro for block 1 and a loud "NEW RULE" callout (console splash +
+  HUD alert banner + sound + 1.8s pause) for the mid-task switch.
+- The current rule is shown every trial as a persistent, color-coded banner
+  ("RULE: MATCH THE INK COLOR" cyan / "RULE: MATCH THE WORD" amber).
+- First block's rule is randomized per instance (order-effect control); the set-
+  shift trial is preserved for the Shift/flexibility measure. New `STROOP_RuleBlock`
+  log event records each block's rule.
+- Task-7 first-time card copy updated: "the rule changes ONCE, halfway - watch for
+  the big NEW RULE banner." Code: `Tasks/StroopTask.cs`.
 
 ## ✅ Task 13 — Shorten the Radar (CPT) task  (DONE — pending playtest)
 - `RadarScanTask` now exposes `fullBlockSize` (12), `fullBlocks` (2) and `trialIsi`
