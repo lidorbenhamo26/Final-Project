@@ -199,8 +199,10 @@ public class TutorialDirector : MonoBehaviour
         if (station2 == null && all.Length > 1) station2 = all[1];
         else if (station2 == null) station2 = station1;
 
-        if (station1 != null) station1Label = (station1.stationName ?? "STATION 1").ToUpperInvariant();
-        if (station2 != null) station2Label = (station2.stationName ?? "STATION 2").ToUpperInvariant();
+        // Use the spaced/proper display name (PrettyStation), not the raw
+        // serialized id, so labels read "ENGINE" not "ENGINESTATION".
+        if (station1 != null) station1Label = TaskListHUD.PrettyStation(station1.stationName).ToUpperInvariant();
+        if (station2 != null) station2Label = TaskListHUD.PrettyStation(station2.stationName).ToUpperInvariant();
     }
 
     private void AddTour(TaskStation s, string label)
