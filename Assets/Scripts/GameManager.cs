@@ -11,9 +11,9 @@ public class GameManager : MonoBehaviour
 
     [Header("Task Spawn — Difficulty Ramp")]
     [SerializeField, Tooltip("Opening calm window: no task pressure (difficulty 0) for this many seconds so the player can settle in.")]
-    private float calmIntroSeconds = 75f;
-    [SerializeField, Tooltip("Maps mission progress AFTER the calm intro (0..1) to difficulty (0..1). Ease-in keeps it gentle then ramps.")]
-    private AnimationCurve difficultyCurve = AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+    private float calmIntroSeconds = 45f;
+    [SerializeField, Tooltip("Ramp shape after the calm intro. d = 1-(1-p)^exponent, where p is mission progress 0..1. >1 = FRONT-loaded (rises fast early then plateaus), 1 = linear. Keeps the mid-game from feeling flat.")]
+    private float difficultyRampExponent = 2f;
     [SerializeField, Tooltip("Spawn interval (min,max seconds) at difficulty 0 (calm).")]
     private Vector2 spawnIntervalCalm = new Vector2(20f, 28f);
     [SerializeField, Tooltip("Spawn interval (min,max seconds) at difficulty 1 (intense) — the cap, so it never becomes impossible.")]
@@ -156,7 +156,9 @@ public class GameManager : MonoBehaviour
         if (elapsed <= calmIntroSeconds) return 0f;
         float denom = Mathf.Max(1f, total - calmIntroSeconds);
         float p = Mathf.Clamp01((elapsed - calmIntroSeconds) / denom);
-        return Mathf.Clamp01(difficultyCurve.Evaluate(p));
+        // Front-loaded ease-out so meaningful pacing arrives by ~2-3 min instead
+        // of being back-loaded into the final minutes.
+        return Mathf.Clamp01(1f - Mathf.Pow(1f - p, Mathf.Max(0.1f, difficultyRampExponent)));
     }
 
     private void AutoBindStations()
@@ -447,9 +449,12 @@ public class GameManager : MonoBehaviour
         station.AssignTask(task);
 
         // Tighten the response window as difficulty climbs, but never below the
-        // fairness floor. Applied AFTER Activate so it scales the task's own limit.
+        // fairness floor OR the task's own completion time (e.g. the radar scan has
+        // a fixed internal duration). Applied AFTER Activate so the task has
+        // initialised its MinResponseWindowSeconds.
         float factor = Mathf.Lerp(responseFactorCalm, responseFactorIntense, CurrentDifficulty);
-        task.timeLimit = Mathf.Max(minResponseWindow, task.timeLimit * factor);
+        float floor = Mathf.Max(minResponseWindow, task.MinResponseWindowSeconds);
+        task.timeLimit = Mathf.Max(floor, task.timeLimit * factor);
 
         if (SessionManager.Instance != null)
             SessionManager.Instance.LogCustomEvent("Task_Spawn", station.stationName,

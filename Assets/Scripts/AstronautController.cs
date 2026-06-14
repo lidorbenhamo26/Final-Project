@@ -7,7 +7,7 @@ using UnityEngine.InputSystem;
 public class AstronautController : MonoBehaviour
 {
     [Header("Movement")]
-    [SerializeField] private float moveSpeed = 2.2f;
+    [SerializeField] private float moveSpeed = 3.2f;
     [SerializeField] private float sprintSpeed = 6f;
     [SerializeField] private float rotationSpeed = 12f;
     [SerializeField, Tooltip("How quickly horizontal velocity reaches the target speed (1/seconds)")]

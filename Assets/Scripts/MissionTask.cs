@@ -12,6 +12,13 @@ public abstract class MissionTask : MonoBehaviour
     [SerializeField] public TaskPriority priority = TaskPriority.NonCritical;
     [SerializeField] public float timeLimit = 30f;
 
+    /// <summary>
+    /// Minimum response window (seconds) the difficulty spawner must never scale
+    /// the time limit below — e.g. a task with a fixed internal duration that
+    /// would otherwise become impossible to finish in time. 0 = no per-task floor.
+    /// </summary>
+    public virtual float MinResponseWindowSeconds => 0f;
+
     public string TaskName { get; protected set; }
     public string StationName { get; set; }
     public TaskPriority Priority { get { return priority; } }

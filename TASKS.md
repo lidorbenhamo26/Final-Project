@@ -217,6 +217,33 @@ A difficulty-preset picker was left out.
   then enter it at Engine" — the real fix for not knowing to look. If a re-test
   still shows NO code panel at all, it points to a scene/HUD issue needing a repro.
 
+# BATCH 2 — balance pass (from log analysis of a real playtest)
+
+Analyzed a real session log (radar ate ~96s incl. 32s travel; one task at a time;
+difficulty ~0 for the first ~100s; WM code shown but missed while travelling).
+
+## ✅ Balance #2 — per-task response-window floor  (DONE — pending playtest)
+- `MissionTask.MinResponseWindowSeconds` (virtual, 0). `RadarScanTask` overrides it
+  to `nTrials*ISI + 14s`. `GameManager.SpawnTaskAt` clamps the scaled window to
+  `Max(minResponseWindow, task.MinResponseWindowSeconds)` so a task's window can
+  never drop below its own completion time (fixes "late radar window < radar
+  length = impossible").
+
+## ✅ Balance #3 — cut travel  (DONE — pending playtest)
+- `AstronautController.moveSpeed` 2.2 -> 3.2 (code default + both scene players).
+- New `StationWaypointArrow` (UI/, on a MainScene object): HUD arrow + "ENGINE 14m"
+  label pointing to the nearest active station (camera-relative), station-accent
+  coloured; hidden when nothing active or while docked.
+
+## ✅ Balance #5 — steepen / front-load the ramp  (DONE — pending playtest)
+- `calmIntroSeconds` 75 -> 45 (code + MainScene). Replaced the back-loaded
+  AnimationCurve with `difficultyRampExponent` (2.0, ease-out: d=1-(1-p)^exp), so
+  difficulty hits ~0.25 by 2 min / ~0.7 by 5 min instead of ~0 for the first
+  several minutes. Concurrency (2->3) and faster spawns now arrive by ~3-4 min.
+
+Still to do from the balance review: Task 13 (shorten radar), Task 7 (first-time
+cards incl. "watch for the code"), and loosen the radar pass bar.
+
 # BATCH 2 — playtest feedback (Tasks 7–16)
 
 All ⬜ not started. Suggested order (do related items together):
