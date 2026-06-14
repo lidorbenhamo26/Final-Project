@@ -264,11 +264,17 @@ dismissed; show once per session.
 - Code: `ThirdPersonCamera`, door triggers (`Scripts/Interaction`), `GameManager`
   response-window timing.
 
-## ⬜ Task 11 — Don't start an attention task while the player is docked elsewhere
-- While `StationDockController.IsDocked`, defer/suppress spawning of tasks that
-  need the player to see the main screen (at minimum the code-memory display);
-  re-evaluate the spawn queue on undock; never deadlock the spawner.
-- Code: `GameManager.TaskSpawnLoop` + docking state. Connects to Task 4 + Task 2.
+## ✅ Task 11 — Don't start a task while the player is docked elsewhere  (DONE — pending playtest)
+- `GameManager.TaskSpawnLoop` now skips spawning (rechecks every
+  `spawnRecheckInterval`) while `StationDockController.Instance.IsDocked`. Covers
+  the code-memory main-screen flash and every task type — you can't attend to a
+  new task while heads-down at a console. Resumes automatically on undock (next
+  recheck); no deadlock (it's a poll, the player will undock).
+- Tasks spawned earlier while roaming keep ticking during a dock (legitimate
+  triage); only NEW spawns during a dock are suppressed.
+- Verified: compiles, no runtime errors, spawn loop runs normally when undocked.
+  Needs a human playtest: dock at one station and confirm nothing spawns until
+  undock.
 
 ## ⬜ Task 12 — Comms (Stroop): make the rule clear, stop confusing mid-task switching
 - Option A: one rule per task instance, fixed banner ("Respond to the INK color.").
