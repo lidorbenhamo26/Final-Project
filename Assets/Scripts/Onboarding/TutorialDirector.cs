@@ -232,7 +232,7 @@ public class TutorialDirector : MonoBehaviour
             },
             new Step {
                 Prompt = "SHIP TOUR — YOUR FOUR STATIONS",
-                Helper = "Each doorway is labelled with the station behind it.",
+                Helper = "Each doorway is labelled. Task list (top-left): RED = urgent (do first), YELLOW = running low, GREEN = routine.",
                 IsComplete = d => d.tourComplete,
             },
             new Step {

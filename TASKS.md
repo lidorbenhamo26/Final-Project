@@ -390,16 +390,22 @@ Codebase pointers (verified this session):
   no clustering) vs the old Engine/Navigation-only pattern.
 - Code: `GameManager.cs`. Connects to Task 4 + Task 16.
 
-## ⬜ Task 15 — Clear color-coded task priority + teach it in the tutorial
-- Replace the unclear "+N MORE" with explicit priority levels (Red=critical,
-  Yellow=medium, Green=low) on each HUD task row and ideally the station/door.
-- With two active tasks the colors make the choice obvious; optional per-task
-  countdown bars (the active row already has one).
-- Teach it in the Task-1 tutorial ("Red tasks are urgent — do them first.").
-- Code: `UI/TaskListHUD.cs` (currently shows most-urgent + "+N MORE" + station
-  accent — extend to a real priority enum→color), task data model (`MissionTask`
-  has `priority` Critical/NonCritical — may need 3 levels), tutorial copy.
-- **Merge with Task 4** (this is its "clear priority" half).
+## ✅ Task 15 — Clear color-coded task priority + teach it in the tutorial  (DONE — verified)
+- Replaced the single most-urgent row + "+N MORE" badge with a stack of up to
+  MAX_ACTIVE (3) rows — EVERY live task gets its own color-coded row, so the player
+  can compare and choose. Each row has a colored frame + countdown bar + priority
+  tag.
+- 3-color tier (no data-model change; deriving from priority + time keeps the
+  serialized enum/CSV stable): RED "CRITICAL" (Critical priority), YELLOW "LOW TIME"
+  (non-critical, <34% window left), GREEN "ROUTINE" (non-critical, plenty of time);
+  any row <5s left pulses RED "EXPIRING". Rows keep spawn order (no flicker).
+- Tutorial teaches it (tour step helper): "RED = urgent (do first), YELLOW =
+  running low, GREEN = routine."
+- VERIFIED live (quickTestMode run-in-background, then reverted): with two tasks
+  active the HUD showed ActiveRow0 "NAVIGATION / LOW TIME" and ActiveRow1
+  "ENGINE / ROUTINE", correctly stacked and color-tagged.
+- Code: `UI/TaskListHUD.cs`, `Onboarding/TutorialDirector.cs`. **Merges with Task 4**
+  (its "clear priority" half).
 
 ## ⬜ Task 16 — Add a second alternating task variant to some stations
 - For 1–2 stations, alternate two variants (e.g. Comms: Stroop ↔ Go/No-Go;
