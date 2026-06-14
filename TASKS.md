@@ -270,16 +270,23 @@ Codebase pointers (verified this session):
   `Interaction/CarryableBattery.cs` + `AstronautHandGrip`.
 - Camera (Task 10): `ThirdPersonCamera.cs` (mouse-look, occlusion SphereCast).
 
-## ⬜ Task 7 — First-time written instructions before each task type
-First time each of the 4 task types appears, pause it and show a short instruction
-card (1–2 lines + controls) with a "Got it" button; never count time/score until
-dismissed; show once per session.
-- Track first occurrence in a `seenTaskTypes` set on `SessionContext`.
-- Reuse the freeze plumbing (`GameManager.SetDebugFrozen`/pause) so the trial
-  clock doesn't run while the card is up (same pattern as the report/pause).
-- Reuse the per-task copy for the Task-1 tutorial.
-- Code: task spawn flow (`GameManager` / `CognitiveTaskBase.OnPlayerEnter`) + a
-  small reusable instruction UI; copy in `Scripts/Onboarding`.
+## ✅ Task 7 — First-time written instructions before each task type  (DONE — pending playtest)
+- `CognitiveTaskBase` now shows a one-time instruction card on the *first dock* of
+  each task type: dark full-canvas overlay with title + 1-2 line copy + controls +
+  a "GOT IT" button. The trial clock is held via the existing debug-freeze flag
+  (`GameManager.SetDebugFrozen`) while the card is up, so reading is never scored.
+- First-occurrence tracked in `SessionContext.seenTaskTypes` (keyed by class name),
+  cleared on `SessionContext.Reset()` so each new participant sees the cards again.
+- Copy added via `InstructionTitle`/`InstructionBody` overrides on `RadarScanTask`,
+  `WorkingMemoryTask`, `StroopTask`. Undocking before "GOT IT" re-shows the card.
+- **Bug A fix folded in:** `WorkingMemoryTask` no longer flashes the code at spawn.
+  The alert->code->recall reveal now starts on first dock (after the card), so a
+  player still travelling can't miss the flash. Aligns WM with Radar/Stroop, which
+  already start on dock; never docking now ends as a clean Omission.
+- Battery delivery (the 4th type) is a physical carry task with no docked canvas;
+  it already self-instructs via its step-by-step objective HUD, so no card there.
+- Code: `Tasks/CognitiveTaskBase.cs`, `Onboarding/SessionContext.cs`, the 3 task
+  files. TODO (later): reuse this copy in the Task-1 tutorial.
 
 ## ⬜ Task 8 — Fix station name formatting + remove stray floating text
 - Show spaced/proper names everywhere ("Engine Station" / "Comms Station" …) — be

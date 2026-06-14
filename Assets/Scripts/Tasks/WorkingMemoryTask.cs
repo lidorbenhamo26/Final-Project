@@ -33,6 +33,7 @@ public class WorkingMemoryTask : CognitiveTaskBase
     private Coroutine flowCo;
     private float recallStartTime = -1f;
     private TMP_Text inputLabel;
+    private bool flowStarted;
 
     private void Awake()
     {
@@ -40,6 +41,15 @@ public class WorkingMemoryTask : CognitiveTaskBase
         priority = TaskPriority.NonCritical;
         timeLimit = 60f;
     }
+
+    protected override string InstructionTitle => "ENGINE - WORKING MEMORY";
+    protected override string[] InstructionBody => new[]
+    {
+        "A 4-digit access code will flash on screen.",
+        "Watch closely and memorize it - it shows once.",
+        "",
+        "When it disappears, type it back on the keypad.",
+    };
 
     public override void Activate()
     {
@@ -52,9 +62,11 @@ public class WorkingMemoryTask : CognitiveTaskBase
         code = new string(digits);
 
         SessionManager.Instance?.LogCustomEvent("WM_Spawned", "EngineStation", "code=" + code);
-        ShowMessage("AWAIT CODE…", new Color(0.7f, 0.85f, 1f));
-        AudioManager.Instance.PlayVoice("wm_memorize");
-        flowCo = StartCoroutine(CoFullFlow());
+        // The reveal now starts on first dock (see OnDocked) so the code is only
+        // shown once the player is actually watching the console — a player still
+        // travelling can no longer miss the flash.
+        ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
+        StationUI?.SetInstruction("WORKING MEMORY: dock to begin");
     }
 
     private IEnumerator CoFullFlow()
@@ -72,28 +84,49 @@ public class WorkingMemoryTask : CognitiveTaskBase
         yield return new WaitForSeconds(DisplayDuration);
         if (!IsActive) yield break;
 
-        // Phase 3: Hide and wait for dock.
+        // Phase 3: Hide. The flow normally runs while docked, so go straight to
+        // recall; only fall back to "wait for dock" if the player wandered off
+        // mid-display.
         HUDManager.Instance?.HideCodeBanner();
         SessionManager.Instance?.LogCustomEvent("WM_CodeHidden", "EngineStation", "");
-        phase = Phase.HiddenWaitingForDock;
-        ShowMessage("ENTER CODE HERE", new Color(0.4f, 1f, 0.5f));
-        // Numpad is built when player docks (OnDocked).
+        if (IsDocked) StartRecall();
+        else
+        {
+            phase = Phase.HiddenWaitingForDock;
+            ShowMessage("ENTER CODE HERE", new Color(0.4f, 1f, 0.5f));
+            // Numpad is built when player re-docks (OnDocked).
+        }
     }
 
     protected override void OnDocked()
     {
+        // First dock: kick off the alert -> code -> recall reveal now that the
+        // player is at the console. (The one-time instruction card, if any, has
+        // already been dismissed before this runs.)
+        if (!flowStarted)
+        {
+            flowStarted = true;
+            AudioManager.Instance.PlayVoice("wm_memorize");
+            flowCo = StartCoroutine(CoFullFlow());
+            return;
+        }
         if (phase == Phase.HiddenWaitingForDock)
         {
-            phase = Phase.Recall;
-            recallStartTime = Time.time;
-            AudioManager.Instance.PlayVoice("wm_enter_code");
-            BuildNumpad();
+            StartRecall();
             return;
         }
         if (phase == Phase.Recall)
         {
             // Resuming after a brief undock: do nothing (input persists).
         }
+    }
+
+    private void StartRecall()
+    {
+        phase = Phase.Recall;
+        recallStartTime = Time.time;
+        AudioManager.Instance.PlayVoice("wm_enter_code");
+        BuildNumpad();
     }
 
     protected override void OnUndocked()

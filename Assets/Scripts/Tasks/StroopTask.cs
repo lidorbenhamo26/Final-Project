@@ -43,6 +43,17 @@ public class StroopTask : CognitiveTaskBase
         timeLimit = 60f;
     }
 
+    protected override string InstructionTitle => "COMMS - STROOP";
+    protected override string[] InstructionBody => new[]
+    {
+        "A color word appears in a colored ink.",
+        "The banner tells you the rule each round:",
+        "",
+        "MATCH THE INK = tap the ink's color.",
+        "MATCH THE WORD = tap what the word says.",
+        "The rule alternates - read it every time.",
+    };
+
     public override void Activate()
     {
         base.Activate();

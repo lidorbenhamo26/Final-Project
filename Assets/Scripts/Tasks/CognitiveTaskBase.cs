@@ -50,17 +50,38 @@ public abstract class CognitiveTaskBase : MissionTask
     {
         if (!IsActive) return;
         IsDocked = true;
-        if (DockTime < 0f)
-        {
-            DockTime = Time.time;
-        }
         ShowCanvas();
+
+        // The first time this task type is ever docked in the session, show a
+        // one-time instruction card and hold the task (and its trial clock, via
+        // the debug freeze) until the player taps "GOT IT". Reading is never
+        // scored. Subsequent docks (this run or later tasks of the same type)
+        // skip straight to the task.
+        if (DockTime < 0f && instructionCard == null
+            && InstructionBody != null && InstructionBody.Length > 0
+            && (SessionContext.Instance == null || !SessionContext.Instance.HasSeenTask(TaskTypeKey)))
+        {
+            ShowInstructionCard();
+            return;
+        }
+
+        BeginDock();
+    }
+
+    // Sets the first-dock marker and runs the task's OnDocked hook. Split out so
+    // the instruction card can defer it until dismissed.
+    private void BeginDock()
+    {
+        if (DockTime < 0f) DockTime = Time.time;
         OnDocked();
     }
 
     public override void OnPlayerExit()
     {
         IsDocked = false;
+        // Undocking before dismissing the card leaves it unread: tear it down and
+        // unfreeze so the card shows again on the next dock (still not "seen").
+        if (instructionCard != null) CleanupInstructionCard();
         HideCanvas();
         OnUndocked();
     }
@@ -85,6 +106,104 @@ public abstract class CognitiveTaskBase : MissionTask
 
     /// <summary>Hook called when the player un-docks. Task remains alive.</summary>
     protected virtual void OnUndocked() { }
+
+    // ----------------------------------------------- one-time instruction card
+
+    private GameObject instructionCard;
+    private bool cardFroze;
+
+    /// <summary>Key used to remember "this type's card was shown". Defaults to
+    /// the concrete class name so each task type shows its card once.</summary>
+    protected virtual string TaskTypeKey => GetType().Name;
+
+    /// <summary>Heading on the first-time instruction card.</summary>
+    protected virtual string InstructionTitle => TaskName;
+
+    /// <summary>Body lines for the first-time instruction card (one per line).
+    /// Return null/empty to skip the card for this task type.</summary>
+    protected virtual string[] InstructionBody => null;
+
+    private void ShowInstructionCard()
+    {
+        if (taskCanvasRoot == null) { BeginDock(); return; }
+
+        // Freeze trial/mission clocks while reading (same flag as F11/report) so
+        // nothing is scored behind the card. Only un-freeze what we froze.
+        if (!GameManager.IsDebugFrozen) { GameManager.SetDebugFrozen(true); cardFroze = true; }
+
+        instructionCard = new GameObject("InstructionCard", typeof(RectTransform), typeof(Image));
+        instructionCard.transform.SetParent(taskCanvasRoot.transform, false);
+        RectTransform cardRt = instructionCard.GetComponent<RectTransform>();
+        cardRt.anchorMin = Vector2.zero; cardRt.anchorMax = Vector2.one;
+        cardRt.offsetMin = Vector2.zero; cardRt.offsetMax = Vector2.zero;
+        instructionCard.GetComponent<Image>().color = new Color(0.02f, 0.04f, 0.09f, 0.98f);
+
+        GameObject title = new GameObject("Title", typeof(RectTransform));
+        title.transform.SetParent(instructionCard.transform, false);
+        TextMeshProUGUI titleTmp = title.AddComponent<TextMeshProUGUI>();
+        titleTmp.text = InstructionTitle;
+        titleTmp.alignment = TextAlignmentOptions.Center;
+        titleTmp.fontSize = 44f;
+        titleTmp.fontStyle = FontStyles.Bold;
+        titleTmp.color = new Color(0.6f, 0.85f, 1f);
+        RectTransform trt = title.GetComponent<RectTransform>();
+        trt.anchorMin = new Vector2(0f, 1f); trt.anchorMax = new Vector2(1f, 1f);
+        trt.pivot = new Vector2(0.5f, 1f);
+        trt.anchoredPosition = new Vector2(0f, -36f);
+        trt.sizeDelta = new Vector2(-60f, 80f);
+
+        GameObject body = new GameObject("Body", typeof(RectTransform));
+        body.transform.SetParent(instructionCard.transform, false);
+        TextMeshProUGUI bodyTmp = body.AddComponent<TextMeshProUGUI>();
+        bodyTmp.text = string.Join("\n", InstructionBody);
+        bodyTmp.alignment = TextAlignmentOptions.Center;
+        bodyTmp.fontSize = 30f;
+        bodyTmp.color = Color.white;
+        RectTransform brt = body.GetComponent<RectTransform>();
+        brt.anchorMin = brt.anchorMax = new Vector2(0.5f, 0.5f);
+        brt.pivot = new Vector2(0.5f, 0.5f);
+        brt.anchoredPosition = new Vector2(0f, 30f);
+        brt.sizeDelta = new Vector2(720f, 300f);
+
+        GameObject btnGo = new GameObject("GotItButton", typeof(RectTransform), typeof(Image), typeof(Button));
+        btnGo.transform.SetParent(instructionCard.transform, false);
+        RectTransform btnRt = btnGo.GetComponent<RectTransform>();
+        btnRt.anchorMin = new Vector2(0.5f, 0f); btnRt.anchorMax = new Vector2(0.5f, 0f);
+        btnRt.pivot = new Vector2(0.5f, 0f);
+        btnRt.anchoredPosition = new Vector2(0f, 44f);
+        btnRt.sizeDelta = new Vector2(320f, 92f);
+        btnGo.GetComponent<Image>().color = new Color(0.2f, 0.72f, 0.42f);
+        btnGo.GetComponent<Button>().onClick.AddListener(DismissInstructionCard);
+
+        GameObject lbl = new GameObject("Label", typeof(RectTransform));
+        lbl.transform.SetParent(btnGo.transform, false);
+        TextMeshProUGUI lblTmp = lbl.AddComponent<TextMeshProUGUI>();
+        lblTmp.text = "GOT IT";
+        lblTmp.alignment = TextAlignmentOptions.Center;
+        lblTmp.fontSize = 34f;
+        lblTmp.fontStyle = FontStyles.Bold;
+        lblTmp.color = Color.white;
+        RectTransform lrt = lbl.GetComponent<RectTransform>();
+        lrt.anchorMin = Vector2.zero; lrt.anchorMax = Vector2.one;
+        lrt.offsetMin = Vector2.zero; lrt.offsetMax = Vector2.zero;
+
+        SessionManager.Instance?.LogCustomEvent("Instruction_Shown", StationName, "type=" + TaskTypeKey);
+    }
+
+    private void DismissInstructionCard()
+    {
+        SessionContext.Instance?.MarkTaskSeen(TaskTypeKey);
+        AudioManager.Instance?.PlaySfx("button_click");
+        SessionManager.Instance?.LogCustomEvent("Instruction_Dismissed", StationName, "type=" + TaskTypeKey);
+        CleanupInstructionCard();
+        if (IsDocked) BeginDock();
+    }
+
+    private void CleanupInstructionCard()
+    {
+        if (cardFroze) { GameManager.SetDebugFrozen(false); cardFroze = false; }
+        if (instructionCard != null) { Destroy(instructionCard); instructionCard = null; }
+    }
 
     // ---------------------------------------------------------------- canvas
 
@@ -239,6 +358,9 @@ public abstract class CognitiveTaskBase : MissionTask
 
     protected virtual void OnDestroy()
     {
+        // If the task is torn down with its card still up (e.g. mission ended),
+        // make sure we don't leave the global freeze flag stuck on.
+        CleanupInstructionCard();
         if (taskCanvasRoot != null) Destroy(taskCanvasRoot);
     }
 
