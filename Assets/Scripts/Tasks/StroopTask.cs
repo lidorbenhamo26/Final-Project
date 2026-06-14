@@ -20,7 +20,11 @@ public class StroopTask : CognitiveTaskBase
     };
 
     private const int RoundCount = 6;
+    private const int RoundsPerBlock = 3; // 2 blocks => exactly ONE clearly-announced rule switch
     private const float RoundLimit = 4f;
+
+    private static readonly Color InkRuleColor  = new Color(0.45f, 0.85f, 1f);
+    private static readonly Color WordRuleColor = new Color(1f, 0.82f, 0.30f);
 
     private Phase phase = Phase.Idle;
     private int round;
@@ -28,6 +32,7 @@ public class StroopTask : CognitiveTaskBase
     private int currentWordIdx;
     private int currentInkIdx;
     private bool matchInk;
+    private bool startMatchInk; // rule of the FIRST block (randomized per task); block 2 is the opposite
     private bool answered;
     private bool roundsStarted;
     private float roundStartTime;
@@ -47,20 +52,27 @@ public class StroopTask : CognitiveTaskBase
     protected override string[] InstructionBody => new[]
     {
         "A color word appears in a colored ink.",
-        "The banner tells you the rule each round:",
+        "The banner at the top tells you the current rule:",
         "",
         "MATCH THE INK = tap the ink's color.",
         "MATCH THE WORD = tap what the word says.",
-        "The rule alternates - read it every time.",
+        "",
+        "The rule changes ONCE, halfway through -",
+        "watch for the big NEW RULE banner.",
     };
 
     public override void Activate()
     {
         base.Activate();
+        // Randomize which rule the first block uses so order effects average out.
+        startMatchInk = Random.value < 0.5f;
         StationUI?.SetInstruction("STROOP TASK: dock to respond");
         ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
         BuildStimulus();
     }
+
+    // First block uses startMatchInk; the second block uses the opposite rule.
+    private bool RuleForRound(int idx) => (idx < RoundsPerBlock) ? startMatchInk : !startMatchInk;
 
     // Rounds start on first dock (like Inhibit/Radar) so every presented trial
     // was actually seen by the player; never docking ends as a clean Omission
@@ -102,7 +114,17 @@ public class StroopTask : CognitiveTaskBase
             while (IsActive && !IsDocked) yield return null;
             if (!IsActive) yield break;
 
-            StartRound(round);
+            bool rule = RuleForRound(round);
+            // Announce the rule at the start of each block: a plain intro for the
+            // first, a big "NEW RULE" callout for the single mid-task switch.
+            if (round % RoundsPerBlock == 0)
+            {
+                yield return CoAnnounceRule(rule, round == 0);
+                while (IsActive && !IsDocked) yield return null; // may have undocked during the banner
+                if (!IsActive) yield break;
+            }
+
+            StartRound(round, rule);
             float elapsed = 0f;
             while (IsActive && phase == Phase.Trial && !answered && elapsed < RoundLimit)
             {
@@ -140,7 +162,27 @@ public class StroopTask : CognitiveTaskBase
         Resolve(correct >= 4 ? TaskResult.Success : TaskResult.Fail);
     }
 
-    private void StartRound(int idx)
+    // Big block-rule announcement: plain "RULE" intro for block 1, a loud
+    // "NEW RULE" callout (console splash + HUD banner + sound) for the single
+    // mid-task switch so the player is never surprised by a silent flip.
+    private IEnumerator CoAnnounceRule(bool ink, bool first)
+    {
+        string body = ink ? "MATCH THE INK COLOR" : "MATCH THE WORD";
+        Color color = ink ? InkRuleColor : WordRuleColor;
+        ShowMessage("RULE: " + body, color);
+        ShowSplash((first ? "RULE" : "NEW RULE!") + "\n" + body, color, 1.8f, 54f);
+        if (!first)
+        {
+            HUDManager.Instance?.ShowAlertBanner("NEW RULE - " + body, 1.8f);
+            AudioManager.Instance?.PlaySfx("fail_buzz", 0.6f); // distinct attention cue
+        }
+        AudioManager.Instance?.PlaySfx("button_click");
+        SessionManager.Instance?.LogCustomEvent("STROOP_RuleBlock", "CommsStation",
+            "block=" + (first ? 1 : 2) + " rule=" + (ink ? "ink" : "word"));
+        yield return FrozenWait(1.8f);
+    }
+
+    private void StartRound(int idx, bool rule)
     {
         phase = Phase.Trial;
         answered = false;
@@ -151,8 +193,11 @@ public class StroopTask : CognitiveTaskBase
             ? currentWordIdx
             : (currentWordIdx + Random.Range(1, WordNames.Length)) % WordNames.Length;
 
-        matchInk = idx % 2 == 0;
-        ShowMessage(matchInk ? "MATCH THE INK COLOR" : "MATCH THE WORD MEANING", Color.white);
+        matchInk = rule;
+        // Persistent, color-coded rule banner on every trial — the player can
+        // always re-check the rule mid-round.
+        ShowMessage(matchInk ? "RULE: MATCH THE INK COLOR" : "RULE: MATCH THE WORD",
+                    matchInk ? InkRuleColor : WordRuleColor);
 
         if (stimulusText != null)
         {
