@@ -163,16 +163,16 @@
   }
 
   /* ---------- solution lead + chips ---------- */
-  p.lead { font-size: 50pt; line-height: 1.16; color: #ffffff; font-weight: 700; margin-top: 4mm; }
+  p.lead { font-size: 45pt; line-height: 1.15; color: #ffffff; font-weight: 700; margin-top: 4mm; }
   p.lead .c { color: var(--cyan); }
-  .skeys { display: flex; flex-wrap: nowrap; justify-content: space-between; gap: 4mm; margin-top: auto; }
+  .skeys { display: flex; flex-direction: column; flex: 1 1 auto; justify-content: space-around; margin-top: 8mm; }
   .skeys span {
-    font-size: 23pt; font-weight: 700; color: #ffffff; white-space: nowrap;
-    padding-left: 8mm; position: relative;
+    font-size: 31pt; font-weight: 700; color: #ffffff; white-space: nowrap;
+    padding-left: 13mm; position: relative;
   }
   .skeys span::before {
-    content: ''; position: absolute; left: 0; top: 3.4mm;
-    width: 4.4mm; height: 4.4mm; border-radius: 1.2mm; transform: rotate(45deg);
+    content: ''; position: absolute; left: 1mm; top: 4.6mm;
+    width: 6mm; height: 6mm; border-radius: 1.6mm; transform: rotate(45deg);
     background: linear-gradient(135deg, var(--cyan), #2f86ff);
   }
 
