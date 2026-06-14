@@ -114,6 +114,7 @@ public class BatteryDeliveryTask : MissionTask
     {
         if (pickedUp) return;
         pickedUp = true;
+        MarkEngaged(); // picking up the cell is the engagement point for this task
         float latency = Time.time - SpawnTime;
         if (hud != null)
             hud.SetObjective("CARRY THE CELL TO LIFE SUPPORT  -  [E] AT THE CONSOLE TO OPEN THE WIRE PANEL");
@@ -198,6 +199,8 @@ public class BatteryDeliveryTask : MissionTask
     protected override void HandleExpiry()
     {
         if (finished) return;
+        // Never picked up = never engaged -> neutral NotInitiated, not a Fail.
+        if (!pickedUp) { base.HandleExpiry(); return; }
         finished = true;
         // Restore controls/cursor before the fail flow if the player timed out
         // with the wiring panel still up. ForceClose skips OnClosed reentry.

@@ -73,6 +73,7 @@ public abstract class CognitiveTaskBase : MissionTask
     private void BeginDock()
     {
         if (DockTime < 0f) DockTime = Time.time;
+        MarkEngaged(); // the player is now actually doing the task
         OnDocked();
     }
 

@@ -455,9 +455,10 @@ public class InhibitTask : CognitiveTaskBase
     // Mission-level timeout mid-run: keep the error counts accumulated so far.
     protected override void HandleExpiry()
     {
-        AssessmentResults.Report(this,
-            ("commission", commissionCount.ToString()),
-            ("omission", omissionCount.ToString()));
+        if (Engaged)
+            AssessmentResults.Report(this,
+                ("commission", commissionCount.ToString()),
+                ("omission", omissionCount.ToString()));
         base.HandleExpiry();
     }
 

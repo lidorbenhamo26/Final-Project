@@ -286,10 +286,11 @@ public class WorkingMemoryTask : CognitiveTaskBase
     // Overall mission time limit hit before submission — keep partial entry data.
     protected override void HandleExpiry()
     {
-        AssessmentResults.Report(this,
-            ("correct", "False"),
-            ("typos", wrongDigits.ToString()),
-            ("phaseAtTimeout", phase.ToString()));
+        if (Engaged)
+            AssessmentResults.Report(this,
+                ("correct", "False"),
+                ("typos", wrongDigits.ToString()),
+                ("phaseAtTimeout", phase.ToString()));
         base.HandleExpiry();
     }
 

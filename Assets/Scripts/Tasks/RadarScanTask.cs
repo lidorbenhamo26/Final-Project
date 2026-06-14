@@ -360,7 +360,7 @@ public class RadarScanTask : CognitiveTaskBase
     // accumulated so far so the Omission row isn't empty.
     protected override void HandleExpiry()
     {
-        if (blockHits != null)
+        if (Engaged && blockHits != null)
         {
             int hits = 0, misses = 0, fas = 0, crs = 0;
             for (int i = 0; i < blockCount; i++)
