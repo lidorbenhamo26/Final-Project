@@ -611,7 +611,10 @@ public class TaskListHUD : MonoBehaviour
         if (slot < 0 || slot >= recentRows.Length) return;
         var r = recentRows[slot];
         bool ok = result == TaskResult.Success;
-        Color tint = ok ? ColorActive : ColorUrgent;
+        // NotInitiated is neutral (never engaged), not a red failure.
+        Color tint = ok ? ColorActive
+                   : result == TaskResult.NotInitiated ? ColorIdle
+                   : ColorUrgent;
         Sprite icon = LookupIcon(task.StationName);
         if (r.Icon != null) { r.Icon.sprite = icon; r.Icon.color = new Color(1f, 1f, 1f, 0.9f); }
         if (r.Pill != null) r.Pill.color = tint;
@@ -630,10 +633,11 @@ public class TaskListHUD : MonoBehaviour
     {
         switch (r)
         {
-            case TaskResult.Success:    return "PASS";
-            case TaskResult.Fail:       return "FAIL";
-            case TaskResult.Omission:   return "MISS";
-            case TaskResult.Commission: return "ERR";
+            case TaskResult.Success:     return "PASS";
+            case TaskResult.Fail:        return "FAIL";
+            case TaskResult.Omission:    return "MISS";
+            case TaskResult.Commission:  return "ERR";
+            case TaskResult.NotInitiated: return "SKIP";
         }
         return r.ToString().ToUpperInvariant();
     }

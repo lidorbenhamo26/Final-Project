@@ -83,9 +83,34 @@ full-screen banner. Time is not frozen; urgency is score-only so not freezing is
 fair.
 
 ## Status
-Direction approved. Next: implementation plan (architecture: `EFEventDirector`,
-HUD order-selection, EF logging, GameManager scheduler hook, `Shift` scale +
-report section) -> approval -> code. **No gameplay code yet.**
+Direction approved. Implementation plan approved. Phasing: 0 loop/scoring -> 1
+scheduler+Triage -> 2 Shift scale+report -> 3 Interruption -> 4 WM+Prioritization
+-> 5 tutorial+polish.
+
+### ✅ Phase 0 — baseline loop & scoring foundation  (DONE — verified)
+- **Strictly one active task at a time** (`GameManager.baselineMaxConcurrent = 1`);
+  EF events will add concurrency later.
+- **Arrival-timeout-as-Omission retired.** New `TaskResult.NotInitiated` (neutral):
+  a task the player never engages times out as NotInitiated, NOT a cognitive
+  Omission. `MissionTask.Engaged` + `MarkEngaged()` (set on first dock in
+  `CognitiveTaskBase.BeginDock`, on pickup in `BatteryDeliveryTask`); base
+  `HandleExpiry` resolves `Engaged ? Omission : NotInitiated`. Per-task partial
+  reports gated on `Engaged`. `AssessmentResults` DROPS the auto-opened record on
+  NotInitiated, so it never pollutes a BRIEF scale — it stays a pure behavioral
+  CSV datapoint (`Task_Resolved … NotInitiated`). HUD shows it neutrally ("SKIP").
+- **No difficulty-shortening of windows** (transit is free) — `SpawnTaskAt` keeps
+  only the per-task floor; the window is just a generous "engage" window.
+- **WM more frequent** via `engineSpawnBias` (0.4 chance to pick Engine when
+  eligible) on top of least-recently-spawned rotation.
+- VERIFIED (quickTestMode run-in-background, reverted): one task at a time
+  (Engine 3s -> NotInitiated 63s -> LifeSupport 63s), result distribution
+  `NotInitiated:1 / Omission:0`, full un-shortened windows.
+- Log separation so far: cognitive performance (Task_Resolved Success/Fail/… +
+  per-task events) vs baseline non-initiation (Task_Resolved NotInitiated). EF /
+  interruption tags arrive in Phases 1 & 3.
+- Code: `MissionTask.cs`, `Tasks/CognitiveTaskBase.cs`, `Tasks/BatteryDeliveryTask.cs`,
+  `Tasks/{RadarScan,Stroop,WorkingMemory,Inhibit}Task.cs`, `Report/AssessmentResults.cs`,
+  `UI/TaskListHUD.cs`, `GameManager.cs`.
 
 **Priority order:** Task 2 → Task 3 → Task 1 → Task 4, plus Task 5 & Task 6.
 

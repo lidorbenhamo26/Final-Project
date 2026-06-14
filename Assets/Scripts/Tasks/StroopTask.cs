@@ -247,10 +247,11 @@ public class StroopTask : CognitiveTaskBase
     // was answered so the Omission row isn't empty.
     protected override void HandleExpiry()
     {
-        AssessmentResults.Report(this,
-            ("correct", correct.ToString()),
-            ("rounds", RoundCount.ToString()),
-            ("answered", answeredCount.ToString()));
+        if (Engaged)
+            AssessmentResults.Report(this,
+                ("correct", correct.ToString()),
+                ("rounds", RoundCount.ToString()),
+                ("answered", answeredCount.ToString()));
         base.HandleExpiry();
     }
 }

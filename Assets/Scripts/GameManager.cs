@@ -34,6 +34,11 @@ public class GameManager : MonoBehaviour
     private float spawnRecheckInterval = 1.5f;
     [SerializeField, Tooltip("Alternate task variants at stations that have two (Engine: Working Memory <-> Code Memory; Comms: Stroop <-> Go/No-Go). Both variants of a pair score the same BRIEF-A scale. Off = original task every time.")]
     private bool alternateTaskVariants = true;
+    [Header("EF redesign — baseline (Phase 0)")]
+    [SerializeField, Tooltip("Max concurrent tasks during normal play. Phase 0 keeps this at 1 so the cognitive task is measured cleanly; designed EF events introduce concurrency separately.")]
+    private int baselineMaxConcurrent = 1;
+    [SerializeField, Range(0f, 1f), Tooltip("Chance to pick the Engine (Working Memory) station when it's eligible, so the ambient code task the player liked appears more often. 0 = pure rotation.")]
+    private float engineSpawnBias = 0.4f;
 
     /// <summary>Current mission difficulty in 0..1 (0 during the calm intro). Read by the HUD and DistractionDirector.</summary>
     public float CurrentDifficulty { get; private set; }
@@ -382,8 +387,9 @@ public class GameManager : MonoBehaviour
             }
 
             CurrentDifficulty = ComputeDifficulty();
-            int maxConcurrent = Mathf.Max(1, Mathf.RoundToInt(
-                Mathf.Lerp(maxConcurrentCalm, maxConcurrentIntense, CurrentDifficulty)));
+            // Phase 0: strictly one active task at a time. Concurrency for the
+            // executive-function events is introduced later by EFEventDirector.
+            int maxConcurrent = Mathf.Max(1, baselineMaxConcurrent);
 
             if (CountActiveTasks() >= maxConcurrent)
             {
@@ -442,6 +448,12 @@ public class GameManager : MonoBehaviour
     {
         if (eligible.Count == 1) return eligible[0];
 
+        // Bias toward Engine (Working Memory) — the "code pops up, walk over and
+        // enter it" loop we want to appear more often — while still rotating.
+        if (engineStation != null && engineSpawnBias > 0f && eligible.Contains(engineStation)
+            && Random.value < engineSpawnBias)
+            return engineStation;
+
         // Pick the least-recently-spawned eligible station (never-spawned counts
         // as oldest = 0). This rotates through all 4 task types before any repeats,
         // so variety is present from the very first spawns, and an immediate repeat
@@ -481,13 +493,12 @@ public class GameManager : MonoBehaviour
         var task = CognitiveTaskCatalog.CreateTaskForStation(go, station.stationName, variant);
         station.AssignTask(task);
 
-        // Tighten the response window as difficulty climbs, but never below the
-        // fairness floor OR the task's own completion time (e.g. the radar scan has
-        // a fixed internal duration). Applied AFTER Activate so the task has
-        // initialised its MinResponseWindowSeconds.
-        float factor = Mathf.Lerp(responseFactorCalm, responseFactorIntense, CurrentDifficulty);
+        // Phase 0: travel/arrival is no longer the test, so we DON'T shorten the
+        // window with difficulty. The window is just a generous "engage" window:
+        // an un-engaged task that times out resolves as NotInitiated (neutral),
+        // not a cognitive Omission. Keep only the per-task floor as a safety.
         float floor = Mathf.Max(minResponseWindow, task.MinResponseWindowSeconds);
-        task.timeLimit = Mathf.Max(floor, task.timeLimit * factor);
+        task.timeLimit = Mathf.Max(floor, task.timeLimit);
 
         if (SessionManager.Instance != null)
             SessionManager.Instance.LogCustomEvent("Task_Spawn", station.stationName,
