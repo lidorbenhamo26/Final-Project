@@ -90,6 +90,16 @@ public class RadarScanTask : CognitiveTaskBase
     public override float MinResponseWindowSeconds =>
         (nTrials > 0 ? nTrials * trialIsi : 60f) + 14f;
 
+    protected override string InstructionTitle => "NAVIGATION - RADAR SCAN";
+    protected override string[] InstructionBody => new[]
+    {
+        "Contacts blip on the radar one at a time.",
+        "FLAG asteroids only - ignore stars and debris.",
+        "",
+        "Press SPACE (or the FLAG button) the instant",
+        "you spot an asteroid. The legend shows each shape.",
+    };
+
     public override void Activate()
     {
         base.Activate();
