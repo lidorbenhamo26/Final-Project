@@ -119,7 +119,9 @@ public class GameManager : MonoBehaviour
     public TaskStation LifeSupportStation => lifeSupportStation;
 
     private readonly Dictionary<string, float> lastResolvedAt = new Dictionary<string, float>();
-    private string lastSpawnedStationName = null;
+    // When each station last SPAWNED a task. Drives least-recently-spawned
+    // rotation so all 4 task types appear early and don't cluster/repeat.
+    private readonly Dictionary<string, float> lastSpawnedAt = new Dictionary<string, float>();
 
     private void Awake()
     {
@@ -394,7 +396,7 @@ public class GameManager : MonoBehaviour
 
             TaskStation chosen = PickStation(eligible);
             SpawnTaskAt(chosen);
-            lastSpawnedStationName = chosen.stationName;
+            lastSpawnedAt[chosen.stationName] = Time.time;
 
             // Spawn cadence tightens as difficulty climbs (capped by the intense range).
             float min = Mathf.Lerp(spawnIntervalCalm.x, spawnIntervalIntense.x, CurrentDifficulty);
@@ -434,12 +436,28 @@ public class GameManager : MonoBehaviour
 
     private TaskStation PickStation(List<TaskStation> eligible)
     {
-        if (eligible.Count > 1 && lastSpawnedStationName != null)
+        if (eligible.Count == 1) return eligible[0];
+
+        // Pick the least-recently-spawned eligible station (never-spawned counts
+        // as oldest = 0). This rotates through all 4 task types before any repeats,
+        // so variety is present from the very first spawns, and an immediate repeat
+        // can't happen (the station just spawned has the newest timestamp).
+        // Shuffle first so ties (e.g. all never-spawned at start) break randomly.
+        var shuffled = new List<TaskStation>(eligible);
+        for (int i = shuffled.Count - 1; i > 0; i--)
         {
-            var alt = eligible.FindAll(s => s.stationName != lastSpawnedStationName);
-            if (alt.Count > 0) return alt[Random.Range(0, alt.Count)];
+            int j = Random.Range(0, i + 1);
+            (shuffled[i], shuffled[j]) = (shuffled[j], shuffled[i]);
         }
-        return eligible[Random.Range(0, eligible.Count)];
+
+        TaskStation best = shuffled[0];
+        float bestT = lastSpawnedAt.TryGetValue(best.stationName, out float bt) ? bt : 0f;
+        for (int i = 1; i < shuffled.Count; i++)
+        {
+            float t = lastSpawnedAt.TryGetValue(shuffled[i].stationName, out float v) ? v : 0f;
+            if (t < bestT) { bestT = t; best = shuffled[i]; }
+        }
+        return best;
     }
 
     private void SpawnTaskAt(TaskStation station)
