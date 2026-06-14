@@ -363,6 +363,16 @@ public class GameManager : MonoBehaviour
                 continue;
             }
 
+            // Don't spawn while the player is docked/occupied at a station: they
+            // can't see or act on a new task (especially the code-memory display
+            // that flashes on the main screen), which would be an unfair miss.
+            // Spawning resumes automatically on undock (next recheck).
+            if (StationDockController.Instance != null && StationDockController.Instance.IsDocked)
+            {
+                yield return new WaitForSeconds(spawnRecheckInterval);
+                continue;
+            }
+
             CurrentDifficulty = ComputeDifficulty();
             int maxConcurrent = Mathf.Max(1, Mathf.RoundToInt(
                 Mathf.Lerp(maxConcurrentCalm, maxConcurrentIntense, CurrentDifficulty)));
