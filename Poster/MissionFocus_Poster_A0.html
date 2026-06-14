@@ -131,92 +131,68 @@
 
   section.card {
     background: var(--card); border: 0.55mm solid var(--card-edge);
-    border-radius: var(--r); padding: 9mm 10.5mm 10mm 10.5mm;
+    border-radius: var(--r); padding: 11mm 12mm 12mm 12mm;
     box-shadow: 0 4mm 12mm rgba(0,0,0,0.35), inset 0 0 22mm rgba(79,216,255,0.04);
+    display: flex; flex-direction: column; flex: 1 1 auto;
   }
+  .report-card { flex: 1.45 1 auto; }
 
-  .sec-head { display: flex; align-items: baseline; gap: 5mm; margin-bottom: 5mm; }
+  .sec-head { display: flex; align-items: baseline; gap: 5mm; margin-bottom: 8mm; }
   .sec-num {
-    font-family: 'Orbitron'; font-weight: 700; font-size: 23pt; color: var(--cyan);
+    font-family: 'Orbitron'; font-weight: 700; font-size: 28pt; color: var(--cyan);
     opacity: 0.95; letter-spacing: 1px;
   }
   h2 {
-    font-family: 'Orbitron'; font-weight: 800; font-size: 36.5pt; letter-spacing: 1.2px;
-    color: #ffffff; text-transform: uppercase;
+    font-family: 'Orbitron'; font-weight: 800; font-size: 44pt; letter-spacing: 1.2px;
+    color: #ffffff; text-transform: uppercase; line-height: 1.0;
   }
-  .sec-rule { flex: 1; height: 0.7mm; border-radius: 1mm; align-self: center;
+  .sec-rule { flex: 1; height: 0.9mm; border-radius: 1mm; align-self: center;
     background: linear-gradient(90deg, rgba(79,216,255,0.55), transparent); }
 
-  p.lead { font-size: 27pt; line-height: 1.34; color: var(--ink-soft); }
-  p.lead b, li b { color: #ffffff; }
-  p.intro { margin-top: 3mm; font-size: 24.5pt; line-height: 1.3; color: var(--ink-soft); }
-  p.intro b { color: #ffffff; }
-
-  ul.dots { list-style: none; margin-top: 4.2mm; }
-  ul.dots li {
-    font-size: 25pt; line-height: 1.3; color: var(--ink-soft);
-    padding-left: 12mm; position: relative; margin-top: 4.2mm;
+  /* ---------- big keyword bullets ---------- */
+  ul.keys { list-style: none; display: flex; flex-direction: column; justify-content: space-around;
+    flex: 1 1 auto; gap: 8mm; padding: 4mm 0; }
+  ul.keys li {
+    font-size: 44pt; font-weight: 700; line-height: 1.1; color: #ffffff;
+    padding-left: 18mm; position: relative;
   }
-  ul.dots li::before {
-    content: ''; position: absolute; left: 1mm; top: 4.8mm;
-    width: 4.2mm; height: 4.2mm; border-radius: 1.2mm; transform: rotate(45deg);
+  ul.keys li::before {
+    content: ''; position: absolute; left: 1mm; top: 6mm;
+    width: 7.5mm; height: 7.5mm; border-radius: 2mm; transform: rotate(45deg);
     background: linear-gradient(135deg, var(--cyan), #2f86ff);
   }
 
-  .need-callout {
-    margin-top: 5mm; border-left: 1.8mm solid var(--orange);
-    background: rgba(255,155,66,0.10); border-radius: 0 3mm 3mm 0;
-    padding: 4.2mm 7mm; font-size: 25pt; line-height: 1.3; color: #ffd9b3; font-weight: 600;
+  /* ---------- solution lead + chips ---------- */
+  p.lead { font-size: 50pt; line-height: 1.16; color: #ffffff; font-weight: 700; margin-top: auto; }
+  p.lead .c { color: var(--cyan); }
+  .chips { display: flex; flex-wrap: wrap; gap: 7mm; margin-top: 12mm; margin-bottom: auto; }
+  .chip {
+    font-size: 33pt; font-weight: 700; color: var(--cyan-soft); white-space: nowrap;
+    background: rgba(79,216,255,0.10); border: 0.6mm solid var(--card-edge);
+    border-radius: 50mm; padding: 5mm 11mm;
   }
-  .need-callout b { color: #ffffff; }
-  .why-callout {
-    margin-top: 5mm; border-left: 1.8mm solid var(--cyan);
-    background: rgba(79,216,255,0.09); border-radius: 0 3mm 3mm 0;
-    padding: 4.2mm 7mm; font-size: 25pt; line-height: 1.3; color: #d8f1ff; font-weight: 600;
-  }
-  .why-callout b { color: var(--cyan); }
+  .chip.o { color: #ffd9b3; background: rgba(255,155,66,0.10); border-color: rgba(255,155,66,0.4); }
 
-  ul.checks { list-style: none; }
-  ul.checks li {
-    font-size: 25pt; line-height: 1.3; color: var(--ink-soft);
-    padding-left: 13.5mm; position: relative; margin-top: 4.4mm;
+  /* ---------- flow stepper (labels only) ---------- */
+  .flow { display: flex; flex-direction: column; flex: 1 1 auto; justify-content: space-between; position: relative; }
+  .flow::before {
+    content: ''; position: absolute; left: 12.6mm; top: 13mm; bottom: 13mm; width: 0.9mm;
+    background: linear-gradient(180deg, rgba(79,216,255,0.65), rgba(79,216,255,0.18));
   }
-  ul.checks li::before {
-    content: ''; position: absolute; left: 0; top: 3mm; width: 7.6mm; height: 7.6mm;
-    border-radius: 2mm; background: rgba(94,230,168,0.16); border: 0.5mm solid rgba(94,230,168,0.65);
-  }
-  ul.checks li::after {
-    content: ''; position: absolute; left: 2mm; top: 5mm; width: 3.3mm; height: 1.9mm;
-    border-left: 1mm solid var(--green); border-bottom: 1mm solid var(--green);
-    transform: rotate(-50deg);
-  }
-
-  /* ---------- flow stepper ---------- */
-  .flow { display: flex; flex-direction: column; }
-  .step { display: flex; gap: 7mm; position: relative; padding-bottom: 6.5mm; }
-  .step:last-child { padding-bottom: 0; }
-  .step::before {
-    content: ''; position: absolute; left: 10mm; top: 20mm; bottom: -1mm; width: 0.9mm;
-    background: linear-gradient(180deg, rgba(79,216,255,0.6), rgba(79,216,255,0.12));
-  }
-  .step:last-child::before { display: none; }
+  .step { display: flex; gap: 8mm; align-items: center; position: relative; }
   .step .n {
-    flex: 0 0 auto; width: 20mm; height: 20mm; border-radius: 50%;
+    flex: 0 0 auto; width: 26mm; height: 26mm; border-radius: 50%;
     background: radial-gradient(circle at 32% 28%, #173764, #0b1c3c);
-    border: 0.8mm solid var(--cyan); color: var(--cyan);
-    font-family: 'Orbitron'; font-weight: 800; font-size: 23pt;
+    border: 0.9mm solid var(--cyan); color: var(--cyan);
+    font-family: 'Orbitron'; font-weight: 800; font-size: 30pt;
     display: flex; align-items: center; justify-content: center;
     box-shadow: 0 0 6mm rgba(79,216,255,0.35);
   }
-  .step .t { padding-top: 0.5mm; }
-  .step .t h3 { font-size: 26pt; font-weight: 800; color: #fff; letter-spacing: 0.4px; }
-  .step .t p { font-size: 22.5pt; line-height: 1.26; color: var(--ink-soft); margin-top: 1.4mm; }
-  .step .t p b { color: #ffffff; }
+  .step h3 { font-size: 40pt; font-weight: 800; color: #fff; letter-spacing: 0.4px; }
 
   /* ---------- playable task filmstrip ---------- */
-  .tasks-card { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
-  .tasks-card h2 { font-size: 32pt; }
-  .tgrid { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 9mm; }
+  .tasks-card { flex: 1 1 auto; min-height: 0; }
+  .tgrid { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 10mm; }
   .tcell { flex: 1 1 0; min-height: 0; display: flex; flex-direction: column; }
   .tcell .ph {
     flex: 1 1 auto; min-height: 0; border-radius: 4.5mm; overflow: hidden;
@@ -224,24 +200,23 @@
     box-shadow: 0 3mm 9mm rgba(0,0,0,0.4);
   }
   .tcell .ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .tmeta { flex: 0 0 auto; padding: 3.8mm 1mm 0 1mm; }
-  .tname { font-family: 'Orbitron'; font-weight: 800; font-size: 27pt; color: #ffffff; letter-spacing: 1px; }
-  .tname .tdom {
-    font-family: 'Open Sans'; font-weight: 700; font-size: 20pt; color: var(--cyan-soft);
-    letter-spacing: 1.5px; text-transform: uppercase; padding-left: 4mm;
+  .tmeta { flex: 0 0 auto; padding: 4mm 1mm 0 1mm; display: flex; align-items: baseline; gap: 5mm; }
+  .tname { font-family: 'Orbitron'; font-weight: 800; font-size: 34pt; color: #ffffff; letter-spacing: 1px; }
+  .tdom {
+    font-family: 'Open Sans'; font-weight: 700; font-size: 26pt; color: var(--cyan-soft);
+    letter-spacing: 1px; text-transform: uppercase;
   }
-  .tmes { margin-top: 2mm; font-size: 23pt; line-height: 1.3; color: #ffffff; font-weight: 600; }
-  .tmes b { color: var(--orange); font-weight: 800; }
 
   /* ---------- tech badges ---------- */
-  .tech { display: flex; flex-direction: column; gap: 7.5mm; }
+  .tech { display: flex; flex-direction: column; gap: 7mm; flex: 1 1 auto; justify-content: space-between; }
+  .tech .tk { flex: 1 1 0; }
   .tk {
-    display: flex; align-items: center; gap: 6mm;
+    display: flex; align-items: center; gap: 7mm;
     background: rgba(10,21,46,0.85); border: 0.5mm solid rgba(110,196,255,0.22);
-    border-radius: 3.5mm; padding: 7mm 7mm;
+    border-radius: 3.5mm; padding: 7mm 8mm;
   }
   .tk .dot {
-    flex: 0 0 auto; width: 9mm; height: 9mm; border-radius: 2.6mm;
+    flex: 0 0 auto; width: 10mm; height: 10mm; border-radius: 2.8mm;
     background: linear-gradient(135deg, var(--cyan), #2f86ff);
     box-shadow: 0 0 4mm rgba(79,216,255,0.4);
   }
@@ -249,63 +224,47 @@
   .tk:nth-child(3) .dot { background: linear-gradient(135deg, #5ee6a8, #1fb877); box-shadow: 0 0 4mm rgba(94,230,168,0.4); }
   .tk:nth-child(4) .dot { background: linear-gradient(135deg, #6fe3ff, #38b6ff); }
   .tk:nth-child(5) .dot { background: linear-gradient(135deg, #ffc08a, #ff9b42); }
-  .tk b  { font-size: 26.5pt; color: #fff; white-space: nowrap; }
-  .tk span { font-size: 24pt; color: var(--ink-soft); }
-
-  /* ---------- challenges ---------- */
-  ol.chal { list-style: none; counter-reset: c; }
-  ol.chal li {
-    counter-increment: c; position: relative; padding-left: 15mm;
-    font-size: 26pt; line-height: 1.34; color: var(--ink-soft); margin-top: 8mm;
-  }
-  ol.chal li:first-child { margin-top: 0; }
-  ol.chal li::before {
-    content: counter(c, decimal-leading-zero);
-    position: absolute; left: 0; top: 1mm;
-    font-family: 'Orbitron'; font-weight: 800; font-size: 19pt; color: var(--orange);
-  }
-  ol.chal li b { color: #fff; }
+  .tk b { font-size: 40pt; color: #fff; white-space: nowrap; }
 
   /* ---------- assessor report panel ---------- */
-  .rep-intro { font-size: 25.5pt; line-height: 1.34; color: var(--ink-soft); }
-  .rep-intro b { color: #ffffff; }
+  .report-card { flex: 1 1 auto; min-height: 0; }
   .repanel {
-    margin-top: 6mm; background: #f2f6fb; border-radius: 4mm;
-    padding: 6.5mm 7mm 7mm 7mm; box-shadow: 0 3mm 9mm rgba(0,0,0,0.35);
+    margin-top: 0; flex: 1 1 auto; background: #f2f6fb; border-radius: 4mm;
+    padding: 7mm 7.5mm; box-shadow: 0 3mm 9mm rgba(0,0,0,0.35);
+    display: flex; flex-direction: column;
   }
   .rhead {
     display: flex; align-items: center; justify-content: space-between; gap: 4mm;
-    padding-bottom: 4.5mm; border-bottom: 0.6mm solid #d2dcea;
+    padding-bottom: 5mm; border-bottom: 0.6mm solid #d2dcea;
   }
-  .rtitle { font-size: 20.5pt; font-weight: 800; color: #0f172a; letter-spacing: 0.4px; }
+  .rtitle { font-size: 23pt; font-weight: 800; color: #0f172a; letter-spacing: 0.4px; }
   .rbadge {
-    font-size: 16pt; font-weight: 800; letter-spacing: 1px; color: #ffffff;
-    background: #2563eb; border-radius: 2mm; padding: 1.8mm 4mm; white-space: nowrap;
+    font-size: 17pt; font-weight: 800; letter-spacing: 1px; color: #ffffff;
+    background: #2563eb; border-radius: 2mm; padding: 2mm 4.5mm; white-space: nowrap;
   }
-  .rsum { display: flex; gap: 5mm; margin-top: 5mm; }
+  .rsum { display: flex; gap: 5mm; margin-top: 6mm; }
   .rs {
     flex: 1; background: #ffffff; border: 0.45mm solid #dde5f0; border-radius: 3mm;
-    text-align: center; padding: 4mm 2mm 4.4mm 2mm;
+    text-align: center; padding: 5mm 2mm;
   }
-  .rs .rv { font-size: 34pt; font-weight: 800; color: #0f172a; }
+  .rs .rv { font-size: 40pt; font-weight: 800; color: #0f172a; line-height: 1.0; }
   .rs .rv.good { color: #16a34a; }
   .rs .rl {
-    margin-top: 1.6mm; font-size: 17pt; font-weight: 700; letter-spacing: 0.8px;
+    margin-top: 2.5mm; font-size: 18pt; font-weight: 700; letter-spacing: 0.8px;
     color: #64748b; text-transform: uppercase;
   }
+  .rrows { flex: 1 1 auto; display: flex; flex-direction: column; gap: 5mm; margin-top: 5mm; }
   .rrow {
-    display: flex; align-items: center; gap: 4mm; margin-top: 4.5mm;
-    background: #ffffff; border: 0.45mm solid #dde5f0; border-left: 1.8mm solid #2563eb;
-    border-radius: 2.5mm; padding: 3.8mm 5mm;
+    flex: 1 1 0; display: flex; align-items: center; gap: 4mm;
+    background: #ffffff; border: 0.45mm solid #dde5f0; border-left: 2.2mm solid #2563eb;
+    border-radius: 2.5mm; padding: 4mm 5.5mm;
   }
-  .rrow .rtxt { flex: 1; min-width: 0; }
-  .rrow .rdom { display: block; font-size: 21.5pt; font-weight: 800; color: #0f172a; white-space: nowrap; }
-  .rrow .rmet { display: block; margin-top: 1mm; font-size: 18.5pt; color: #475569; white-space: nowrap; }
+  .rrow .rdom { flex: 1; font-size: 28pt; font-weight: 800; color: #0f172a; }
   .rpill {
-    flex: 0 0 auto; font-size: 17.5pt; font-weight: 800; letter-spacing: 0.8px; color: #ffffff;
-    background: #16a34a; border-radius: 50mm; padding: 1.8mm 5.5mm;
+    flex: 0 0 auto; font-size: 19pt; font-weight: 800; letter-spacing: 0.8px; color: #ffffff;
+    background: #16a34a; border-radius: 50mm; padding: 2mm 7mm;
   }
-  .pcap { font-size: 20.5pt; color: var(--ink-soft); margin-top: 4mm; line-height: 1.3; }
+  .pcap { font-size: 22pt; color: var(--ink-soft); margin-top: 6mm; line-height: 1.3; text-align: center; }
   .pcap b { color: #ffffff; }
 
   /* ---------- qr ---------- */
@@ -315,10 +274,9 @@
     border-radius: var(--r); padding: 9mm 10mm;
   }
   .qr-chip { background: #fff; padding: 4mm; border-radius: 3mm; flex: 0 0 auto; }
-  .qr-chip img { width: 74mm; height: 74mm; display: block; }
-  .qr-t b { display: block; font-family: 'Orbitron'; font-size: 24pt; color: #fff; letter-spacing: 1px; }
-  .qr-t span { display: block; margin-top: 3.2mm; font-size: 22pt; color: var(--ink-soft); overflow-wrap: break-word; line-height: 1.3; }
-  .qr-t .gh { color: #ffffff; font-weight: 700; }
+  .qr-chip img { width: 72mm; height: 72mm; display: block; }
+  .qr-t b { display: block; font-family: 'Orbitron'; font-size: 26pt; color: #fff; letter-spacing: 1px; }
+  .qr-t span { display: block; margin-top: 3.5mm; font-size: 24pt; color: var(--cyan-soft); overflow-wrap: break-word; line-height: 1.3; font-weight: 700; }
 
   /* ---------- takeaway banner ---------- */
   .banner {
@@ -328,26 +286,22 @@
   }
   .banner .inner {
     position: relative; border-radius: 5.2mm; background: linear-gradient(165deg, #0d1c3c, #081228);
-    padding: 10.5mm 150mm 11.5mm 30mm; text-align: center;
+    padding: 14mm 150mm 14mm 30mm; text-align: center;
   }
   .banner h2 {
-    font-family: 'Orbitron'; font-weight: 900; font-size: 58pt; letter-spacing: 2.5px;
-    color: #ffffff; white-space: nowrap; text-transform: none;
+    font-family: 'Orbitron'; font-weight: 900; font-size: 64pt; letter-spacing: 2.5px;
+    color: #ffffff; white-space: nowrap; text-transform: none; line-height: 1.0;
   }
   .banner h2 .c { color: var(--cyan); text-shadow: 0 0 10mm rgba(79,216,255,0.35); }
-  .banner p {
-    margin-top: 5mm; font-size: 28pt; font-weight: 600; color: var(--ink-soft); letter-spacing: 0.4px;
-  }
-  .banner p b { color: #ffffff; }
   .banner .wave {
-    position: absolute; right: 24mm; bottom: 0; height: 62mm;
+    position: absolute; right: 24mm; bottom: 0; height: 74mm;
     filter: drop-shadow(0 0 6mm rgba(79,216,255,0.3));
   }
   .banner .wave-bubble {
-    position: absolute; right: 58mm; bottom: 30mm;
+    position: absolute; right: 64mm; bottom: 40mm;
     background: rgba(79,216,255,0.12); border: 0.5mm solid rgba(110,196,255,0.45);
-    border-radius: 5mm 5mm 1mm 5mm; padding: 3.5mm 6mm;
-    font-size: 18pt; font-weight: 700; color: #dff3ff; white-space: nowrap;
+    border-radius: 5mm 5mm 1mm 5mm; padding: 4mm 7mm;
+    font-size: 22pt; font-weight: 700; color: #dff3ff; white-space: nowrap;
   }
 
   /* ============ FOOTER ============ */
@@ -380,7 +334,7 @@
     <div class="head-main">
       <div class="head-text">
         <h1 class="wordmark"><span class="w1">MISSION</span> <span class="w2">FOCUS</span></h1>
-        <div class="subtitle">A SPACE-STATION COGNITIVE ASSESSMENT GAME <span class="adhd">FOR ADHD</span></div>
+        <div class="subtitle">A 3D GAME-BASED ASSESSMENT <span class="adhd">FOR ADHD</span></div>
         <div class="authors">Lidor Ben Hamo <span class="amp">&amp;</span> Yahli Rapaport</div>
         <div class="advisor">Advisor: <b>Dr. Moshe Sulamy</b> &nbsp;·&nbsp; Department of Software Engineering &amp; Information Systems</div>
       </div>
@@ -398,58 +352,33 @@
     <div class="col">
 
       <section class="card">
-        <div class="sec-head"><span class="sec-num">01</span><h2>Background &amp; Need</h2><span class="sec-rule"></span></div>
-        <p class="lead">Executive-function assessment still relies on <b>questionnaires (BRIEF-A)</b> and traditional lab-style tests:</p>
-        <ul class="dots">
-          <li><b>Stressful &amp; repetitive</b> — scores may reflect motivation, not true ability</li>
-          <li><b>Low engagement</b>, especially for young users</li>
-          <li><b>Subjective ratings</b> — no objective behavioral data</li>
+        <div class="sec-head"><span class="sec-num">01</span><h2>The Problem</h2><span class="sec-rule"></span></div>
+        <ul class="keys">
+          <li>Subjective questionnaires</li>
+          <li>Stressful lab-style tests</li>
+          <li>Low engagement</li>
         </ul>
-        <div class="need-callout"><b>The need:</b> measurement that is objective, repeatable — and actually fun to take.</div>
       </section>
 
       <section class="card">
         <div class="sec-head"><span class="sec-num">02</span><h2>The Solution</h2><span class="sec-rule"></span></div>
-        <p class="lead"><b>Mission Focus turns assessment into a 10-minute spaceship mission.</b></p>
-        <p class="intro">Instead of asking the participant to describe behavior after the fact, the game <b>observes behavior while it happens</b>.</p>
-        <ul class="dots">
-          <li><b>More engaging</b> — the player completes a mission, not a dry test</li>
-          <li><b>Objective measurement</b> — reactions, errors, choices and timing are logged automatically</li>
-          <li><b>More realistic behavior</b> — the player handles tasks, distractions and priorities inside one dynamic environment</li>
-          <li><b>Assessor-ready output</b> — the session becomes an executive-function profile + CSV</li>
-        </ul>
-        <div class="why-callout"><b>Why it works:</b> the player feels inside a mission, while the system quietly turns behavior into measurable data.</div>
+        <p class="lead">A <span class="c">10-minute spaceship mission</span> that measures executive function.</p>
+        <div class="chips">
+          <span class="chip">Engaging</span>
+          <span class="chip">Objective</span>
+          <span class="chip">Real-world</span>
+          <span class="chip o">Profile + CSV</span>
+        </div>
       </section>
 
       <section class="card">
-        <div class="sec-head"><span class="sec-num">03</span><h2>Core Capabilities</h2><span class="sec-rule"></span></div>
-        <ul class="checks">
-          <li><b>Playable 10-minute mission</b> — game-based, not a quiz</li>
-          <li><b>Measures key executive functions</b> — attention, memory, inhibition &amp; planning</li>
-          <li><b>Logs behavior automatically</b> — reactions, errors, choices and timing</li>
-          <li><b>Generates assessor outputs</b> — HTML report + CSV</li>
-          <li><b>Keeps data local</b> — privacy by design</li>
-        </ul>
-      </section>
-
-      <section class="card">
-        <div class="sec-head"><span class="sec-num">04</span><h2>How It Works</h2><span class="sec-rule"></span></div>
+        <div class="sec-head"><span class="sec-num">03</span><h2>How It Works</h2><span class="sec-rule"></span></div>
         <div class="flow">
-          <div class="step"><div class="n">1</div><div class="t">
-            <h3>Participant Onboarding</h3><p>Basic details are entered before the mission</p>
-          </div></div>
-          <div class="step"><div class="n">2</div><div class="t">
-            <h3>Interactive Tutorial</h3><p>The player learns movement and station controls</p>
-          </div></div>
-          <div class="step"><div class="n">3</div><div class="t">
-            <h3>10-Minute Mission</h3><p>Tasks appear across <b>4 stations</b> while the player chooses priorities</p>
-          </div></div>
-          <div class="step"><div class="n">4</div><div class="t">
-            <h3>Background Logging</h3><p>Reactions, errors, choices and timing are recorded silently</p>
-          </div></div>
-          <div class="step"><div class="n">5</div><div class="t">
-            <h3>Assessor Report</h3><p><b>Executive-function profile + CSV</b>, generated instantly</p>
-          </div></div>
+          <div class="step"><div class="n">1</div><h3>Onboarding</h3></div>
+          <div class="step"><div class="n">2</div><h3>Tutorial</h3></div>
+          <div class="step"><div class="n">3</div><h3>10-Minute Mission</h3></div>
+          <div class="step"><div class="n">4</div><h3>Background Logging</h3></div>
+          <div class="step"><div class="n">5</div><h3>Assessor Report</h3></div>
         </div>
       </section>
 
@@ -459,39 +388,27 @@
     <div class="col">
 
       <section class="card tasks-card">
-        <div class="sec-head"><span class="sec-num">05</span><h2>Playable Cognitive Tasks</h2><span class="sec-rule"></span></div>
+        <div class="sec-head"><span class="sec-num">04</span><h2>Cognitive Tasks</h2><span class="sec-rule"></span></div>
         <div class="tgrid">
 
           <div class="tcell">
             <div class="ph"><img src="Assets/shot_radar.png" alt="Radar Scan task"></div>
-            <div class="tmeta">
-              <div class="tname">RADAR SCAN<span class="tdom">Sustained Attention · Inhibition</span></div>
-              <div class="tmes"><b>Measures:</b> Hits · False alarms · d′ sensitivity</div>
-            </div>
+            <div class="tmeta"><span class="tname">RADAR SCAN</span><span class="tdom">Attention</span></div>
           </div>
 
           <div class="tcell">
             <div class="ph"><img src="Assets/shot_station.png" alt="Code Recall task"></div>
-            <div class="tmeta">
-              <div class="tname">CODE RECALL<span class="tdom">Working Memory</span></div>
-              <div class="tmes"><b>Measures:</b> Recall accuracy · Typos · Timeout</div>
-            </div>
+            <div class="tmeta"><span class="tname">CODE RECALL</span><span class="tdom">Memory</span></div>
           </div>
 
           <div class="tcell">
             <div class="ph"><img src="Assets/shot_stroop_clean.png" alt="Stroop Console task"></div>
-            <div class="tmeta">
-              <div class="tname">STROOP CONSOLE<span class="tdom">Inhibition</span></div>
-              <div class="tmes"><b>Measures:</b> RT mean/SD · Commissions · Post-error slowing</div>
-            </div>
+            <div class="tmeta"><span class="tname">STROOP CONSOLE</span><span class="tdom">Inhibition</span></div>
           </div>
 
           <div class="tcell">
             <div class="ph"><img src="Assets/shot_wires.png" alt="Power Cell Run task"></div>
-            <div class="tmeta">
-              <div class="tname">POWER CELL RUN<span class="tdom">Planning · Organization</span></div>
-              <div class="tmes"><b>Measures:</b> Pickup latency · Wiring errors · Completion time</div>
-            </div>
+            <div class="tmeta"><span class="tname">POWER CELL RUN</span><span class="tdom">Planning</span></div>
           </div>
 
         </div>
@@ -503,29 +420,18 @@
     <div class="col">
 
       <section class="card">
-        <div class="sec-head"><span class="sec-num">06</span><h2>Tech Stack</h2><span class="sec-rule"></span></div>
+        <div class="sec-head"><span class="sec-num">05</span><h2>Tech Stack</h2><span class="sec-rule"></span></div>
         <div class="tech">
-          <div class="tk"><span class="dot"></span><b>Unity 6 + URP</b><span>— 3D spaceship mission</span></div>
-          <div class="tk"><span class="dot"></span><b>C#</b><span>— gameplay, tasks &amp; data logging</span></div>
-          <div class="tk"><span class="dot"></span><b>HTML + CSV</b><span>— assessor report outputs</span></div>
-          <div class="tk"><span class="dot"></span><b>GitHub</b><span>— version control &amp; collaboration</span></div>
-          <div class="tk"><span class="dot"></span><b>AI Tools</b><span>— voice-over and 3D asset support</span></div>
+          <div class="tk"><span class="dot"></span><b>Unity 6 + URP</b></div>
+          <div class="tk"><span class="dot"></span><b>C#</b></div>
+          <div class="tk"><span class="dot"></span><b>HTML + CSV</b></div>
+          <div class="tk"><span class="dot"></span><b>GitHub</b></div>
+          <div class="tk"><span class="dot"></span><b>AI Tools</b></div>
         </div>
       </section>
 
-      <section class="card">
-        <div class="sec-head"><span class="sec-num">07</span><h2>Design Challenges</h2><span class="sec-rule"></span></div>
-        <ol class="chal">
-          <li><b>Fun vs. valid data</b> — the mission feels playful, while console tasks stay precisely timed</li>
-          <li><b>Invisible measurement</b> — the player focuses on the game while behavior is logged silently</li>
-          <li><b>Modular task design</b> — new cognitive tasks can be added without rebuilding the system</li>
-          <li><b>3D asset integration</b> — AI-generated props needed Unity cleanup and adaptation</li>
-        </ol>
-      </section>
-
-      <section class="card">
-        <div class="sec-head"><span class="sec-num">08</span><h2>The Assessor Report</h2><span class="sec-rule"></span></div>
-        <p class="rep-intro">Every mission ends with a <b>clear, auto-generated profile</b> — pass/fail per cognitive domain, plus a CSV with <b>~26 raw metrics</b> for research.</p>
+      <section class="card report-card">
+        <div class="sec-head"><span class="sec-num">06</span><h2>The Report</h2><span class="sec-rule"></span></div>
         <div class="repanel">
           <div class="rhead">
             <span class="rtitle">EXECUTIVE FUNCTION REPORT</span>
@@ -536,20 +442,21 @@
             <div class="rs"><div class="rv good">5</div><div class="rl">Passed</div></div>
             <div class="rs"><div class="rv">83%</div><div class="rl">Accuracy</div></div>
           </div>
-          <div class="rrow"><span class="rtxt"><span class="rdom">INHIBIT</span><span class="rmet">Stroop console · 100% accuracy · RT 1563 ms</span></span><span class="rpill">PASS</span></div>
-          <div class="rrow"><span class="rtxt"><span class="rdom">WORKING MEMORY</span><span class="rmet">Code recall · 0 wrong keys</span></span><span class="rpill">PASS</span></div>
-          <div class="rrow"><span class="rtxt"><span class="rdom">TASK MONITOR</span><span class="rmet">Radar scan · d′ 3.17 · 0 false alarms</span></span><span class="rpill">PASS</span></div>
-          <div class="rrow"><span class="rtxt"><span class="rdom">PLAN / ORGANIZE</span><span class="rmet">Power cell run · delivered on time</span></span><span class="rpill">PASS</span></div>
+          <div class="rrows">
+            <div class="rrow"><span class="rdom">INHIBIT</span><span class="rpill">PASS</span></div>
+            <div class="rrow"><span class="rdom">WORKING MEMORY</span><span class="rpill">PASS</span></div>
+            <div class="rrow"><span class="rdom">TASK MONITOR</span><span class="rpill">PASS</span></div>
+            <div class="rrow"><span class="rdom">PLAN / ORGANIZE</span><span class="rpill">PASS</span></div>
+          </div>
         </div>
-        <div class="pcap"><b>Sample from a real session</b> — the full HTML report opens in any browser.</div>
+        <div class="pcap"><b>Profile + CSV</b> — generated after every mission</div>
       </section>
 
       <div class="qr-row">
         <div class="qr-chip"><img src="Assets/qr_github.png" alt="GitHub repository QR"></div>
         <div class="qr-t">
-          <b>FULL CODE &amp; DOCS</b>
-          <span class="gh">github.com/<wbr>lidorbenhamo26/<wbr>Final-Project</span>
-          <span>Unity project · project book · demo video</span>
+          <b>SCAN FOR MORE</b>
+          <span>github.com/<wbr>lidorbenhamo26/<wbr>Final-Project</span>
         </div>
       </div>
 
@@ -560,8 +467,7 @@
   <div class="banner">
     <div class="inner">
       <h2>Not a test — <span class="c">a mission that measures.</span></h2>
-      <p>A <b>10-minute space mission</b> produces an <b>executive-function profile</b> while keeping the player engaged.</p>
-      <div class="wave-bubble">Ready for launch!</div>
+      <div class="wave-bubble">Ask us how!</div>
       <img class="wave" src="Assets/char_wave.png" alt="Waving astronaut">
     </div>
   </div>
