@@ -10,10 +10,11 @@ using UnityEngine.UI;
 /// reskinned as a radar scope. Measures sustained attention with clear
 /// per-trial feedback so the player always knows whether they detected.
 ///
-/// Paradigm: every 1.5s a contact appears at a random angle and fades over
-/// 250ms. Asteroid (20%, target — flag within 1.0s), Debris (60%, ignore),
-/// Star (20%, ignore). Full mode = 40 trials in 2 blocks of 20 (~1 min).
-/// Quick mode (F6 debug) = 20 trials in 2 blocks of 10 (~30 s).
+/// Paradigm: every ~1.5s a contact appears at a random angle and fades over
+/// 250ms. Asteroid (~25%, target — flag within 1.0s), Star (~20%, ignore),
+/// Debris (rest, ignore). Full mode defaults to 24 trials in 2 blocks of 12
+/// (~36 s, tunable via the serialized fields). Quick mode (F6 debug) = 20
+/// trials in 2 blocks of 10 (~30 s). Trial count + ISI are inspector-tunable.
 ///
 /// Pass: hit rate >= 0.70 AND false-alarm rate <= 0.10.
 /// d' is still computed and logged for research; it no longer gates the UX.
@@ -26,11 +27,15 @@ public class RadarScanTask : CognitiveTaskBase
     [Header("Run config")]
     public bool quickMode = false;
     [SerializeField] private int randomSeed = -1;
+    [SerializeField, Tooltip("Trials per block in full mode. Total = fullBlockSize * fullBlocks (each trial ~= trialIsi seconds).")]
+    private int fullBlockSize = 12;
+    [SerializeField, Tooltip("Blocks in full mode. Keep >=2 for a vigilance-decrement comparison.")]
+    private int fullBlocks = 2;
+    [SerializeField, Tooltip("Seconds between contacts (inter-stimulus interval).")]
+    private float trialIsi = 1.5f;
 
-    private const float TrialIsi = 1.5f;
     private const float ContactVisible = 0.25f;
     private const float ResponseWindow = 1.0f;
-    private const int FullBlockSize = 20, FullBlocks = 2;
     private const int QuickBlockSize = 10, QuickBlocks = 2;
     private const float HitRateThreshold = 0.70f;
     private const float FaRateThreshold = 0.10f;
@@ -83,14 +88,14 @@ public class RadarScanTask : CognitiveTaskBase
     // never shrink the response window below that (+ travel/READY buffer), or the
     // task becomes impossible to finish in time at high difficulty.
     public override float MinResponseWindowSeconds =>
-        (nTrials > 0 ? nTrials * TrialIsi : 60f) + 14f;
+        (nTrials > 0 ? nTrials * trialIsi : 60f) + 14f;
 
     public override void Activate()
     {
         base.Activate();
         rng = randomSeed < 0 ? new System.Random() : new System.Random(randomSeed);
-        blockSize = quickMode ? QuickBlockSize : FullBlockSize;
-        blockCount = quickMode ? QuickBlocks : FullBlocks;
+        blockSize = quickMode ? QuickBlockSize : fullBlockSize;
+        blockCount = quickMode ? QuickBlocks : fullBlocks;
         nTrials = blockSize * blockCount;
 
         InitAccumulators();
@@ -171,7 +176,7 @@ public class RadarScanTask : CognitiveTaskBase
 
         if (sweepLineRt != null)
         {
-            float deg = -(Time.time / TrialIsi) * 360f;
+            float deg = -(Time.time / trialIsi) * 360f;
             sweepLineRt.localEulerAngles = new Vector3(0f, 0f, deg % 360f);
         }
 
@@ -236,7 +241,7 @@ public class RadarScanTask : CognitiveTaskBase
                     Fmt(("trialIdx", trialIdx), ("rtMs", -1), ("outcome", outcome)));
             }
 
-            yield return FrozenWait(TrialIsi - ResponseWindow);
+            yield return FrozenWait(trialIsi - ResponseWindow);
 
             if (trialInBlock == blockSize - 1) CommitBlockSummary(blockIdx);
         }
@@ -575,7 +580,7 @@ public class RadarScanTask : CognitiveTaskBase
         schedule = new ContactType[nTrials];
         angleSchedule = new float[nTrials];
 
-        int nAsteroidPerBlock = Mathf.RoundToInt(blockSize * 0.20f);
+        int nAsteroidPerBlock = Mathf.RoundToInt(blockSize * 0.25f);
         int nStarPerBlock = Mathf.RoundToInt(blockSize * 0.20f);
         int nDebrisPerBlock = blockSize - nAsteroidPerBlock - nStarPerBlock;
 

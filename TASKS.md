@@ -339,10 +339,12 @@ dismissed; show once per session.
 - Add the rule to the Task-7 first-time card.
 - Code: `Tasks/StroopTask.cs`, Comms UI.
 
-## ⬜ Task 13 — Shorten the Radar (CPT) task
-- Expose trial count + inter-stimulus interval as serialized fields and lower them
-  (~half, tune with team); keep enough trials for hit/false-alarm/d-prime and ≥2
-  blocks for vigilance-decrement. Code: `Tasks/RadarScanTask.cs`.
+## ✅ Task 13 — Shorten the Radar (CPT) task  (DONE — pending playtest)
+- `RadarScanTask` now exposes `fullBlockSize` (12), `fullBlocks` (2) and `trialIsi`
+  (1.5s) as serialized/inspector-tunable fields (were consts). Full mode dropped
+  from 40 trials/~60s to 24 trials/~36s. Target rate raised 20%->25% so each block
+  still has ~3 asteroids (6 total) for a valid hit/FA/d-prime, and 2 blocks remain
+  for the vigilance-decrement comparison. Code: `Tasks/RadarScanTask.cs`.
 
 ## ⬜ Task 14 — Vary tasks from the start (kill early repetition)
 - Early spawns rotated only code-memory + radar; rotate across all 4 from the
