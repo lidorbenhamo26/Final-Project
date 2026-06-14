@@ -141,7 +141,7 @@ public class ReportData
 
             // For unmapped tasks the caption comes from the records themselves.
             if (meta.Scale == BriefScale.Unclassified && section.Records.Count > 0)
-                section.TaskCaption = section.Records[0].TaskName + " — " + section.Records[0].StationName;
+                section.TaskCaption = section.Records[0].TaskName + " — " + TaskListHUD.PrettyStation(section.Records[0].StationName);
 
             data.Sections.Add(section);
         }

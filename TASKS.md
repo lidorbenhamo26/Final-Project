@@ -289,14 +289,25 @@ Codebase pointers (verified this session):
 - Code: `Tasks/CognitiveTaskBase.cs`, `Onboarding/SessionContext.cs`, the 3 task
   files. TODO (later): reuse this copy in the Task-1 tutorial.
 
-## ⬜ Task 8 — Fix station name formatting + remove stray floating text
-- Show spaced/proper names everywhere ("Engine Station" / "Comms Station" …) — be
-  consistent across tutorial, door labels (DoorFixup), and HUD. `PrettyStation()`
-  already does the mapping; the tutorial/other spots use raw `stationName`.
-- Find & remove the unexplained floating text at a station (likely a leftover
-  `StationUI` placeholder / debug label) or replace with a real prompt.
-- Audit all on-screen strings for run-together/placeholder text.
-- Code: station prefabs / `StationUI`, `Scripts/Onboarding`, HUD.
+## ◑ Task 8 — Fix station name formatting + remove stray floating text  (NAMES DONE; floating-text not reproduced)
+- NAMES: standardized on the spaced/proper `PrettyStation()` form everywhere a
+  name is shown. Fixed the two raw-`stationName` leaks:
+  - `TutorialDirector` station labels (were "ENGINESTATION" -> now "ENGINE").
+  - Report caption in `ReportData` (was "EngineStation" -> now "Engine").
+  Already-correct spots left as-is: HUD (`TaskListHUD`), `NotificationFeed`, the
+  waypoint arrow, door placards (`DoorFixup`: ENGINE/NAVIGATION/COMMS/LIFE SUPPORT)
+  and the ship-map briefing (hardcoded clean). The session CSV keeps the raw id
+  on purpose (stable machine-readable key).
+- FLOATING TEXT: audited all 4 stations through the real game camera (player
+  approach angle). No floating text found at any console — the only world text is
+  the intended door placards, and the `StationUI` info panel is already hidden at
+  runtime (`TaskStation.Start -> stationUI.Hide()`, the earlier "floating white
+  squares" fix). The white star on the Comms wall is a light gobo (decor), not
+  text. **Need the user to point at the specific floating text** (which station /
+  screenshot) if it still appears — likely already resolved by the StationUI hide.
+- Note (out of scope): each station still carries an inert legacy `EngineTask`/
+  `CommsTask`/`NavigationTask`/`LifeSupportTask` (`:MissionTask`, TaskName="")
+  component; harmless cruft, not removed.
 
 ## ✅ Task 9 — Alien must not knock the battery out of the player's hand  (DONE — pending playtest)
 - Root cause: `AlienCuriosity` had a battery-SNATCH behaviour (chase + swat ->
