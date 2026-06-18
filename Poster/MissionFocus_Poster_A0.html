@@ -197,17 +197,14 @@
   .hiw-head { display: flex; align-items: baseline; gap: 5mm; margin-bottom: 6mm; }
   .hiw-head .sec-num { font-size: 24pt; }
   .hiw-head h2 { font-size: 34pt; }
-  .hiw-flow { display: flex; align-items: stretch; gap: 0; }
+  .hiw-flow { display: flex; align-items: flex-start; gap: 0; }
   .hstep { flex: 1; display: flex; flex-direction: column; align-items: center; text-align: center; padding: 0 4mm; }
-  .hstep .hicon { width: 26mm; height: 26mm; border-radius: 50%; background: radial-gradient(circle at 32% 28%, #173764, #0b1c3c); border: 0.9mm solid var(--cyan); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 6mm rgba(79,216,255,0.3); }
-  .hstep .hicon svg.ic { width: 15mm; height: 15mm; stroke: var(--cyan); }
-  .hstep .hicon .hnum { position: absolute; top: -3mm; right: -3mm; width: 11mm; height: 11mm; border-radius: 50%; background: var(--orange); color: #06121f; font-family: 'Orbitron'; font-weight: 800; font-size: 16pt; display: flex; align-items: center; justify-content: center; }
-  .hstep .hthumb { width: 100%; height: 30mm; margin-top: 5mm; border-radius: 3mm; overflow: hidden; border: 0.6mm solid rgba(110,196,255,0.45); }
-  .hstep .hthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .hstep .hspacer { height: 35mm; }
-  .hstep h4 { font-size: 24pt; font-weight: 800; color: #fff; margin-top: 5mm; letter-spacing: 0.3px; }
-  .hstep p { font-size: 18.5pt; line-height: 1.2; color: var(--ink-soft); margin-top: 2mm; }
-  .harrow { flex: 0 0 auto; align-self: flex-start; margin-top: 11mm; color: var(--cyan); font-size: 30pt; font-weight: 800; opacity: 0.8; }
+  .hstep .hicon { width: 32mm; height: 32mm; border-radius: 50%; background: radial-gradient(circle at 32% 28%, #173764, #0b1c3c); border: 1mm solid var(--cyan); display: flex; align-items: center; justify-content: center; position: relative; box-shadow: 0 0 6mm rgba(79,216,255,0.3); }
+  .hstep .hicon svg.ic { width: 18mm; height: 18mm; stroke: var(--cyan); }
+  .hstep .hicon .hnum { position: absolute; top: -4mm; right: -4mm; width: 13mm; height: 13mm; border-radius: 50%; background: var(--orange); color: #06121f; font-family: 'Orbitron'; font-weight: 800; font-size: 18pt; display: flex; align-items: center; justify-content: center; }
+  .hstep h4 { font-size: 25pt; font-weight: 800; color: #fff; margin-top: 6mm; letter-spacing: 0.3px; }
+  .hstep p { font-size: 19pt; line-height: 1.2; color: var(--ink-soft); margin-top: 2.5mm; }
+  .harrow { flex: 0 0 auto; align-self: flex-start; margin-top: 13mm; color: var(--cyan); font-size: 34pt; font-weight: 800; opacity: 0.8; }
 
   /* ============ BANNER ============ */
   .banner { flex: 0 0 auto; margin-top: 9mm; border-radius: var(--r); padding: 1.2mm; background: linear-gradient(120deg, var(--cyan), #2f86ff 55%, var(--orange)); }
@@ -411,7 +408,6 @@
         <div class="hicon"><span class="hnum">1</span>
           <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>
         </div>
-        <div class="hspacer"></div>
         <h4>Onboarding</h4><p>Participant details entered</p>
       </div>
       <div class="harrow">›</div>
@@ -419,7 +415,6 @@
         <div class="hicon"><span class="hnum">2</span>
           <svg class="ic" viewBox="0 0 24 24"><path d="M4 5a2 2 0 0 1 2-2h12v15H6a2 2 0 0 0-2 2z"/><path d="M10 8l5 3-5 3z" fill="currentColor" stroke="none"/></svg>
         </div>
-        <div class="hspacer"></div>
         <h4>Tutorial</h4><p>Learn movement &amp; controls</p>
       </div>
       <div class="harrow">›</div>
@@ -427,7 +422,6 @@
         <div class="hicon"><span class="hnum">3</span>
           <svg class="ic" viewBox="0 0 24 24"><path d="M12 3c3 2 5 6 5 10l-3 3h-4l-3-3c0-4 2-8 5-10z"/><circle cx="12" cy="9" r="1.6"/><path d="M9 16l-2 4M15 16l2 4"/></svg>
         </div>
-        <div class="hthumb"><img src="Assets/shot_radar.png" alt="Mission gameplay"></div>
         <h4>10-Minute Mission</h4><p>4 stations · player picks priorities</p>
       </div>
       <div class="harrow">›</div>
@@ -435,7 +429,6 @@
         <div class="hicon"><span class="hnum">4</span>
           <svg class="ic" viewBox="0 0 24 24"><path d="M3 12h4l3-7 4 14 3-7h4"/></svg>
         </div>
-        <div class="hspacer"></div>
         <h4>Background Logging</h4><p>Behavior recorded silently</p>
       </div>
       <div class="harrow">›</div>
@@ -443,7 +436,6 @@
         <div class="hicon"><span class="hnum">5</span>
           <svg class="ic" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 14l1.8 1.8L15 12"/></svg>
         </div>
-        <div class="hthumb"><img src="Assets/shot_report.png" alt="Assessor report"></div>
         <h4>Assessor Report</h4><p>Profile + CSV, instantly</p>
       </div>
     </div>
