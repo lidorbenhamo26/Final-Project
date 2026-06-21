@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Mission Focus — A0 Poster</title>
+<title>Mission Focus - A0 Poster</title>
 <style>
   /* ============ PAGE / PRINT ============ */
   @page { size: 841mm 1189mm; margin: 0; }
@@ -114,13 +114,15 @@
   svg.ic { fill: none; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
 
   /* ---------- 01 problem ---------- */
-  .prob-body { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: center; }
-  p.plead { font-size: 30pt; line-height: 1.32; color: var(--ink-soft); }
+  .prob-body { flex: 1 1 auto; display: flex; flex-direction: column; }
+  p.plead { font-size: 31pt; line-height: 1.4; color: var(--ink-soft); }
   p.plead b { color: #ffffff; }
   p.plead .adhd { color: var(--orange); font-weight: 800; }
-  .ppoints { list-style: none; margin-top: 9mm; display: flex; flex-direction: column; gap: 7mm; }
-  .ppoints li { font-size: 27pt; font-weight: 700; color: #fff; padding-left: 14mm; position: relative; line-height: 1.15; }
-  .ppoints li::before { content: ''; position: absolute; left: 1mm; top: 4mm; width: 6mm; height: 6mm; border-radius: 1.6mm; transform: rotate(45deg); background: linear-gradient(135deg, var(--cyan), #2f86ff); }
+  .plabel { margin-top: 9mm; margin-bottom: 2mm; font-family: 'Orbitron'; font-weight: 700; font-size: 18pt; letter-spacing: 2.5px; color: var(--cyan-soft); text-transform: uppercase; opacity: 0.85; }
+  .prows { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .prow { flex: 1 1 0; display: flex; align-items: center; gap: 8mm; padding: 3mm 1mm; border-top: 0.4mm solid rgba(110,196,255,0.16); }
+  .prow svg.ic { width: 15mm; height: 15mm; flex: 0 0 auto; stroke: var(--cyan); }
+  .prow span { font-size: 29pt; font-weight: 700; color: #fff; line-height: 1.18; }
 
   /* ---------- 02 solution icon tiles ---------- */
   .sintro { font-size: 27pt; line-height: 1.28; color: var(--ink-soft); }
@@ -129,11 +131,11 @@
   .stiles { flex: 1 1 auto; margin-top: 9mm; display: grid; grid-template-columns: 1fr 1fr; gap: 8mm; }
   .stile {
     background: rgba(79,216,255,0.06); border: 0.55mm solid var(--card-edge); border-radius: 4mm;
-    padding: 9mm 7mm; display: flex; flex-direction: column; justify-content: center; gap: 6mm;
+    padding: 10mm 8mm; display: flex; flex-direction: column; justify-content: space-between; gap: 6mm;
   }
-  .stile svg.ic { width: 30mm; height: 30mm; stroke: var(--cyan); }
-  .stile h4 { font-size: 30pt; font-weight: 800; color: #fff; letter-spacing: 0.3px; }
-  .stile p { font-size: 22pt; line-height: 1.22; color: var(--ink-soft); }
+  .stile svg.ic { width: 33mm; height: 33mm; stroke: var(--cyan); }
+  .stile .stxt h4 { font-size: 31pt; font-weight: 800; color: #fff; letter-spacing: 0.3px; }
+  .stile .stxt p { font-size: 23pt; line-height: 1.25; color: var(--ink-soft); margin-top: 3mm; }
 
   /* ---------- center: inside the mission ---------- */
   .tasks-card { flex: 1 1 auto; min-height: 0; }
@@ -149,24 +151,20 @@
   .tmes b { color: var(--orange); font-weight: 800; }
 
   /* ---------- 04 tech & architecture ---------- */
-  .arch { flex: 1 1 auto; display: flex; flex-direction: column; }
+  .arch { flex: 1 1 auto; display: flex; flex-direction: column; justify-content: space-between; }
   .anode {
     display: flex; align-items: center; gap: 6mm; background: rgba(10,21,46,0.85);
-    border: 0.55mm solid rgba(110,196,255,0.28); border-radius: 4mm; padding: 6mm 7mm;
+    border: 0.55mm solid rgba(110,196,255,0.28); border-radius: 4mm; padding: 9mm 7mm;
   }
-  .anode svg.ic { width: 16mm; height: 16mm; flex: 0 0 auto; }
-  .anode .at { font-size: 26pt; font-weight: 800; color: #fff; }
-  .anode .as { font-size: 19.5pt; color: var(--ink-soft); margin-top: 1mm; }
+  .anode svg.ic { width: 18mm; height: 18mm; flex: 0 0 auto; }
+  .anode .at { font-size: 27pt; font-weight: 800; color: #fff; }
+  .anode .as { font-size: 20pt; color: var(--ink-soft); margin-top: 1.5mm; }
   .anode.n1 svg.ic { stroke: var(--cyan); }
   .anode.n2 svg.ic { stroke: var(--orange); }
   .anode.n3 svg.ic { stroke: var(--green); }
   .anode.n4 svg.ic { stroke: var(--cyan-soft); }
-  .aarrow { align-self: center; width: 0.9mm; height: 9mm; background: linear-gradient(180deg, rgba(79,216,255,0.7), rgba(79,216,255,0.3)); position: relative; }
-  .aarrow::after { content: ''; position: absolute; left: 50%; bottom: -0.5mm; transform: translateX(-50%) rotate(45deg); width: 3.4mm; height: 3.4mm; border-right: 0.9mm solid rgba(79,216,255,0.7); border-bottom: 0.9mm solid rgba(79,216,255,0.7); }
-  .atools { margin-top: auto; padding-top: 8mm; display: flex; gap: 7mm; }
-  .atool { flex: 1; display: flex; align-items: center; gap: 4mm; justify-content: center; background: rgba(79,216,255,0.06); border: 0.5mm solid var(--card-edge); border-radius: 50mm; padding: 4.5mm 4mm; }
-  .atool svg.ic { width: 11mm; height: 11mm; stroke: var(--cyan-soft); }
-  .atool b { font-size: 22pt; color: #fff; }
+  .aarrow { align-self: center; width: 0.9mm; flex: 1 1 auto; min-height: 11mm; background: linear-gradient(180deg, rgba(79,216,255,0.7), rgba(79,216,255,0.3)); position: relative; }
+  .aarrow::after { content: ''; position: absolute; left: 50%; bottom: -0.5mm; transform: translateX(-50%) rotate(45deg); width: 3.6mm; height: 3.6mm; border-right: 0.9mm solid rgba(79,216,255,0.7); border-bottom: 0.9mm solid rgba(79,216,255,0.7); }
 
   /* ---------- 05 report dashboard ---------- */
   .repanel { flex: 1 1 auto; background: #f2f6fb; border-radius: 4mm; padding: 7mm 7.5mm; box-shadow: 0 3mm 9mm rgba(0,0,0,0.35); display: flex; flex-direction: column; }
@@ -230,7 +228,7 @@
     <div class="top-strip">
       <div class="logo-chip"><img src="Assets/braude_logo.png" alt="Braude College of Engineering"></div>
       <div class="badges">
-        <div class="badge">CAPSTONE PROJECT — PHASE B</div>
+        <div class="badge">CAPSTONE PROJECT - PHASE B</div>
         <div class="badge team">TEAM 26-1-D-17</div>
       </div>
     </div>
@@ -257,11 +255,22 @@
       <section class="card">
         <div class="sec-head"><span class="sec-num">01</span><h2>The Problem</h2><span class="sec-rule"></span></div>
         <div class="prob-body">
-          <p class="plead">Diagnosing <span class="adhd">ADHD</span> still leans on <b>subjective questionnaires (BRIEF-A)</b> and repetitive lab-style computer tests.</p>
-          <ul class="ppoints">
-            <li>Stressful &amp; easy to fake</li>
-            <li>Scores reflect effort, not true attention</li>
-          </ul>
+          <p class="plead">Diagnosing <span class="adhd">ADHD</span> still leans on <b>subjective questionnaires (BRIEF-A)</b> and repetitive lab-style computer tests - methods that rarely capture how <b>attention</b> really behaves in the real world.</p>
+          <div class="plabel">Why it falls short</div>
+          <div class="prows">
+            <div class="prow">
+              <svg class="ic" viewBox="0 0 24 24"><path d="M10.3 4l-7.5 13a2 2 0 0 0 1.7 3h15a2 2 0 0 0 1.7-3l-7.5-13a2 2 0 0 0-3.4 0z"/><path d="M12 9v4.5"/><path d="M12 17.5h.01"/></svg>
+              <span>Stressful &amp; easy to fake</span>
+            </div>
+            <div class="prow">
+              <svg class="ic" viewBox="0 0 24 24"><path d="M3 3l18 18"/><path d="M10.6 5.1A9.3 9.3 0 0 1 12 5c5.5 0 9 5.2 9 7a12.7 12.7 0 0 1-2.4 3M6.3 6.7C3.6 8.3 2 11 2 12c0 1.8 3.5 7 10 7a9.6 9.6 0 0 0 3.6-.7"/><path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/></svg>
+              <span>Scores reflect effort, not true attention</span>
+            </div>
+            <div class="prow">
+              <svg class="ic" viewBox="0 0 24 24"><ellipse cx="12" cy="5.5" rx="8" ry="3"/><path d="M4 5.5v13c0 1.7 3.6 3 8 3s8-1.3 8-3v-13"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>
+              <span>No objective behavioral data</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -271,19 +280,19 @@
         <div class="stiles">
           <div class="stile">
             <svg class="ic" viewBox="0 0 24 24"><rect x="2" y="7" width="20" height="11" rx="4"/><path d="M7 11v3M5.5 12.5h3"/><circle cx="16" cy="11.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="18.5" cy="14" r="1.1" fill="currentColor" stroke="none"/></svg>
-            <h4>Engaging</h4><p>A real mission, not a quiz</p>
+            <div class="stxt"><h4>Engaging</h4><p>Players fly a real mission, not a dry questionnaire</p></div>
           </div>
           <div class="stile">
             <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/></svg>
-            <h4>Objective</h4><p>Every action is logged</p>
+            <div class="stxt"><h4>Objective</h4><p>Every action, error and timing is logged</p></div>
           </div>
           <div class="stile">
             <svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c3 3.6 3 14.4 0 18M12 3c-3 3.6-3 14.4 0 18"/></svg>
-            <h4>Real-world</h4><p>Distractions &amp; priorities</p>
+            <div class="stxt"><h4>Real-world</h4><p>Handles distractions &amp; competing priorities</p></div>
           </div>
           <div class="stile">
             <svg class="ic" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 13h6M10 17h5"/></svg>
-            <h4>Assessor-ready</h4><p>Profile + CSV output</p>
+            <div class="stxt"><h4>Assessor-ready</h4><p>Outputs a profile + CSV instantly</p></div>
           </div>
         </div>
       </section>
@@ -337,7 +346,7 @@
         <div class="arch">
           <div class="anode n1">
             <svg class="ic" viewBox="0 0 24 24"><path d="M12 2l9 5v10l-9 5-9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>
-            <div><div class="at">Unity 6 + URP</div><div class="as">3D spaceship mission</div></div>
+            <div><div class="at">Unity 6</div><div class="as">3D spaceship mission</div></div>
           </div>
           <div class="aarrow"></div>
           <div class="anode n2">
@@ -353,16 +362,6 @@
           <div class="anode n4">
             <svg class="ic" viewBox="0 0 24 24"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5"/><path d="M10 14l1.8 1.8L15 12"/></svg>
             <div><div class="at">HTML Report</div><div class="as">Executive-function profile</div></div>
-          </div>
-          <div class="atools">
-            <div class="atool">
-              <svg class="ic" viewBox="0 0 24 24"><circle cx="6" cy="6" r="2.4"/><circle cx="6" cy="18" r="2.4"/><circle cx="18" cy="8" r="2.4"/><path d="M6 8.4v7.2M6 12h6a4 4 0 0 0 4-4"/></svg>
-              <b>GitHub</b>
-            </div>
-            <div class="atool">
-              <svg class="ic" viewBox="0 0 24 24"><path d="M12 3l1.8 6.2L20 11l-6.2 1.8L12 19l-1.8-6.2L4 11l6.2-1.8z"/></svg>
-              <b>AI Tools</b>
-            </div>
           </div>
         </div>
       </section>
@@ -386,7 +385,7 @@
             <div class="rrow"><span class="rdom">PLAN / ORGANIZE</span><span class="rpill">PASS</span></div>
           </div>
         </div>
-        <div class="pcap"><b>Profile + CSV</b> — generated after every mission</div>
+        <div class="pcap"><b>Profile + CSV</b> - generated after every mission</div>
       </section>
 
       <div class="qr-row">
@@ -444,7 +443,7 @@
   <!-- ================= BANNER ================= -->
   <div class="banner">
     <div class="inner">
-      <h2>Not a test — <span class="c">a mission that measures.</span></h2>
+      <h2>Not a test - <span class="c">a mission that measures.</span></h2>
       <div class="wave-bubble">Ready for launch!</div>
       <img class="wave" src="Assets/char_wave.png" alt="Waving astronaut">
     </div>
@@ -454,7 +453,7 @@
   <footer>
     <b>Braude College of Engineering, Karmiel</b><span class="sep">◆</span>
     Department of Software Engineering &amp; Information Systems<span class="sep">◆</span>
-    Capstone Project 61999 — Phase B<span class="sep">◆</span><b>2026</b>
+    Capstone Project 61999 - Phase B<span class="sep">◆</span><b>2026</b>
   </footer>
 
 </div>
