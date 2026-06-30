@@ -40,6 +40,29 @@ public class ReportData
 
     public List<ScaleSection> Sections = new List<ScaleSection>();
 
+    /// <summary>Executive-function behavior (prioritization / switching), aggregated
+    /// from the EF events. Null when no EF event occurred this session.</summary>
+    public EFSummary Executive;
+
+    public class EFSummary
+    {
+        public int EventCount;
+        public float OptimalFirstRate;       // 0..1
+        public float MeanOptScore;           // 0..1
+        public float MeanDecisionLatencyS;   // <0 = NA
+        public float NoChoiceRate;           // 0..1
+        // Shift (task-switching) — from Interruption events.
+        public int InterruptionCount;
+        public float SwitchCorrectRate;      // 0..1
+        public float MeanSwitchLatencyS;     // <0 = NA
+        public int PerseverationCount;
+        public float ResumeRate;             // <0 = NA (never switched)
+        // Working memory under load — from WM+Prioritization events.
+        public int WmPrioritizationCount;
+        public float CodeRecallRate;         // <0 = NA
+        public List<EFEventRecord> Events = new List<EFEventRecord>();
+    }
+
     private class ScaleMeta
     {
         public BriefScale Scale;
@@ -146,6 +169,28 @@ public class ReportData
             data.Sections.Add(section);
         }
 
+        // Executive-function behavior (separate from the cognitive scales above).
+        var ef = EFResults.InstanceOrNull;
+        if (ef != null && ef.Count > 0)
+        {
+            data.Executive = new EFSummary
+            {
+                EventCount = ef.Count,
+                OptimalFirstRate = ef.OptimalFirstRate,
+                MeanOptScore = ef.MeanOptScore,
+                MeanDecisionLatencyS = ef.MeanDecisionLatencyS,
+                NoChoiceRate = ef.NoChoiceRate,
+                InterruptionCount = ef.InterruptionCount,
+                SwitchCorrectRate = ef.SwitchCorrectRate,
+                MeanSwitchLatencyS = ef.MeanSwitchLatencyS,
+                PerseverationCount = ef.PerseverationCount,
+                ResumeRate = ef.ResumeRate,
+                WmPrioritizationCount = ef.WmPrioritizationCount,
+                CodeRecallRate = ef.CodeRecallRate,
+            };
+            foreach (var e in ef.Events) data.Executive.Events.Add(e);
+        }
+
         return data;
     }
 }
@@ -185,9 +230,10 @@ public static class ReportFormat
         { "postErrorSlowingMs", "Post-error slowing (ms)" },
         { "pickupLatencyS",     "Time to locate cell (s)" },
         { "deliveredTimeS",     "Total delivery time (s)" },
-        { "wiresTotal",         "Wires to route" },
-        { "wireErrorsCount",    "Wiring errors (wrong socket)" },
-        { "puzzleTimeS",        "Wiring panel time (s)" },
+        { "puzzleVariant",      "Planning puzzle" },
+        { "wiresTotal",         "Plan steps" },
+        { "wireErrorsCount",    "Plan errors (wrong / out-of-order)" },
+        { "puzzleTimeS",        "Planning time (s)" },
         { "panelOpens",         "Panel openings" },
         { "outcome",            "Outcome" },
     };

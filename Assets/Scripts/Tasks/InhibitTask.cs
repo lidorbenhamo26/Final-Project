@@ -5,11 +5,20 @@ using UnityEngine;
 using UnityEngine.UI;
 
 /// <summary>
-/// Comms cognitive task: Go/No-Go inhibition.
-/// 20 trials. Each shows a signal panel for 1.2s, then a 0.6-1.0s blank ISI.
-///   - GO trial (70%): red border + alert icon + "CRITICAL ALERT". Click EXECUTE within window.
-///   - NO-GO trial (30%): yellow border + prohibit icon + "DRILL MODE". DO NOT click; wait it out.
-/// Schedule is pseudo-random with max 3 consecutive NO-GO trials.
+/// Comms cognitive task: Go/No-Go inhibition with a SHAPE + COLOR conjunction.
+/// One stimulus flashes per trial; only the exact target combination (a RED SQUARE)
+/// is a GO. Every other stimulus — wrong colour, wrong shape, or both — is a NO-GO
+/// the player must withhold on. The player identifies the target VISUALLY: the
+/// presented shape is never labelled, so the only cue is what they see.
+///
+/// Presentation is deliberately clean: a single static console frame stays put for
+/// the whole task, and ONLY the shape inside it appears, disappears and changes
+/// between trials. Difficulty ramps with mission progress and within the run —
+/// faster presentation, rarer targets, and occasional rapid bursts of non-targets
+/// right before a target — to push inhibitory control without adding clutter.
+///
+///   GO  (target): RED SQUARE  -> press EXECUTE within the window.
+///   NO-GO (everything else)    -> do NOT press; wait it out.
 ///
 /// Metrics logged via SessionManager.LogCustomEvent:
 ///   INH_Spawned, INH_TrialStart, INH_Response, INH_Summary.
@@ -23,32 +32,44 @@ public class InhibitTask : CognitiveTaskBase
 {
     private enum Phase { Idle, Countdown, ISI, Signal, Done }
 
-    private const int   TotalTrials      = 20;
-    private const int   NoGoCount        = 6;       // 30% NO-GO
-    private const int   MaxNoGoStreak    = 3;
-    private const float SignalDuration   = 1.2f;
-    private const float IsiMin           = 0.6f;
-    private const float IsiMax           = 1.0f;
+    private const int   TotalTrials      = 24;
+    private const int   MaxTargetStreak   = 2;       // no long runs of consecutive targets
     private const float CommissionThresh = 0.30f;
     private const float OmissionThresh   = 0.50f;
 
-    private static readonly Color GoBorder   = new Color(0.92f, 0.18f, 0.18f);
-    private static readonly Color NoGoBorder = new Color(0.98f, 0.80f, 0.12f);
-    private static readonly Color BgDark    = new Color(0.06f, 0.07f, 0.10f, 1f);
-    private static readonly Color ExecGreen = new Color(0.20f, 0.75f, 0.35f);
+    private const int TargetShape = 0; // SQUARE
+    private const int TargetColor = 0; // RED
 
-    // Iconic glyphs in the basic Unicode plane so the default TMP atlas renders them.
-    private const string GoIconGlyph   = "▲"; // warning triangle
-    private const string NoGoIconGlyph = "Ø"; // slashed O (prohibit)
+    private static readonly string[] ShapeGlyphs = { "■", "●", "▲", "◆" };
+    private static readonly string[] ShapeNames  = { "SQUARE", "CIRCLE", "TRIANGLE", "DIAMOND" };
+    private static readonly Color[]  Palette =
+    {
+        new Color(0.93f, 0.27f, 0.24f), // RED
+        new Color(0.34f, 0.58f, 1.00f), // BLUE
+        new Color(0.32f, 0.82f, 0.42f), // GREEN
+        new Color(0.97f, 0.82f, 0.24f), // YELLOW
+    };
+    private static readonly string[] ColorNames = { "RED", "BLUE", "GREEN", "YELLOW" };
+
+    private static readonly Color BgDark     = new Color(0.06f, 0.07f, 0.10f, 1f);
+    private static readonly Color ExecGreen  = new Color(0.20f, 0.75f, 0.35f);
+    private static readonly Color FrameSteel = new Color(0.34f, 0.40f, 0.50f); // static neutral frame
+
+    private struct TrialDef { public int Shape; public int Color; public bool IsTarget; }
 
     private Phase phase = Phase.Idle;
-    private bool[] schedule;       // true = GO trial
+    private TrialDef[] schedule;
+    private float[] signalDur;     // per-trial stimulus duration (ramps faster)
+    private float[] isiDur;        // per-trial blank before the stimulus
+    private int   targetCount;     // GO trials this run (rarer at higher difficulty)
     private bool[] wasCommission;  // true if trial i was a NO-GO commission
+    private float baseDiff;        // mission difficulty captured at activation
 
     private int   trialIdx;
     private bool  started;
     private bool  responded;
     private float signalStartTime;
+    private float curSignalDur;
     private Coroutine flowCo;
 
     private int commissionCount;
@@ -58,47 +79,48 @@ public class InhibitTask : CognitiveTaskBase
     private readonly List<float> baselineHitRTs  = new List<float>();
 
     private TMP_Text   trialLabel;
-    private GameObject signalPanel;       // invisible container (animates scale)
-    private Image      signalGlowImg;     // outer halo
-    private Image      signalBorderImg;   // colored ring
+    private TMP_Text   targetLegend;
+    private GameObject signalIconGo;   // the ONLY thing that appears/disappears per trial
     private TMP_Text   signalIconText;
-    private TMP_Text   signalHeaderText;
     private Coroutine  appearCo;
 
     private void Awake()
     {
         TaskName  = "Inhibit";
         priority  = TaskPriority.Critical;
-        timeLimit = 120f; // 20 trials * ~2s + intro/outro buffer
+        timeLimit = 130f; // generous; the run is shorter at higher difficulty
     }
 
-    // Never let the spawner scale the window below the run's own length
-    // (trials * (signal + mean ISI)) + travel/READY buffer.
-    public override float MinResponseWindowSeconds =>
-        TotalTrials * (SignalDuration + (IsiMin + IsiMax) * 0.5f) + 18f;
+    public override float MinResponseWindowSeconds => TotalTrials * 2.4f + 18f;
+
+    private static string TargetDesc => ColorNames[TargetColor] + " " + ShapeNames[TargetShape];
 
     protected override string InstructionTitle => "COMMS - GO / NO-GO";
     protected override string[] InstructionBody => new[]
     {
-        "Signals flash one at a time.",
-        "RED alert = press EXECUTE fast.",
-        "YELLOW drill = do NOT press, just wait.",
+        "Shapes flash one at a time in different colours.",
         "",
-        "Hold back on the yellow ones.",
+        "Press EXECUTE ONLY for a " + TargetDesc + " (" + ShapeGlyphs[TargetShape] + ").",
+        "ANY other shape or colour = do NOT press, just wait.",
+        "",
+        "Watch both the shape AND the colour.",
     };
 
     public override void Activate()
     {
         base.Activate();
+        baseDiff = GameManager.Instance != null ? Mathf.Clamp01(GameManager.Instance.CurrentDifficulty) : 0f;
         StationUI?.SetInstruction("INHIBIT TASK: dock to begin");
         ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
 
         GenerateSchedule();
-        BuildSignalPanel();
+        BuildSignalFrame();
         BuildTrialLabel();
+        BuildTargetLegend();
 
         SessionManager.Instance?.LogCustomEvent("INH_Spawned", "CommsStation",
-            "trials=" + TotalTrials + ",nogo=" + NoGoCount);
+            "trials=" + TotalTrials + ",targets=" + targetCount + ",target=" + TargetDesc +
+            ",diff=" + baseDiff.ToString("F2"));
         AudioManager.Instance.PlayVoice("inhibit_intro");
     }
 
@@ -114,7 +136,7 @@ public class InhibitTask : CognitiveTaskBase
         if (buttonsParent == null) return;
         ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
         ClearButtons();
-        SpawnButton(new Vector2(0f, -180f), new Vector2(280f, 100f), "READY",
+        SpawnButton(new Vector2(0f, -200f), new Vector2(280f, 92f), "READY",
             new Color(0.2f, 0.8f, 0.4f), OnStartReadyClicked);
     }
 
@@ -123,174 +145,219 @@ public class InhibitTask : CognitiveTaskBase
         if (flowCo != null) return;
         ClearButtons();
         // EXECUTE is always visible for the rest of the task. The handler only
-        // accepts presses during the 1.2s signal window; outside that, it no-ops.
-        SpawnButton(new Vector2(0f, -180f), new Vector2(280f, 90f), "EXECUTE",
+        // accepts presses during the signal window; outside that, it no-ops.
+        SpawnButton(new Vector2(0f, -200f), new Vector2(280f, 92f), "EXECUTE",
             ExecGreen, OnExecutePressed);
         flowCo = StartCoroutine(CoRunTrials());
     }
 
+    // Builds targets (red squares) + distractors, shuffles with a max target streak,
+    // then computes per-trial timing (speed ramp + occasional rapid bursts before a
+    // target). Targets get rarer as mission difficulty rises.
     private void GenerateSchedule()
     {
-        schedule      = new bool[TotalTrials];
-        wasCommission = new bool[TotalTrials];
+        targetCount = Mathf.RoundToInt(Mathf.Lerp(9f, 6f, baseDiff)); // ~37% -> 25%
+        targetCount = Mathf.Clamp(targetCount, 5, 10);
 
-        // Random permutation with max-3 NO-GO streak. Retry on violation.
-        var indices = new List<int>();
-        for (int attempt = 0; attempt < 50; attempt++)
+        var pool = new List<TrialDef>(TotalTrials);
+        for (int i = 0; i < targetCount; i++)
+            pool.Add(new TrialDef { Shape = TargetShape, Color = TargetColor, IsTarget = true });
+
+        int distractors = TotalTrials - targetCount;
+        for (int i = 0; i < distractors; i++)
         {
-            for (int i = 0; i < TotalTrials; i++) schedule[i] = true;
-            indices.Clear();
-            for (int i = 0; i < TotalTrials; i++) indices.Add(i);
-            for (int i = 0; i < NoGoCount; i++)
-            {
-                int j = Random.Range(i, indices.Count);
-                int tmp = indices[i]; indices[i] = indices[j]; indices[j] = tmp;
-                schedule[indices[i]] = false; // mark as NO-GO
-            }
-            int streak = 0; bool ok = true;
-            for (int i = 0; i < TotalTrials; i++)
-            {
-                if (!schedule[i]) { streak++; if (streak > MaxNoGoStreak) { ok = false; break; } }
-                else streak = 0;
-            }
-            if (ok) return;
+            int lure = i % 3;
+            TrialDef d;
+            if (lure == 0)      d = new TrialDef { Shape = TargetShape,  Color = OtherColor(), IsTarget = false }; // square, wrong colour
+            else if (lure == 1) d = new TrialDef { Shape = OtherShape(), Color = TargetColor,  IsTarget = false }; // red, wrong shape
+            else                d = new TrialDef { Shape = OtherShape(), Color = OtherColor(), IsTarget = false }; // neither
+            pool.Add(d);
         }
-        // Deterministic fallback: 6 NO-GO at positions 2,5,8,11,14,17 (max streak 1).
-        for (int i = 0; i < TotalTrials; i++) schedule[i] = true;
-        int placed = 0;
-        for (int i = 2; i < TotalTrials && placed < NoGoCount; i += 3)
+
+        for (int attempt = 0; attempt < 60; attempt++)
         {
-            schedule[i] = false; placed++;
+            ShuffleTrials(pool);
+            if (TargetStreakOk(pool)) break;
+        }
+        schedule      = pool.ToArray();
+        wasCommission = new bool[schedule.Length];
+
+        ComputeTiming();
+    }
+
+    // Per-trial timing. Base speed comes from mission difficulty; a mild in-run ramp
+    // makes later trials quicker; and a couple of targets get a "burst" of fast
+    // non-targets right before them, raising the demand to hold back.
+    private void ComputeTiming()
+    {
+        int n = schedule.Length;
+        signalDur = new float[n];
+        isiDur    = new float[n];
+
+        float sigBase = Mathf.Lerp(1.25f, 0.90f, baseDiff);
+        float isiMin  = Mathf.Lerp(0.70f, 0.45f, baseDiff);
+        float isiMax  = Mathf.Lerp(1.10f, 0.70f, baseDiff);
+
+        for (int i = 0; i < n; i++)
+        {
+            float ramp = n > 1 ? Mathf.Lerp(1f, 0.82f, i / (float)(n - 1)) : 1f;
+            signalDur[i] = sigBase * ramp;
+            isiDur[i]    = Random.Range(isiMin, isiMax) * ramp;
+        }
+
+        // Rapid bursts: for up to two targets, speed up the up-to-3 non-targets
+        // immediately before them so the player faces a quick run of "hold" stimuli
+        // and must not let momentum trigger a false start when the target lands.
+        var targetPositions = new List<int>();
+        for (int i = 0; i < n; i++) if (schedule[i].IsTarget) targetPositions.Add(i);
+        ShuffleInts(targetPositions);
+        int bursts = Mathf.Min(2, targetPositions.Count);
+        for (int b = 0; b < bursts; b++)
+        {
+            int p = targetPositions[b];
+            for (int k = 1; k <= 3; k++)
+            {
+                int j = p - k;
+                if (j < 0 || schedule[j].IsTarget) break;
+                isiDur[j]    = 0.30f;
+                signalDur[j] = Mathf.Min(signalDur[j], 0.75f);
+            }
         }
     }
 
-    private void BuildSignalPanel()
+    private static int OtherShape() => Random.Range(1, ShapeGlyphs.Length); // 1..3 (never the target shape)
+    private static int OtherColor() => Random.Range(1, Palette.Length);     // 1..3 (never the target colour)
+
+    private static void ShuffleTrials(List<TrialDef> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
+
+    private static void ShuffleInts(List<int> list)
+    {
+        for (int i = list.Count - 1; i > 0; i--)
+        {
+            int j = Random.Range(0, i + 1);
+            (list[i], list[j]) = (list[j], list[i]);
+        }
+    }
+
+    private static bool TargetStreakOk(List<TrialDef> list)
+    {
+        int streak = 0;
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (list[i].IsTarget) { streak++; if (streak > MaxTargetStreak) return false; }
+            else streak = 0;
+        }
+        return true;
+    }
+
+    // A single STATIC console frame. It never moves, recolours or toggles — only the
+    // shape glyph inside it changes between trials. Centered, with clear spacing
+    // above (rule + trial counter) and below (EXECUTE).
+    private void BuildSignalFrame()
     {
         if (buttonsParent == null) return;
 
-        // Outer wrapper (invisible) — used to animate scale on appearance.
-        signalPanel = new GameObject("SignalPanel", typeof(RectTransform));
-        signalPanel.transform.SetParent(buttonsParent, false);
-        RectTransform pr = signalPanel.GetComponent<RectTransform>();
-        pr.anchorMin = pr.anchorMax = new Vector2(0.5f, 0.5f);
-        pr.pivot = new Vector2(0.5f, 0.5f);
-        pr.anchoredPosition = new Vector2(0f, 30f);
-        pr.sizeDelta = new Vector2(560f, 340f); // room for outer glow
+        GameObject frame = new GameObject("SignalFrame", typeof(RectTransform), typeof(Image));
+        frame.transform.SetParent(buttonsParent, false);
+        RectTransform fr = frame.GetComponent<RectTransform>();
+        fr.anchorMin = fr.anchorMax = new Vector2(0.5f, 0.5f);
+        fr.pivot = new Vector2(0.5f, 0.5f);
+        fr.anchoredPosition = new Vector2(0f, -8f);
+        fr.sizeDelta = new Vector2(430f, 220f);
+        Image frImg = frame.GetComponent<Image>();
+        frImg.color = FrameSteel;            // static neutral ring
+        frImg.raycastTarget = false;
 
-        // Outer halo glow (larger than the colored border, faded color).
-        GameObject glow = new GameObject("Glow", typeof(RectTransform), typeof(Image));
-        glow.transform.SetParent(signalPanel.transform, false);
-        RectTransform gr = glow.GetComponent<RectTransform>();
-        gr.anchorMin = gr.anchorMax = new Vector2(0.5f, 0.5f);
-        gr.pivot = new Vector2(0.5f, 0.5f);
-        gr.anchoredPosition = Vector2.zero;
-        gr.sizeDelta = new Vector2(560f, 340f);
-        signalGlowImg = glow.GetComponent<Image>();
-        signalGlowImg.color = new Color(GoBorder.r, GoBorder.g, GoBorder.b, 0.18f);
-        signalGlowImg.raycastTarget = false;
-
-        // Colored ring (the bordered panel).
-        GameObject border = new GameObject("Border", typeof(RectTransform), typeof(Image));
-        border.transform.SetParent(signalPanel.transform, false);
-        RectTransform br = border.GetComponent<RectTransform>();
-        br.anchorMin = br.anchorMax = new Vector2(0.5f, 0.5f);
-        br.pivot = new Vector2(0.5f, 0.5f);
-        br.anchoredPosition = Vector2.zero;
-        br.sizeDelta = new Vector2(480f, 260f);
-        signalBorderImg = border.GetComponent<Image>();
-        signalBorderImg.color = GoBorder;
-        signalBorderImg.raycastTarget = false;
-
-        // Dark inner fill leaves a 10px colored ring around the border image.
         GameObject inner = new GameObject("Inner", typeof(RectTransform), typeof(Image));
-        inner.transform.SetParent(border.transform, false);
+        inner.transform.SetParent(frame.transform, false);
         RectTransform ir = inner.GetComponent<RectTransform>();
-        ir.anchorMin = Vector2.zero;
-        ir.anchorMax = Vector2.one;
-        ir.offsetMin = new Vector2(10f, 10f);
-        ir.offsetMax = new Vector2(-10f, -10f);
+        ir.anchorMin = Vector2.zero; ir.anchorMax = Vector2.one;
+        ir.offsetMin = new Vector2(8f, 8f); ir.offsetMax = new Vector2(-8f, -8f);
         Image innerImg = inner.GetComponent<Image>();
         innerImg.color = BgDark;
         innerImg.raycastTarget = false;
 
-        GameObject icon = new GameObject("Icon", typeof(RectTransform));
-        icon.transform.SetParent(inner.transform, false);
-        signalIconText = icon.AddComponent<TextMeshProUGUI>();
+        // The shape glyph — the ONLY per-trial element. Centered, hidden between trials.
+        signalIconGo = new GameObject("Shape", typeof(RectTransform));
+        signalIconGo.transform.SetParent(inner.transform, false);
+        signalIconText = signalIconGo.AddComponent<TextMeshProUGUI>();
         signalIconText.alignment = TextAlignmentOptions.Center;
-        signalIconText.fontSize = 180f;
+        signalIconText.fontSize = 150f;
         signalIconText.fontStyle = FontStyles.Bold;
-        signalIconText.text = GoIconGlyph;
-        signalIconText.color = GoBorder;
+        signalIconText.text = ShapeGlyphs[TargetShape];
+        signalIconText.color = Palette[TargetColor];
         signalIconText.raycastTarget = false;
-        RectTransform iconRt = icon.GetComponent<RectTransform>();
-        iconRt.anchorMin = new Vector2(0f, 0.28f);
-        iconRt.anchorMax = new Vector2(1f, 1f);
-        iconRt.offsetMin = Vector2.zero;
-        iconRt.offsetMax = Vector2.zero;
+        RectTransform iconRt = signalIconGo.GetComponent<RectTransform>();
+        iconRt.anchorMin = Vector2.zero; iconRt.anchorMax = Vector2.one;
+        iconRt.offsetMin = Vector2.zero; iconRt.offsetMax = Vector2.zero;
+        iconRt.pivot = new Vector2(0.5f, 0.5f);
 
-        GameObject hdr = new GameObject("Header", typeof(RectTransform));
-        hdr.transform.SetParent(inner.transform, false);
-        signalHeaderText = hdr.AddComponent<TextMeshProUGUI>();
-        signalHeaderText.alignment = TextAlignmentOptions.Center;
-        signalHeaderText.fontSize = 40f;
-        signalHeaderText.fontStyle = FontStyles.Bold;
-        signalHeaderText.characterSpacing = 8f;
-        signalHeaderText.text = "CRITICAL ALERT";
-        signalHeaderText.color = GoBorder;
-        signalHeaderText.raycastTarget = false;
-        RectTransform hRt = hdr.GetComponent<RectTransform>();
-        hRt.anchorMin = new Vector2(0f, 0f);
-        hRt.anchorMax = new Vector2(1f, 0.28f);
-        hRt.offsetMin = Vector2.zero;
-        hRt.offsetMax = Vector2.zero;
-
-        signalPanel.SetActive(false);
+        signalIconGo.SetActive(false); // empty frame until the first stimulus
     }
 
     private void BuildTrialLabel()
     {
-        trialLabel = SpawnLabel(new Vector2(0f, 200f), new Vector2(400f, 40f),
-            "Trial 0 / " + TotalTrials, new Color(0.85f, 0.9f, 1f), 28f);
+        trialLabel = SpawnLabel(new Vector2(0f, 140f), new Vector2(360f, 28f),
+            "Trial 0 / " + TotalTrials, new Color(0.62f, 0.70f, 0.82f), 22f);
     }
 
-    private void SetSignalForTrial(bool isGo)
+    // Always-visible RULE reminder (not the presented shape's name) so the player
+    // never has to recall the target, but still has to read the stimulus visually.
+    private void BuildTargetLegend()
     {
-        Color c = isGo ? GoBorder : NoGoBorder;
-        signalBorderImg.color = c;
-        signalGlowImg.color   = new Color(c.r, c.g, c.b, 0.22f);
-        signalIconText.text   = isGo ? GoIconGlyph   : NoGoIconGlyph;
-        signalIconText.color  = c;
-        signalHeaderText.text = isGo ? "CRITICAL ALERT" : "DRILL MODE";
-        signalHeaderText.color = c;
+        targetLegend = SpawnLabel(new Vector2(0f, 182f), new Vector2(700f, 40f),
+            "PRESS ONLY FOR   " + ShapeGlyphs[TargetShape] + "  " + TargetDesc,
+            new Color(0.92f, 0.95f, 1f), 30f);
+        if (targetLegend != null)
+        {
+            targetLegend.fontStyle = FontStyles.Bold;
+            // Tint just the target swatch so the rule reads at a glance.
+            targetLegend.text = "PRESS ONLY FOR   <color=#" + ColorUtility.ToHtmlStringRGB(Palette[TargetColor]) + ">"
+                + ShapeGlyphs[TargetShape] + "  " + TargetDesc + "</color>";
+        }
     }
 
-    private IEnumerator CoAppearPulse()
+    private void ShowShape(TrialDef trial)
     {
-        // Snap-in scale + a single subtle pulse during the 1.2s lifespan.
-        Transform t = signalPanel.transform;
-        const float inDur = 0.16f;
+        if (signalIconText == null) return;
+        signalIconText.text  = ShapeGlyphs[trial.Shape];
+        signalIconText.color = Palette[trial.Color];
+        signalIconGo.SetActive(true);
+        if (appearCo != null) StopCoroutine(appearCo);
+        appearCo = StartCoroutine(CoShapePop());
+    }
+
+    private void HideShape()
+    {
+        if (appearCo != null) { StopCoroutine(appearCo); appearCo = null; }
+        if (signalIconGo != null) signalIconGo.SetActive(false);
+    }
+
+    // Quick pop on the SHAPE only (the frame stays put).
+    private IEnumerator CoShapePop()
+    {
+        Transform t = signalIconGo.transform;
+        const float inDur = 0.12f;
         for (float u = 0f; u < inDur; u += Time.deltaTime)
         {
-            float k = Mathf.SmoothStep(0.88f, 1.04f, u / inDur);
+            float k = Mathf.SmoothStep(0.7f, 1.05f, u / inDur);
             t.localScale = new Vector3(k, k, 1f);
             yield return null;
         }
-        for (float u = 0f; u < 0.08f; u += Time.deltaTime)
+        for (float u = 0f; u < 0.07f; u += Time.deltaTime)
         {
-            float k = Mathf.SmoothStep(1.04f, 1.0f, u / 0.08f);
+            float k = Mathf.SmoothStep(1.05f, 1.0f, u / 0.07f);
             t.localScale = new Vector3(k, k, 1f);
             yield return null;
         }
         t.localScale = Vector3.one;
-        // Hold the glow pulse subtly for the rest of the signal window.
-        Color baseGlow = signalGlowImg.color;
-        float t0 = Time.time;
-        while (Time.time - t0 < SignalDuration - inDur - 0.08f)
-        {
-            float s = 0.18f + 0.12f * Mathf.Abs(Mathf.Sin((Time.time - t0) * 6f));
-            signalGlowImg.color = new Color(baseGlow.r, baseGlow.g, baseGlow.b, s);
-            yield return null;
-        }
     }
 
     private IEnumerator CoRunTrials()
@@ -304,47 +371,46 @@ public class InhibitTask : CognitiveTaskBase
             yield return new WaitForSeconds(0.45f);
         }
         if (!IsActive) yield break;
-        ShowMessage("MONITOR ALERTS", new Color(0.4f, 1f, 0.5f));
-        yield return new WaitForSeconds(0.35f);
+        ShowMessage("WATCH FOR " + TargetDesc, new Color(0.4f, 1f, 0.5f));
+        yield return new WaitForSeconds(0.45f);
+        ShowMessage("", Color.white); // clear the header; the rule stays in the legend
 
-        for (trialIdx = 0; trialIdx < TotalTrials && IsActive; trialIdx++)
+        for (trialIdx = 0; trialIdx < schedule.Length && IsActive; trialIdx++)
         {
             phase = Phase.ISI;
-            signalPanel.SetActive(false);
-            yield return FrozenWait(Random.Range(IsiMin, IsiMax));
+            HideShape();
+            yield return FrozenWait(isiDur[trialIdx]);
             if (!IsActive) yield break;
 
-            bool isGo = schedule[trialIdx];
-            string signalId = (isGo ? "GO_" : "NOGO_") + trialIdx;
+            TrialDef trial = schedule[trialIdx];
+            bool isTarget = trial.IsTarget;
+            string signalId = ColorNames[trial.Color] + "_" + ShapeNames[trial.Shape] + "_" + trialIdx;
             SessionManager.Instance?.LogCustomEvent("INH_TrialStart", "CommsStation",
-                "trialIdx=" + trialIdx + ",isGo=" + isGo + ",signalId=" + signalId);
+                "trialIdx=" + trialIdx + ",isTarget=" + isTarget + ",signalId=" + signalId);
 
             phase = Phase.Signal;
             responded = false;
             signalStartTime = Time.time;
-            SetSignalForTrial(isGo);
-            signalPanel.transform.localScale = new Vector3(0.88f, 0.88f, 1f);
-            signalPanel.SetActive(true);
-            if (appearCo != null) StopCoroutine(appearCo);
-            appearCo = StartCoroutine(CoAppearPulse());
+            curSignalDur = signalDur[trialIdx];
+            ShowShape(trial);
             if (trialLabel != null)
-                trialLabel.text = "Trial " + (trialIdx + 1) + " / " + TotalTrials;
+                trialLabel.text = "Trial " + (trialIdx + 1) + " / " + schedule.Length;
 
             while (IsActive && phase == Phase.Signal && !responded
-                   && (Time.time - signalStartTime) < SignalDuration)
+                   && (Time.time - signalStartTime) < curSignalDur)
             {
-                // Debug freeze (F11 / assessor report): pause the response
-                // window and keep the RT anchor honest.
+                // Debug freeze (F11 / assessor report): pause the response window
+                // and keep the RT anchor honest.
                 if (GameManager.IsDebugFrozen) signalStartTime += Time.deltaTime;
                 yield return null;
             }
 
-            signalPanel.SetActive(false);
-            if (IsActive && !responded) HandleTimeout(isGo);
+            HideShape();
+            if (IsActive && !responded) HandleTimeout(isTarget);
         }
 
         phase = Phase.Done;
-        signalPanel.SetActive(false);
+        HideShape();
         ResolveTask();
     }
 
@@ -357,10 +423,10 @@ public class InhibitTask : CognitiveTaskBase
         if (responded) return;
 
         responded = true;
-        bool isGo = schedule[trialIdx];
+        bool isTarget = schedule[trialIdx].IsTarget;
         float rtMs = (Time.time - signalStartTime) * 1000f;
         string result;
-        if (isGo)
+        if (isTarget)
         {
             hitRTs.Add(rtMs);
             if (trialIdx > 0 && wasCommission[trialIdx - 1]) postErrorHitRTs.Add(rtMs);
@@ -377,19 +443,19 @@ public class InhibitTask : CognitiveTaskBase
             "trialIdx=" + trialIdx + ",rtMs=" + rtMs.ToString("F0") + ",result=" + result);
     }
 
-    private void HandleTimeout(bool isGo)
+    private void HandleTimeout(bool isTarget)
     {
         string result;
-        if (isGo) { omissionCount++; result = "omission"; }
-        else       result = "correct";
+        if (isTarget) { omissionCount++; result = "omission"; }
+        else            result = "correct";
         SessionManager.Instance?.LogCustomEvent("INH_Response", "CommsStation",
             "trialIdx=" + trialIdx + ",rtMs=-1,result=" + result);
     }
 
     private void ResolveTask()
     {
-        int goCount   = TotalTrials - NoGoCount; // 14
-        int nogoCount = NoGoCount;               // 6
+        int goCount   = targetCount;                 // trials requiring a press
+        int nogoCount = TotalTrials - targetCount;   // distractors requiring restraint
 
         float hitMean = 0f, hitSD = 0f;
         if (hitRTs.Count > 0)
@@ -465,6 +531,7 @@ public class InhibitTask : CognitiveTaskBase
     private IEnumerator CoFinish(TaskResult result, int comm, int omis, int goN, int nogoN)
     {
         ClearButtons();
+        HideShape();
         if (result == TaskResult.Success)
         {
             AudioManager.Instance.PlaySfx("success_chime");
@@ -483,8 +550,8 @@ public class InhibitTask : CognitiveTaskBase
         {
             AudioManager.Instance.PlaySfx("fail_buzz");
             AudioManager.Instance.PlayVoice("incorrect");
-            ShowMessage("MISSED ALERTS  " + omis + " / " + goN, new Color(1f, 0.6f, 0.3f));
-            ShowSplash("MISSED TOO MANY ALERTS", new Color(1f, 0.55f, 0.2f), 1.2f, 60f);
+            ShowMessage("MISSED TARGETS  " + omis + " / " + goN, new Color(1f, 0.6f, 0.3f));
+            ShowSplash("MISSED TOO MANY TARGETS", new Color(1f, 0.55f, 0.2f), 1.2f, 60f);
         }
         yield return new WaitForSeconds(1.2f);
         Resolve(result);

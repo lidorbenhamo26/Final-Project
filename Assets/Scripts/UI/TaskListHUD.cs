@@ -28,6 +28,10 @@ public class TaskListHUD : MonoBehaviour
     private static readonly Color PriRed         = new Color(0.937f, 0.267f, 0.267f, 1f); // critical
     private static readonly Color PriYellow      = new Color(0.98f,  0.80f,  0.10f,  1f); // low time
     private static readonly Color PriGreen       = new Color(0.133f, 0.773f, 0.369f, 1f); // routine
+    // Baseline (routine) tasks use a neutral accent — NO priority tier coloring.
+    // Priority colors are reserved for EF events so criticality actually means
+    // something (it's meaningless with one task at a time).
+    private static readonly Color NeutralAccent  = new Color(0.40f, 0.72f, 1f, 1f);       // calm blue
     private static readonly Color ColorPanelBg   = new Color(0.04f, 0.06f, 0.09f, 0.55f);
     private static readonly Color ColorRowBg     = new Color(0.08f, 0.11f, 0.16f, 0.7f);
     private static readonly Color ColorTextPri   = new Color(0.95f, 0.97f, 1f, 1f);
@@ -41,7 +45,13 @@ public class TaskListHUD : MonoBehaviour
     private const float HEADER_H   = 20f;
     private const float ROW_GAP    = 4f;
 
-    private enum Tier { Critical, LowTime, Routine }
+    // EF priority-beat click channel: during a priority event the active rows are
+    // clickable; clicks queue here for EFEventDirector to consume as order picks
+    // (alongside number keys 1-3).
+    private static readonly Queue<MissionTask> _efClickQueue = new Queue<MissionTask>();
+    public static void ClearEfClicks() { _efClickQueue.Clear(); }
+    public static MissionTask DequeueEfClick() { return _efClickQueue.Count > 0 ? _efClickQueue.Dequeue() : null; }
+    public static void EnqueueEfClick(MissionTask t) { if (t != null) _efClickQueue.Enqueue(t); }
 
     private readonly Row[] activeRows = new Row[MAX_ACTIVE];
     private readonly MissionTask[] slotTask = new MissionTask[MAX_ACTIVE];
@@ -254,7 +264,32 @@ public class TaskListHUD : MonoBehaviour
         {
             float y = -i * (ACTIVE_H + ROW_GAP);
             activeRows[i] = BuildRow("ActiveRow" + i, y, ACTIVE_H, 44f, 16, 12, active: true);
+            AddRowClick(activeRows[i].Root, i);
         }
+    }
+
+    // A transparent full-row button so the player can CLICK a task during a
+    // priority beat to set its order (alongside number keys). Clicks on baseline
+    // rows are ignored (only EF-offered tasks queue).
+    private void AddRowClick(RectTransform rowRoot, int slot)
+    {
+        var go = new GameObject("ClickZone", typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(rowRoot, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+        var img = go.GetComponent<Image>();
+        img.color = new Color(0f, 0f, 0f, 0f); // invisible but raycast-able
+        img.raycastTarget = true;
+        int captured = slot;
+        go.GetComponent<Button>().onClick.AddListener(() => OnActiveRowClicked(captured));
+    }
+
+    private void OnActiveRowClicked(int slot)
+    {
+        if (slot < 0 || slot >= slotTask.Length) return;
+        var t = slotTask[slot];
+        if (t != null && t.EfOffered) EnqueueEfClick(t);
     }
 
     private (Image frame, Image bar, TextMeshProUGUI tag) BuildActiveExtras(RectTransform parent)
@@ -547,50 +582,30 @@ public class TaskListHUD : MonoBehaviour
     private void UpdateActiveSlot(int i, MissionTask task)
     {
         var row = activeRows[i];
-        float remaining = Mathf.Max(0f, task.timeLimit - (Time.time - task.SpawnTime));
-        float fill = Mathf.Clamp01(remaining / Mathf.Max(0.0001f, task.timeLimit));
-        bool expiring = remaining < 5f;
-        Tier tier = TierFor(task);
-        Color c = expiring ? PriRed : TierColor(tier);
 
+        // EF offer presentation: static tier color + deadline countdown + the
+        // player's chosen order badge (or "SET?" until they pick).
+        if (task.EfOffered)
+        {
+            Color ec = task.EfTier == 0 ? PriRed : task.EfTier == 1 ? PriYellow : PriGreen;
+            float dl = Mathf.Max(0.0001f, task.EfDeadline);
+            float rem = Mathf.Max(0f, dl - (Time.time - task.SpawnTime));
+            if (row.Pill != null) row.Pill.color = ec;
+            if (row.TimeBar != null) { row.TimeBar.color = ec; row.TimeBar.fillAmount = Mathf.Clamp01(rem / dl); }
+            if (row.Tag != null) { row.Tag.text = task.EfOrder > 0 ? "#" + task.EfOrder : "SET?"; row.Tag.color = ec; }
+            if (row.Frame != null) row.Frame.color = ec;
+            return;
+        }
+
+        // Baseline (routine) task: neutral presentation — no priority tier, no
+        // criticality tag, no alarm. It's just "a task to do". The window still
+        // exists (un-engaged -> NotInitiated, neutral) but we don't show a draining
+        // countdown that would create a time-race.
+        Color c = NeutralAccent;
         if (row.Pill != null) row.Pill.color = c;
-        if (row.TimeBar != null) { row.TimeBar.color = c; row.TimeBar.fillAmount = fill; }
-        if (row.Tag != null) { row.Tag.text = expiring ? "EXPIRING" : TierTag(tier); row.Tag.color = c; }
-        if (row.Frame != null)
-        {
-            float a = expiring ? 0.55f + 0.45f * Mathf.PingPong(Time.time * 2f, 1f) : 1f;
-            row.Frame.color = new Color(c.r, c.g, c.b, a);
-        }
-    }
-
-    // Critical tasks are always red; non-critical tasks go green -> yellow as their
-    // window drains, so the color tells the player both consequence and urgency.
-    private static Tier TierFor(MissionTask t)
-    {
-        if (t.Priority == TaskPriority.Critical) return Tier.Critical;
-        float remaining = t.timeLimit - (Time.time - t.SpawnTime);
-        float frac = remaining / Mathf.Max(0.0001f, t.timeLimit);
-        return frac <= 0.34f ? Tier.LowTime : Tier.Routine;
-    }
-
-    private static Color TierColor(Tier tier)
-    {
-        switch (tier)
-        {
-            case Tier.Critical: return PriRed;
-            case Tier.LowTime:  return PriYellow;
-            default:            return PriGreen;
-        }
-    }
-
-    private static string TierTag(Tier tier)
-    {
-        switch (tier)
-        {
-            case Tier.Critical: return "CRITICAL";
-            case Tier.LowTime:  return "LOW TIME";
-            default:            return "ROUTINE";
-        }
+        if (row.TimeBar != null) { row.TimeBar.color = c; row.TimeBar.fillAmount = 1f; }
+        if (row.Tag != null) row.Tag.text = "";
+        if (row.Frame != null) row.Frame.color = c;
     }
 
     private void ShiftRecentsDown()

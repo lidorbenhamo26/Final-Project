@@ -306,7 +306,7 @@ public class CarryableBattery : MonoBehaviour
         lrt.offsetMax = Vector2.zero;
 
         hintLabel = labelGO.AddComponent<TextMeshProUGUI>();
-        hintLabel.text = "[E] PICK UP";
+        hintLabel.text = "[E]  TAKE POWER CELL";
         hintLabel.alignment = TextAlignmentOptions.Center;
         hintLabel.fontSize = 34f;
         hintLabel.fontStyle = FontStyles.Bold;

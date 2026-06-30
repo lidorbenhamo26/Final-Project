@@ -165,7 +165,7 @@ public class RadarScanTask : CognitiveTaskBase
         ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
         AudioManager.Instance?.PlayVoice("radar_intro");
         ClearButtons();
-        SpawnButton(new Vector2(0f, -210f), new Vector2(280f, 100f), "READY",
+        SpawnButton(new Vector2(0f, -175f), new Vector2(280f, 90f), "READY",
             new Color(0.2f, 0.8f, 0.4f), OnReadyClicked);
     }
 
@@ -427,8 +427,8 @@ public class RadarScanTask : CognitiveTaskBase
         radarRt = radarGo.GetComponent<RectTransform>();
         radarRt.anchorMin = radarRt.anchorMax = new Vector2(0.5f, 0.5f);
         radarRt.pivot = new Vector2(0.5f, 0.5f);
-        radarRt.anchoredPosition = new Vector2(0f, -30f);
-        radarRt.sizeDelta = new Vector2(300f, 300f);
+        radarRt.anchoredPosition = new Vector2(0f, 40f);
+        radarRt.sizeDelta = new Vector2(280f, 280f);
         radarImage = radarGo.GetComponent<Image>();
         Sprite diskSprite = Resources.Load<Sprite>("Sprites/radar_disc");
         if (diskSprite != null)
@@ -462,32 +462,23 @@ public class RadarScanTask : CognitiveTaskBase
         contactText.fontStyle = FontStyles.Bold;
         contactMarkerGo.SetActive(false);
 
-        // Legend (above the radar disc). Rich-text colors match contact glyphs
-        // so the player always knows which contact is the target.
-        SpawnLabel(new Vector2(0f, 190f), new Vector2(740f, 32f),
-            "<color=#FF8C26><b>▲ ASTEROID = FLAG</b></color>" +
-            "   <color=#9A9A9A>●  DEBRIS = IGNORE</color>" +
-            "   <color=#FFFFFF>*  STAR = IGNORE</color>",
-            Color.white, 22f);
-
-        // Progress label sits ABOVE the radar disc (radar top is at y=120 with
-        // anchoredPosition=-30 and size=300), with clear vertical gap.
-        progressLabel = SpawnLabel(new Vector2(0f, 160f), new Vector2(720f, 26f),
+        // Minimal progress readout above the disc (the full rule is taught by the
+        // first-time instruction card; the old colored legend was clutter that
+        // confused players, so it's gone).
+        progressLabel = SpawnLabel(new Vector2(0f, 215f), new Vector2(720f, 26f),
             string.Format("BLOCK 1/{0}   TRIAL 1/{1}", blockCount, nTrials),
             new Color(0.7f, 0.92f, 1f), 22f);
 
-        // Per-trial feedback label is OVERLAID inside the lower portion of the
-        // radar disc (y=-110 sits ~80px below disc center, clear of contact
-        // glyphs at radius 130 and the sweep line). Renders on top because it
-        // is added to buttonsParent AFTER the radarGo.
-        feedbackLabel = SpawnLabel(new Vector2(0f, -110f), new Vector2(360f, 56f),
+        // Per-trial HIT/MISS feedback splash, overlaid near the disc centre
+        // (transient; doesn't block the edge contacts at radius 130).
+        feedbackLabel = SpawnLabel(new Vector2(0f, 30f), new Vector2(360f, 56f),
             string.Empty, new Color(1f, 1f, 1f, 0f), 52f);
         if (feedbackLabel != null) feedbackLabel.fontStyle = FontStyles.Bold;
     }
 
     private void BuildFlagButton()
     {
-        flagButton = SpawnButton(new Vector2(0f, -210f), new Vector2(320f, 100f),
+        flagButton = SpawnButton(new Vector2(0f, -175f), new Vector2(300f, 80f),
             "FLAG  (SPACE)", flagBaseColor, OnFlagPressed);
         if (flagButton != null) flagButtonImage = flagButton.GetComponent<Image>();
     }

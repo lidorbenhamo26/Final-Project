@@ -81,18 +81,26 @@ public class ThirdPersonCamera : MonoBehaviour
 
         if (target == null) return;
 
-        // Auto-align: smoothly swing the yaw behind the player's travel direction
-        // when they're moving and not actively aiming, so the view follows through
-        // corridors and doorways without constant manual mouse correction. Holding
-        // forward is stable (already aligned); mouse input always takes priority.
+        // Auto-align: gently re-center the yaw behind FORWARD travel only, so the
+        // view follows through corridors/doorways without manual correction. It must
+        // NOT react to strafing (A/D) or backpedalling (S) — otherwise sideways
+        // movement reads as "the camera is rotating", and near a wall it swings the
+        // view away from where you're trying to go. Mouse input always takes priority.
         if (autoAlign && Time.time - _lastManualLookTime > autoAlignDelay)
         {
             Vector3 vel = _targetRb != null ? _targetRb.linearVelocity : Vector3.zero;
             vel.y = 0f;
             if (vel.sqrMagnitude > autoAlignMinSpeed * autoAlignMinSpeed)
             {
-                float desiredYaw = Mathf.Atan2(vel.x, vel.z) * Mathf.Rad2Deg;
-                yaw = Mathf.LerpAngle(yaw, desiredYaw, autoAlignSpeed * Time.deltaTime);
+                Vector3 velDir = vel.normalized;
+                Vector3 camFwd = transform.forward; camFwd.y = 0f; camFwd.Normalize();
+                // Only when travel is mostly forward (within ~60° of where we already
+                // look). Strafe/backpedal velocities fall outside this and are ignored.
+                if (Vector3.Dot(velDir, camFwd) > 0.5f)
+                {
+                    float desiredYaw = Mathf.Atan2(vel.x, vel.z) * Mathf.Rad2Deg;
+                    yaw = Mathf.LerpAngle(yaw, desiredYaw, autoAlignSpeed * Time.deltaTime);
+                }
             }
         }
 

@@ -128,9 +128,9 @@ public class StationDockController : MonoBehaviour
         if (AssessmentReportController.Instance != null && AssessmentReportController.Instance.IsVisible)
             return;
 
-        // Same for the battery wiring puzzle: its E/ESC presses must not
+        // Same for any Life-Support planning puzzle: its E/ESC presses must not
         // dock the player or re-lock the cursor underneath the panel.
-        if (WiringPuzzlePanel.IsOpen)
+        if (PlanningPuzzlePanel.AnyOpen)
             return;
 
         bool interactPressed =
