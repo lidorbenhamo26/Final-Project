@@ -19,10 +19,17 @@ public class TutorialHighlight : MonoBehaviour
         SetVisible(false);
     }
 
-    public void SetTarget(Transform t, string subLabel)
+    /// <summary>
+    /// Point the marker at <paramref name="t"/>. <paramref name="title"/> is the
+    /// big pulsing line (e.g. the station name) and <paramref name="action"/> the
+    /// smaller prompt under it (e.g. "DOCK HERE"). Replaces the old generic
+    /// "OBJECTIVE" placeholder with a real, contextual prompt.
+    /// </summary>
+    public void SetTarget(Transform t, string title, string action = "")
     {
         target = t;
-        if (subText != null) subText.text = subLabel ?? "";
+        if (mainText != null) mainText.text = title ?? "";
+        if (subText != null) subText.text = action ?? "";
         SetVisible(t != null);
     }
 
@@ -67,7 +74,7 @@ public class TutorialHighlight : MonoBehaviour
         rt.sizeDelta = new Vector2(4f, 1.6f);
         canvasGO.transform.localScale = Vector3.one * 0.01f;
 
-        mainText = SpawnText(canvasGO.transform, "OBJECTIVE", 80, FontStyles.Bold,
+        mainText = SpawnText(canvasGO.transform, "", 80, FontStyles.Bold,
             new Vector2(0f, 28f), new Vector2(400f, 80f));
         subText = SpawnText(canvasGO.transform, "", 36, FontStyles.Bold,
             new Vector2(0f, -36f), new Vector2(400f, 40f));

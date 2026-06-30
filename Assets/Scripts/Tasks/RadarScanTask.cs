@@ -10,12 +10,14 @@ using UnityEngine.UI;
 /// reskinned as a radar scope. Measures sustained attention with clear
 /// per-trial feedback so the player always knows whether they detected.
 ///
-/// Paradigm: every 1.5s a contact appears at a random angle and fades over
-/// 250ms. Asteroid (20%, target — flag within 1.0s), Debris (60%, ignore),
-/// Star (20%, ignore). Full mode = 40 trials in 2 blocks of 20 (~1 min).
-/// Quick mode (F6 debug) = 20 trials in 2 blocks of 10 (~30 s).
+/// Paradigm: every ~1.5s a contact appears at a random angle and fades over
+/// 250ms. Asteroid (~25%, target — flag within 1.0s), Star (~20%, ignore),
+/// Debris (rest, ignore). Full mode defaults to 24 trials in 2 blocks of 12
+/// (~36 s, tunable via the serialized fields). Quick mode (F6 debug) = 20
+/// trials in 2 blocks of 10 (~30 s). Trial count + ISI are inspector-tunable.
 ///
-/// Pass: hit rate >= 0.70 AND false-alarm rate <= 0.10.
+/// Pass: hit rate >= 0.60 AND false-alarm rate <= 0.20 (forgiving game bar; the
+/// shorter run has fewer targets so each miss counts for more).
 /// d' is still computed and logged for research; it no longer gates the UX.
 /// </summary>
 public class RadarScanTask : CognitiveTaskBase
@@ -26,14 +28,18 @@ public class RadarScanTask : CognitiveTaskBase
     [Header("Run config")]
     public bool quickMode = false;
     [SerializeField] private int randomSeed = -1;
+    [SerializeField, Tooltip("Trials per block in full mode. Total = fullBlockSize * fullBlocks (each trial ~= trialIsi seconds).")]
+    private int fullBlockSize = 12;
+    [SerializeField, Tooltip("Blocks in full mode. Keep >=2 for a vigilance-decrement comparison.")]
+    private int fullBlocks = 2;
+    [SerializeField, Tooltip("Seconds between contacts (inter-stimulus interval).")]
+    private float trialIsi = 1.5f;
 
-    private const float TrialIsi = 1.5f;
     private const float ContactVisible = 0.25f;
     private const float ResponseWindow = 1.0f;
-    private const int FullBlockSize = 20, FullBlocks = 2;
     private const int QuickBlockSize = 10, QuickBlocks = 2;
-    private const float HitRateThreshold = 0.70f;
-    private const float FaRateThreshold = 0.10f;
+    private const float HitRateThreshold = 0.60f;
+    private const float FaRateThreshold = 0.20f;
     private const float FeedbackDuration = 0.45f;
 
     private ContactType[] schedule;
@@ -79,12 +85,28 @@ public class RadarScanTask : CognitiveTaskBase
         timeLimit = 90f;
     }
 
+    // The scan has a fixed internal duration (nTrials * ISI). The spawner must
+    // never shrink the response window below that (+ travel/READY buffer), or the
+    // task becomes impossible to finish in time at high difficulty.
+    public override float MinResponseWindowSeconds =>
+        (nTrials > 0 ? nTrials * trialIsi : 60f) + 14f;
+
+    protected override string InstructionTitle => "NAVIGATION - RADAR SCAN";
+    protected override string[] InstructionBody => new[]
+    {
+        "Contacts blip on the radar one at a time.",
+        "FLAG asteroids only - ignore stars and debris.",
+        "",
+        "Press SPACE (or the FLAG button) the instant",
+        "you spot an asteroid. The legend shows each shape.",
+    };
+
     public override void Activate()
     {
         base.Activate();
         rng = randomSeed < 0 ? new System.Random() : new System.Random(randomSeed);
-        blockSize = quickMode ? QuickBlockSize : FullBlockSize;
-        blockCount = quickMode ? QuickBlocks : FullBlocks;
+        blockSize = quickMode ? QuickBlockSize : fullBlockSize;
+        blockCount = quickMode ? QuickBlocks : fullBlocks;
         nTrials = blockSize * blockCount;
 
         InitAccumulators();
@@ -143,7 +165,7 @@ public class RadarScanTask : CognitiveTaskBase
         ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
         AudioManager.Instance?.PlayVoice("radar_intro");
         ClearButtons();
-        SpawnButton(new Vector2(0f, -210f), new Vector2(280f, 100f), "READY",
+        SpawnButton(new Vector2(0f, -175f), new Vector2(280f, 90f), "READY",
             new Color(0.2f, 0.8f, 0.4f), OnReadyClicked);
     }
 
@@ -165,7 +187,7 @@ public class RadarScanTask : CognitiveTaskBase
 
         if (sweepLineRt != null)
         {
-            float deg = -(Time.time / TrialIsi) * 360f;
+            float deg = -(Time.time / trialIsi) * 360f;
             sweepLineRt.localEulerAngles = new Vector3(0f, 0f, deg % 360f);
         }
 
@@ -230,7 +252,7 @@ public class RadarScanTask : CognitiveTaskBase
                     Fmt(("trialIdx", trialIdx), ("rtMs", -1), ("outcome", outcome)));
             }
 
-            yield return FrozenWait(TrialIsi - ResponseWindow);
+            yield return FrozenWait(trialIsi - ResponseWindow);
 
             if (trialInBlock == blockSize - 1) CommitBlockSummary(blockIdx);
         }
@@ -338,7 +360,7 @@ public class RadarScanTask : CognitiveTaskBase
     // accumulated so far so the Omission row isn't empty.
     protected override void HandleExpiry()
     {
-        if (blockHits != null)
+        if (Engaged && blockHits != null)
         {
             int hits = 0, misses = 0, fas = 0, crs = 0;
             for (int i = 0; i < blockCount; i++)
@@ -405,8 +427,8 @@ public class RadarScanTask : CognitiveTaskBase
         radarRt = radarGo.GetComponent<RectTransform>();
         radarRt.anchorMin = radarRt.anchorMax = new Vector2(0.5f, 0.5f);
         radarRt.pivot = new Vector2(0.5f, 0.5f);
-        radarRt.anchoredPosition = new Vector2(0f, -30f);
-        radarRt.sizeDelta = new Vector2(300f, 300f);
+        radarRt.anchoredPosition = new Vector2(0f, 40f);
+        radarRt.sizeDelta = new Vector2(280f, 280f);
         radarImage = radarGo.GetComponent<Image>();
         Sprite diskSprite = Resources.Load<Sprite>("Sprites/radar_disc");
         if (diskSprite != null)
@@ -440,32 +462,23 @@ public class RadarScanTask : CognitiveTaskBase
         contactText.fontStyle = FontStyles.Bold;
         contactMarkerGo.SetActive(false);
 
-        // Legend (above the radar disc). Rich-text colors match contact glyphs
-        // so the player always knows which contact is the target.
-        SpawnLabel(new Vector2(0f, 190f), new Vector2(740f, 32f),
-            "<color=#FF8C26><b>▲ ASTEROID = FLAG</b></color>" +
-            "   <color=#9A9A9A>●  DEBRIS = IGNORE</color>" +
-            "   <color=#FFFFFF>*  STAR = IGNORE</color>",
-            Color.white, 22f);
-
-        // Progress label sits ABOVE the radar disc (radar top is at y=120 with
-        // anchoredPosition=-30 and size=300), with clear vertical gap.
-        progressLabel = SpawnLabel(new Vector2(0f, 160f), new Vector2(720f, 26f),
+        // Minimal progress readout above the disc (the full rule is taught by the
+        // first-time instruction card; the old colored legend was clutter that
+        // confused players, so it's gone).
+        progressLabel = SpawnLabel(new Vector2(0f, 215f), new Vector2(720f, 26f),
             string.Format("BLOCK 1/{0}   TRIAL 1/{1}", blockCount, nTrials),
             new Color(0.7f, 0.92f, 1f), 22f);
 
-        // Per-trial feedback label is OVERLAID inside the lower portion of the
-        // radar disc (y=-110 sits ~80px below disc center, clear of contact
-        // glyphs at radius 130 and the sweep line). Renders on top because it
-        // is added to buttonsParent AFTER the radarGo.
-        feedbackLabel = SpawnLabel(new Vector2(0f, -110f), new Vector2(360f, 56f),
+        // Per-trial HIT/MISS feedback splash, overlaid near the disc centre
+        // (transient; doesn't block the edge contacts at radius 130).
+        feedbackLabel = SpawnLabel(new Vector2(0f, 30f), new Vector2(360f, 56f),
             string.Empty, new Color(1f, 1f, 1f, 0f), 52f);
         if (feedbackLabel != null) feedbackLabel.fontStyle = FontStyles.Bold;
     }
 
     private void BuildFlagButton()
     {
-        flagButton = SpawnButton(new Vector2(0f, -210f), new Vector2(320f, 100f),
+        flagButton = SpawnButton(new Vector2(0f, -175f), new Vector2(300f, 80f),
             "FLAG  (SPACE)", flagBaseColor, OnFlagPressed);
         if (flagButton != null) flagButtonImage = flagButton.GetComponent<Image>();
     }
@@ -569,7 +582,7 @@ public class RadarScanTask : CognitiveTaskBase
         schedule = new ContactType[nTrials];
         angleSchedule = new float[nTrials];
 
-        int nAsteroidPerBlock = Mathf.RoundToInt(blockSize * 0.20f);
+        int nAsteroidPerBlock = Mathf.RoundToInt(blockSize * 0.25f);
         int nStarPerBlock = Mathf.RoundToInt(blockSize * 0.20f);
         int nDebrisPerBlock = blockSize - nAsteroidPerBlock - nStarPerBlock;
 

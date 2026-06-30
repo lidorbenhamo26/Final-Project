@@ -27,6 +27,7 @@ public enum BriefScale
     WorkingMemory,
     PlanOrganize,
     TaskMonitor,
+    Shift,        // cognitive flexibility / task-switching — measured by EF events
     Unclassified
 }
 
@@ -192,6 +193,18 @@ public class AssessmentResults : MonoBehaviour
 
     private void HandleTaskResolved(MissionTask task, TaskResult result, float reactionTime)
     {
+        // NotInitiated = the player never engaged this task. It's a neutral
+        // executive-function / engagement datapoint (logged to the CSV), NOT a
+        // cognitive result — so it must not leave a record that would drag a
+        // BRIEF scale down. Drop the record auto-opened at spawn.
+        if (result == TaskResult.NotInitiated)
+        {
+            if (openRecords.TryGetValue(task, out var rec)) records.Remove(rec);
+            openRecords.Remove(task);
+            Changed?.Invoke();
+            return;
+        }
+
         var record = GetOrOpenRecord(task);
         record.Result = result;
         record.ReactionTimeS = reactionTime;

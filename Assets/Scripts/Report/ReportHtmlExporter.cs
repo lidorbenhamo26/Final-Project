@@ -41,6 +41,7 @@ public static class ReportHtmlExporter
         BuildSummary(sb, data);
         foreach (var section in data.Sections)
             BuildScaleCard(sb, section);
+        BuildExecutiveCard(sb, data);
         BuildFooter(sb, data);
 
         sb.AppendLine("</div>");
@@ -74,6 +75,8 @@ public static class ReportHtmlExporter
         sb.AppendLine("  </tr><tr>");
         DemoCell(sb, "Session #", data.SessionNumber.HasValue ? data.SessionNumber.Value.ToString() : "—");
         DemoCell(sb, "Session date", sessionDate);
+        DemoCell(sb, "Duration", data.DurationMinutes > 0 ? data.DurationMinutes + " min" : "—");
+        sb.AppendLine("  </tr><tr>");
         DemoCell(sb, "Session GUID", data.SessionGuid);
         sb.AppendLine("  </tr>");
         if (!string.IsNullOrWhiteSpace(data.Notes))
@@ -177,6 +180,84 @@ public static class ReportHtmlExporter
         sb.AppendLine("      <div class=\"bar-track\"><div class=\"bar-fill\" style=\"width:" +
                       (fraction * 100f).ToString("F0") + "%;background:" + color + "\"></div></div>");
         sb.AppendLine("    </div>");
+    }
+
+    // Executive-function behavior — prioritization decisions during EF events,
+    // reported separately from the cognitive scales above.
+    private static void BuildExecutiveCard(StringBuilder sb, ReportData data)
+    {
+        var ef = data.Executive;
+        if (ef == null || ef.EventCount == 0) return;
+
+        sb.AppendLine("<div class=\"card\">");
+        sb.AppendLine("  <div class=\"card-header\"><h2>EXECUTIVE FUNCTION &mdash; PRIORITIZATION</h2></div>");
+        sb.AppendLine("  <div class=\"card-desc\">How the participant triaged competing tasks during high-workload " +
+                      "events: which task they did first, how close their order was to the optimal Priority Protocol " +
+                      "(most critical first, then nearest deadline), and how quickly they decided.</div>");
+
+        sb.AppendLine("  <table class=\"metrics\">");
+        sb.AppendLine("    <tr><td class=\"metric-label\">EF events</td><td class=\"metric-value\">" + ef.EventCount + "</td></tr>");
+        sb.AppendLine("    <tr><td class=\"metric-label\">Optimal first choice</td><td class=\"metric-value\">" +
+                      Mathf.RoundToInt(ef.OptimalFirstRate * 100f) + "%</td></tr>");
+        sb.AppendLine("    <tr><td class=\"metric-label\">Order quality (mean)</td><td class=\"metric-value\">" +
+                      Mathf.RoundToInt(ef.MeanOptScore * 100f) + "%</td></tr>");
+        sb.AppendLine("    <tr><td class=\"metric-label\">Mean decision latency</td><td class=\"metric-value\">" +
+                      (ef.MeanDecisionLatencyS < 0f ? "&mdash;" : ef.MeanDecisionLatencyS.ToString("F1") + "s") + "</td></tr>");
+        sb.AppendLine("    <tr><td class=\"metric-label\">No decision made</td><td class=\"metric-value\">" +
+                      Mathf.RoundToInt(ef.NoChoiceRate * 100f) + "%</td></tr>");
+        sb.AppendLine("  </table>");
+
+        // Shift / task-switching sub-block (from Interruption events).
+        if (ef.InterruptionCount > 0)
+        {
+            sb.AppendLine("  <div class=\"card-caption\">Shift &mdash; task-switching (interruption events)</div>");
+            sb.AppendLine("  <table class=\"metrics\">");
+            sb.AppendLine("    <tr><td class=\"metric-label\">Interruptions</td><td class=\"metric-value\">" + ef.InterruptionCount + "</td></tr>");
+            sb.AppendLine("    <tr><td class=\"metric-label\">Correct switch decisions</td><td class=\"metric-value\">" +
+                          Mathf.RoundToInt(ef.SwitchCorrectRate * 100f) + "%</td></tr>");
+            sb.AppendLine("    <tr><td class=\"metric-label\">Mean switch latency</td><td class=\"metric-value\">" +
+                          (ef.MeanSwitchLatencyS < 0f ? "&mdash;" : ef.MeanSwitchLatencyS.ToString("F1") + "s") + "</td></tr>");
+            sb.AppendLine("    <tr><td class=\"metric-label\">Perseveration (missed switches)</td><td class=\"metric-value\">" + ef.PerseverationCount + "</td></tr>");
+            sb.AppendLine("    <tr><td class=\"metric-label\">Resumed after switch</td><td class=\"metric-value\">" +
+                          (ef.ResumeRate < 0f ? "&mdash;" : Mathf.RoundToInt(ef.ResumeRate * 100f) + "%") + "</td></tr>");
+            sb.AppendLine("  </table>");
+        }
+
+        // Working memory under load sub-block (from WM+Prioritization events).
+        if (ef.WmPrioritizationCount > 0)
+        {
+            sb.AppendLine("  <div class=\"card-caption\">Working memory under load (WM + prioritization events)</div>");
+            sb.AppendLine("  <table class=\"metrics\">");
+            sb.AppendLine("    <tr><td class=\"metric-label\">WM+Prioritization events</td><td class=\"metric-value\">" + ef.WmPrioritizationCount + "</td></tr>");
+            sb.AppendLine("    <tr><td class=\"metric-label\">Code recalled after interference</td><td class=\"metric-value\">" +
+                          (ef.CodeRecallRate < 0f ? "&mdash;" : Mathf.RoundToInt(ef.CodeRecallRate * 100f) + "%") + "</td></tr>");
+            sb.AppendLine("  </table>");
+        }
+
+        // Per-event detail.
+        for (int i = 0; i < ef.Events.Count; i++)
+        {
+            var e = ef.Events[i];
+            sb.AppendLine("  <div class=\"attempt\">");
+            sb.AppendLine("    <div class=\"attempt-header\"><span class=\"attempt-title\">" +
+                          Esc(e.EventType.ToUpperInvariant()) + " " + (i + 1) + "</span> " +
+                          "<span class=\"pill\" style=\"background:#" + (e.FirstWasOptimal ? "16A34A" : "D97706") + "\">" +
+                          (e.FirstWasOptimal ? "OPTIMAL FIRST" : "SUBOPTIMAL") + "</span></div>");
+            sb.AppendLine("    <table class=\"metrics\">");
+            sb.AppendLine("      <tr><td class=\"metric-label\">Offered</td><td class=\"metric-value\">" + Esc(e.OptionsDesc) + "</td></tr>");
+            sb.AppendLine("      <tr><td class=\"metric-label\">Player choice</td><td class=\"metric-value\">" + Esc(e.ChosenOrder) + "</td></tr>");
+            sb.AppendLine("      <tr><td class=\"metric-label\">Optimal choice</td><td class=\"metric-value\">" + Esc(e.OptimalOrder) + "</td></tr>");
+            sb.AppendLine("      <tr><td class=\"metric-label\">Decision quality</td><td class=\"metric-value\">" + Mathf.RoundToInt(e.OptScore * 100f) + "%</td></tr>");
+            sb.AppendLine("      <tr><td class=\"metric-label\">Decision latency</td><td class=\"metric-value\">" +
+                          (e.DecisionLatencyS < 0f ? "no choice" : e.DecisionLatencyS.ToString("F1") + "s") + "</td></tr>");
+            if (e.CodeRecalledCorrect >= 0)
+                sb.AppendLine("      <tr><td class=\"metric-label\">Code recalled</td><td class=\"metric-value\">" +
+                              (e.CodeRecalledCorrect == 1 ? "Yes" : "No") + "</td></tr>");
+            sb.AppendLine("    </table>");
+            sb.AppendLine("  </div>");
+        }
+
+        sb.AppendLine("</div>");
     }
 
     private static void BuildFooter(StringBuilder sb, ReportData data)

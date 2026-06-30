@@ -43,6 +43,7 @@ public static class AssessmentReportView
         BuildSummaryStrip(page, data);
         foreach (var section in data.Sections)
             BuildScaleCard(page, section);
+        BuildExecutiveCard(page, data);
         BuildFooter(page, data, cb);
     }
 
@@ -83,6 +84,7 @@ public static class AssessmentReportView
         AddDemoItem(grid, "SESSION DATE", data.StartedUtc == default
             ? data.GeneratedLocal.ToString("yyyy-MM-dd HH:mm")
             : data.StartedUtc.ToLocalTime().ToString("yyyy-MM-dd HH:mm"));
+        AddDemoItem(grid, "DURATION", data.DurationMinutes > 0 ? data.DurationMinutes + " min" : "—");
         AddDemoItem(grid, "SESSION GUID", Safe(data.SessionGuid));
 
         if (!string.IsNullOrWhiteSpace(data.Notes))
@@ -201,6 +203,111 @@ public static class AssessmentReportView
 
         for (int i = 0; i < section.Records.Count; i++)
             BuildAttempt(card, section.Records[i], i, section.Records.Count);
+    }
+
+    // ----------------------------------------------------- executive function
+
+    private static void BuildExecutiveCard(VisualElement page, ReportData data)
+    {
+        var ef = data.Executive;
+        if (ef == null || ef.EventCount == 0) return;
+
+        var card = new VisualElement();
+        card.AddToClassList("scale-card");
+        page.Add(card);
+
+        var header = new VisualElement();
+        header.AddToClassList("scale-header");
+        card.Add(header);
+        var title = new Label("EXECUTIVE FUNCTION — PRIORITIZATION");
+        title.AddToClassList("scale-title");
+        header.Add(title);
+
+        var desc = new Label("How the participant triaged competing tasks during high-workload events — " +
+                             "first choice, order quality vs the Priority Protocol (most critical first, then nearest " +
+                             "deadline), and decision speed.");
+        desc.AddToClassList("scale-desc");
+        card.Add(desc);
+
+        var grid = new VisualElement();
+        grid.AddToClassList("metric-grid");
+        card.Add(grid);
+        AddMetricRow(grid, "EF events", ef.EventCount.ToString());
+        AddMetricRow(grid, "Optimal first choice", Mathf.RoundToInt(ef.OptimalFirstRate * 100f) + "%");
+        AddMetricRow(grid, "Order quality (mean)", Mathf.RoundToInt(ef.MeanOptScore * 100f) + "%");
+        AddMetricRow(grid, "Mean decision latency", ef.MeanDecisionLatencyS < 0f ? "—" : ef.MeanDecisionLatencyS.ToString("F1") + "s");
+        AddMetricRow(grid, "No decision made", Mathf.RoundToInt(ef.NoChoiceRate * 100f) + "%");
+
+        if (ef.InterruptionCount > 0)
+        {
+            var shiftCap = new Label("Shift — task-switching (interruption events)");
+            shiftCap.AddToClassList("scale-caption");
+            card.Add(shiftCap);
+            var sg = new VisualElement();
+            sg.AddToClassList("metric-grid");
+            card.Add(sg);
+            AddMetricRow(sg, "Interruptions", ef.InterruptionCount.ToString());
+            AddMetricRow(sg, "Correct switch decisions", Mathf.RoundToInt(ef.SwitchCorrectRate * 100f) + "%");
+            AddMetricRow(sg, "Mean switch latency", ef.MeanSwitchLatencyS < 0f ? "—" : ef.MeanSwitchLatencyS.ToString("F1") + "s");
+            AddMetricRow(sg, "Perseveration (missed switches)", ef.PerseverationCount.ToString());
+            AddMetricRow(sg, "Resumed after switch", ef.ResumeRate < 0f ? "—" : Mathf.RoundToInt(ef.ResumeRate * 100f) + "%");
+        }
+
+        if (ef.WmPrioritizationCount > 0)
+        {
+            var wmCap = new Label("Working memory under load (WM + prioritization events)");
+            wmCap.AddToClassList("scale-caption");
+            card.Add(wmCap);
+            var wg = new VisualElement();
+            wg.AddToClassList("metric-grid");
+            card.Add(wg);
+            AddMetricRow(wg, "WM+Prioritization events", ef.WmPrioritizationCount.ToString());
+            AddMetricRow(wg, "Code recalled after interference", ef.CodeRecallRate < 0f ? "—" : Mathf.RoundToInt(ef.CodeRecallRate * 100f) + "%");
+        }
+
+        for (int i = 0; i < ef.Events.Count; i++)
+        {
+            var e = ef.Events[i];
+            var attempt = new VisualElement();
+            attempt.AddToClassList("attempt");
+            card.Add(attempt);
+
+            var ah = new VisualElement();
+            ah.AddToClassList("attempt-header");
+            attempt.Add(ah);
+            var at = new Label(e.EventType.ToUpperInvariant() + " " + (i + 1));
+            at.AddToClassList("attempt-title");
+            ah.Add(at);
+
+            var pill = new Label(e.FirstWasOptimal ? "OPTIMAL FIRST" : "SUBOPTIMAL");
+            pill.AddToClassList("pill");
+            pill.style.backgroundColor = new StyleColor(ParseHex(e.FirstWasOptimal ? "16A34A" : "D97706"));
+            ah.Add(pill);
+
+            var g = new VisualElement();
+            g.AddToClassList("metric-grid");
+            attempt.Add(g);
+            AddMetricRow(g, "Offered", e.OptionsDesc);
+            AddMetricRow(g, "Player choice", e.ChosenOrder);
+            AddMetricRow(g, "Optimal choice", e.OptimalOrder);
+            AddMetricRow(g, "Decision quality", Mathf.RoundToInt(e.OptScore * 100f) + "%");
+            AddMetricRow(g, "Decision latency", e.DecisionLatencyS < 0f ? "no choice" : e.DecisionLatencyS.ToString("F1") + "s");
+            if (e.CodeRecalledCorrect >= 0)
+                AddMetricRow(g, "Code recalled", e.CodeRecalledCorrect == 1 ? "Yes" : "No");
+        }
+    }
+
+    private static void AddMetricRow(VisualElement grid, string label, string value)
+    {
+        var row = new VisualElement();
+        row.AddToClassList("metric-row");
+        var l = new Label(label);
+        l.AddToClassList("metric-label");
+        row.Add(l);
+        var v = new Label(value);
+        v.AddToClassList("metric-value");
+        row.Add(v);
+        grid.Add(row);
     }
 
     private static void BuildAttempt(VisualElement card, TaskRecord record, int index, int totalAttempts)

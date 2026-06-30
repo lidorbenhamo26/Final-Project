@@ -32,7 +32,7 @@ public static class ReportCsvExporter
 
         var sb = new StringBuilder(8 * 1024);
 
-        sb.Append("ParticipantId,FullName,Age,SessionNumber,SessionGuid,StartedUtc,");
+        sb.Append("ParticipantId,FullName,Age,SessionNumber,SessionGuid,StartedUtc,DurationMin,");
         sb.Append("TaskName,BriefScale,Station,Priority,Result,ReactionTimeS");
         foreach (var col in MetricColumns) sb.Append(',').Append(col);
         sb.AppendLine(",ExtraMetrics");
@@ -43,7 +43,8 @@ public static class ReportCsvExporter
             (data.Age.HasValue ? data.Age.Value.ToString() : "") + "," +
             (data.SessionNumber.HasValue ? data.SessionNumber.Value.ToString() : "") + "," +
             Csv(data.SessionGuid) + "," +
-            (data.StartedUtc == default ? "" : data.StartedUtc.ToString("o"));
+            (data.StartedUtc == default ? "" : data.StartedUtc.ToString("o")) + "," +
+            (data.DurationMinutes > 0 ? data.DurationMinutes.ToString() : "");
 
         foreach (var section in data.Sections)
         {
@@ -86,7 +87,50 @@ public static class ReportCsvExporter
         }
 
         File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
+
+        // Companion executive-function events CSV (behavioral data, kept separate
+        // from the per-task cognitive summary above).
+        WriteEfCsv(data);
+
         return path;
+    }
+
+    // One row per EF event (prioritization / switching behavior).
+    private static void WriteEfCsv(ReportData data)
+    {
+        if (data.Executive == null || data.Executive.Events.Count == 0) return;
+
+        string fileName = "MissionFocus_EFEvents_" + DateTime.Now.ToString("yyyyMMdd_HHmmss") + ".csv";
+        string path = Path.Combine(Application.persistentDataPath, fileName);
+
+        var sb = new StringBuilder(2 * 1024);
+        sb.Append("ParticipantId,FullName,SessionGuid,");
+        sb.AppendLine("EventType,NOptions,Options,ChosenOrder,OptimalOrder,ChosenFirst," +
+                      "FirstWasOptimal,WasOptimal,OptScore,DecisionLatencyS,ChangedMind,NoChoice,Perseveration,Resumed,CodeRecalledCorrect");
+
+        string id = Csv(data.ParticipantId) + "," + Csv(data.FullName) + "," + Csv(data.SessionGuid);
+        foreach (var e in data.Executive.Events)
+        {
+            sb.Append(id);
+            sb.Append(',').Append(Csv(e.EventType));
+            sb.Append(',').Append(e.NOptions);
+            sb.Append(',').Append(Csv(e.OptionsDesc));
+            sb.Append(',').Append(Csv(e.ChosenOrder));
+            sb.Append(',').Append(Csv(e.OptimalOrder));
+            sb.Append(',').Append(Csv(e.ChosenFirst));
+            sb.Append(',').Append(e.FirstWasOptimal);
+            sb.Append(',').Append(e.WasOptimal);
+            sb.Append(',').Append(Num.F2(e.OptScore));
+            sb.Append(',').Append(e.DecisionLatencyS < 0f ? "NA" : Num.F2(e.DecisionLatencyS));
+            sb.Append(',').Append(e.ChangedMind);
+            sb.Append(',').Append(e.NoChoice);
+            sb.Append(',').Append(e.Perseveration);
+            sb.Append(',').Append(e.Resumed);
+            sb.Append(',').AppendLine(e.CodeRecalledCorrect < 0 ? "NA" :
+                                      (e.CodeRecalledCorrect == 1 ? "True" : "False"));
+        }
+
+        File.WriteAllText(path, sb.ToString(), new UTF8Encoding(true));
     }
 
     private static string Csv(string s)

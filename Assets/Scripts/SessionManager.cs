@@ -44,6 +44,7 @@ public class SessionManager : MonoBehaviour
         TotalReactionTime = 0f;
         logOpen = false;
         AssessmentResults.Instance.Clear();
+        EFResults.Instance.Clear();
     }
 
     private void EnsureLogOpen()

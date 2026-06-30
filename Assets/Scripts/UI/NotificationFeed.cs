@@ -27,13 +27,19 @@ public class NotificationFeed : MonoBehaviour
 
     private readonly List<Item> items = new List<Item>();
 
+    /// <summary>The active feed, so systems (e.g. EFEventDirector consequences) can
+    /// push crew messages without a scene reference.</summary>
+    public static NotificationFeed Instance { get; private set; }
+
     private void OnEnable()
     {
+        Instance = this;
         MissionTask.OnTaskSpawned += HandleSpawn;
     }
 
     private void OnDisable()
     {
+        if (Instance == this) Instance = null;
         MissionTask.OnTaskSpawned -= HandleSpawn;
     }
 

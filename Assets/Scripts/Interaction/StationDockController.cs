@@ -128,9 +128,9 @@ public class StationDockController : MonoBehaviour
         if (AssessmentReportController.Instance != null && AssessmentReportController.Instance.IsVisible)
             return;
 
-        // Same for the battery wiring puzzle: its E/ESC presses must not
+        // Same for any Life-Support planning puzzle: its E/ESC presses must not
         // dock the player or re-lock the cursor underneath the panel.
-        if (WiringPuzzlePanel.IsOpen)
+        if (PlanningPuzzlePanel.AnyOpen)
             return;
 
         bool interactPressed =
@@ -147,16 +147,19 @@ public class StationDockController : MonoBehaviour
                     var station = current.GetComponent<TaskStation>();
                     if (station != null)
                     {
-                        // If the random TaskSpawnLoop hasn't yet picked this station,
-                        // spawn a cognitive task on demand so docking always shows
-                        // a working minigame instead of an empty console.
-                        if (!station.HasActiveTask())
+                        // Only dock when the station has a live, system-spawned task.
+                        // Pressing E with no active task must NOT spawn one on demand:
+                        // that produced a half-initialized task outside the GameManager
+                        // spawn loop and polluted the assessment with player-cued
+                        // (rather than system-cued) trials. No task => no interaction.
+                        if (station.HasActiveTask())
                         {
-                            var taskGO = new GameObject(station.stationName + "_Task");
-                            var task = CognitiveTaskCatalog.CreateTaskForStation(taskGO, station.stationName);
-                            station.AssignTask(task);
+                            EnterDock(station);
                         }
-                        EnterDock(station);
+                        else
+                        {
+                            HUDManager.Instance?.ShowAlertBanner("No task here right now", 1.2f);
+                        }
                     }
                 }
             }

@@ -90,6 +90,17 @@ public class AudioManager : MonoBehaviour
         _sfxSource.PlayOneShot(clip, Mathf.Clamp01(volume) * _busVolume[AudioBus.Sfx]);
     }
 
+    /// <summary>Plays a clip that was built at runtime (e.g. ProceduralSfx) through
+    /// the given bus, respecting that bus's volume. No Resources lookup.</summary>
+    public void PlayClip(AudioClip clip, AudioBus bus = AudioBus.Sfx, float volume = 1f)
+    {
+        if (clip == null) return;
+        AudioSource src = bus == AudioBus.Voice ? _voiceSource : _sfxSource;
+        if (src == null) return;
+        float busVol = _busVolume.TryGetValue(bus, out float bv) ? bv : 1f;
+        src.PlayOneShot(clip, Mathf.Clamp01(volume) * busVol);
+    }
+
     public void PlayVoice(string id, float volume = 1f)
     {
         AudioClip clip = LoadClip(AudioBus.Voice, id);

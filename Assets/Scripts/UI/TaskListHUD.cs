@@ -15,30 +15,51 @@ public class TaskListHUD : MonoBehaviour
         public TextMeshProUGUI StationLabel;
         public TextMeshProUGUI ResultLabel;
         public Image TimeBar;
+        public Image Frame;          // corner-bracket overlay (active rows only)
+        public TextMeshProUGUI Tag;  // priority tag, top-right (active rows only)
     }
 
+    // Priority color code (taught in the tutorial): red = critical, yellow =
+    // running low, green = routine. Drives every active task row so the player
+    // can see at a glance which task to do first.
     private static readonly Color ColorIdle      = new Color(0.612f, 0.639f, 0.686f, 1f); // #9CA3AF
     private static readonly Color ColorActive    = new Color(0.133f, 0.773f, 0.369f, 1f); // #22C55E
     private static readonly Color ColorUrgent    = new Color(0.937f, 0.267f, 0.267f, 1f); // #EF4444
+    private static readonly Color PriRed         = new Color(0.937f, 0.267f, 0.267f, 1f); // critical
+    private static readonly Color PriYellow      = new Color(0.98f,  0.80f,  0.10f,  1f); // low time
+    private static readonly Color PriGreen       = new Color(0.133f, 0.773f, 0.369f, 1f); // routine
+    // Baseline (routine) tasks use a neutral accent — NO priority tier coloring.
+    // Priority colors are reserved for EF events so criticality actually means
+    // something (it's meaningless with one task at a time).
+    private static readonly Color NeutralAccent  = new Color(0.40f, 0.72f, 1f, 1f);       // calm blue
     private static readonly Color ColorPanelBg   = new Color(0.04f, 0.06f, 0.09f, 0.55f);
     private static readonly Color ColorRowBg     = new Color(0.08f, 0.11f, 0.16f, 0.7f);
     private static readonly Color ColorTextPri   = new Color(0.95f, 0.97f, 1f, 1f);
     private static readonly Color ColorTextSec   = new Color(0.78f, 0.82f, 0.88f, 0.95f);
 
+    private const int   MAX_ACTIVE = 3; // matches GameManager.maxConcurrentIntense
     private const float ROW_W      = 300f;
-    private const float ACTIVE_H   = 72f;
+    private const float ACTIVE_H   = 64f;
     private const float RECENT_H   = 56f;
     private const float HEADER_GAP = 8f;
     private const float HEADER_H   = 20f;
     private const float ROW_GAP    = 4f;
 
-    private Row activeRow;
+    // EF priority-beat click channel: during a priority event the active rows are
+    // clickable; clicks queue here for EFEventDirector to consume as order picks
+    // (alongside number keys 1-3).
+    private static readonly Queue<MissionTask> _efClickQueue = new Queue<MissionTask>();
+    public static void ClearEfClicks() { _efClickQueue.Clear(); }
+    public static MissionTask DequeueEfClick() { return _efClickQueue.Count > 0 ? _efClickQueue.Dequeue() : null; }
+    public static void EnqueueEfClick(MissionTask t) { if (t != null) _efClickQueue.Enqueue(t); }
+
+    private readonly Row[] activeRows = new Row[MAX_ACTIVE];
+    private readonly MissionTask[] slotTask = new MissionTask[MAX_ACTIVE];
     private Row[] recentRows = new Row[2];
-    private MissionTask currentTask;
+    private readonly List<MissionTask> activeTasks = new List<MissionTask>();
     private Dictionary<string, Sprite> iconByStation;
     private Sprite fallbackIcon;
     private Sprite panelFrameSprite;
-    private Image activeFrameImg;
     private bool _urgencyActive;
     private bool _hasRecent;
 
@@ -56,10 +77,10 @@ public class TaskListHUD : MonoBehaviour
         panelFrameSprite = Resources.Load<Sprite>("UI/panel_frame_corners");
 
         LoadIcons();
-        BuildActiveRow();
+        BuildActiveRows();
         BuildRecentHeader();
         BuildRecentRows();
-        ClearActiveRow();
+        for (int i = 0; i < activeRows.Length; i++) ClearActiveSlot(i);
         for (int i = 0; i < recentRows.Length; i++) ClearRecentRow(i);
         ShowEmptyRecentState();
     }
@@ -234,41 +255,66 @@ public class TaskListHUD : MonoBehaviour
         return Sprite.Create(tex, new Rect(0, 0, n, n), new Vector2(0.5f, 0.5f), 100f);
     }
 
-    private void BuildActiveRow()
+    // A stack of up to MAX_ACTIVE active-task rows, each with a colored frame +
+    // time bar + priority tag. Every live task gets its own row (no more hidden
+    // "+N MORE"), so the player can compare priorities and choose.
+    private void BuildActiveRows()
     {
-        activeRow = BuildRow("ActiveRow", 0f, ACTIVE_H, 64f, 20, 16);
+        for (int i = 0; i < activeRows.Length; i++)
+        {
+            float y = -i * (ACTIVE_H + ROW_GAP);
+            activeRows[i] = BuildRow("ActiveRow" + i, y, ACTIVE_H, 44f, 16, 12, active: true);
+            AddRowClick(activeRows[i].Root, i);
+        }
+    }
 
-        // Corner-bracket frame overlay (sci-fi cockpit feel). If the Meshy sprite is
-        // present at Resources/UI/panel_frame_corners we use it as a 9-sliced image;
-        // otherwise fall back to a thin outline rectangle so the row still reads
-        // as a contained panel.
+    // A transparent full-row button so the player can CLICK a task during a
+    // priority beat to set its order (alongside number keys). Clicks on baseline
+    // rows are ignored (only EF-offered tasks queue).
+    private void AddRowClick(RectTransform rowRoot, int slot)
+    {
+        var go = new GameObject("ClickZone", typeof(RectTransform), typeof(Image), typeof(Button));
+        go.transform.SetParent(rowRoot, false);
+        var rt = (RectTransform)go.transform;
+        rt.anchorMin = Vector2.zero; rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero; rt.offsetMax = Vector2.zero;
+        var img = go.GetComponent<Image>();
+        img.color = new Color(0f, 0f, 0f, 0f); // invisible but raycast-able
+        img.raycastTarget = true;
+        int captured = slot;
+        go.GetComponent<Button>().onClick.AddListener(() => OnActiveRowClicked(captured));
+    }
+
+    private void OnActiveRowClicked(int slot)
+    {
+        if (slot < 0 || slot >= slotTask.Length) return;
+        var t = slotTask[slot];
+        if (t != null && t.EfOffered) EnqueueEfClick(t);
+    }
+
+    private (Image frame, Image bar, TextMeshProUGUI tag) BuildActiveExtras(RectTransform parent)
+    {
+        // Corner-bracket frame overlay (sci-fi cockpit feel). Falls back to a thin
+        // outline rect if the Meshy sprite at Resources/UI/panel_frame_corners is
+        // missing, so the row still reads as a contained, color-coded panel.
         var frame = new GameObject("Frame", typeof(RectTransform), typeof(Image));
-        frame.transform.SetParent(activeRow.Root, false);
+        frame.transform.SetParent(parent, false);
         var frt = (RectTransform)frame.transform;
         frt.anchorMin = Vector2.zero; frt.anchorMax = Vector2.one;
         frt.offsetMin = new Vector2(2f, 2f); frt.offsetMax = new Vector2(-2f, -2f);
-        activeFrameImg = frame.GetComponent<Image>();
-        activeFrameImg.raycastTarget = false;
-        if (panelFrameSprite != null)
-        {
-            activeFrameImg.sprite = panelFrameSprite;
-            activeFrameImg.type = Image.Type.Sliced;
-            activeFrameImg.pixelsPerUnitMultiplier = 1f;
-        }
-        else
-        {
-            activeFrameImg.sprite = BuildHollowRectSprite();
-            activeFrameImg.type = Image.Type.Sliced;
-            activeFrameImg.pixelsPerUnitMultiplier = 1f;
-        }
-        activeFrameImg.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, 0.4f);
+        var frameImg = frame.GetComponent<Image>();
+        frameImg.raycastTarget = false;
+        frameImg.sprite = panelFrameSprite != null ? panelFrameSprite : BuildHollowRectSprite();
+        frameImg.type = Image.Type.Sliced;
+        frameImg.pixelsPerUnitMultiplier = 1f;
+        frameImg.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, 0.4f);
 
         var bar = new GameObject("TimeBar", typeof(RectTransform), typeof(Image));
-        bar.transform.SetParent(activeRow.Root, false);
+        bar.transform.SetParent(parent, false);
         var brt = (RectTransform)bar.transform;
         brt.anchorMin = new Vector2(0f, 0f); brt.anchorMax = new Vector2(1f, 0f);
         brt.pivot = new Vector2(0f, 0f);
-        brt.anchoredPosition = new Vector2(8f, 6f);
+        brt.anchoredPosition = new Vector2(8f, 5f);
         brt.sizeDelta = new Vector2(-16f, 4f);
         var img = bar.GetComponent<Image>();
         img.color = ColorActive;
@@ -276,7 +322,22 @@ public class TaskListHUD : MonoBehaviour
         img.fillMethod = Image.FillMethod.Horizontal;
         img.fillOrigin = (int)Image.OriginHorizontal.Left;
         img.fillAmount = 1f;
-        activeRow.TimeBar = img;
+
+        var tag = new GameObject("Tag", typeof(RectTransform));
+        tag.transform.SetParent(parent, false);
+        var tRt = (RectTransform)tag.transform;
+        tRt.anchorMin = new Vector2(1f, 1f); tRt.anchorMax = new Vector2(1f, 1f);
+        tRt.pivot = new Vector2(1f, 1f);
+        tRt.anchoredPosition = new Vector2(-10f, -6f);
+        tRt.sizeDelta = new Vector2(110f, 18f);
+        var tagTmp = tag.AddComponent<TextMeshProUGUI>();
+        tagTmp.fontSize = 12f;
+        tagTmp.fontStyle = FontStyles.Bold;
+        tagTmp.alignment = TextAlignmentOptions.TopRight;
+        tagTmp.raycastTarget = false;
+        tagTmp.text = "";
+
+        return (frameImg, img, tagTmp);
     }
 
     // Procedural fallback when panel_frame_corners sprite is missing: a 32x32
@@ -318,7 +379,7 @@ public class TaskListHUD : MonoBehaviour
         var rt = (RectTransform)go.transform;
         rt.anchorMin = new Vector2(0f, 1f); rt.anchorMax = new Vector2(0f, 1f);
         rt.pivot = new Vector2(0f, 1f);
-        rt.anchoredPosition = new Vector2(0f, -(ACTIVE_H + HEADER_GAP));
+        rt.anchoredPosition = new Vector2(0f, -(ActiveBlockHeight + HEADER_GAP));
         rt.sizeDelta = new Vector2(ROW_W, HEADER_H);
         var tmp = go.AddComponent<TextMeshProUGUI>();
         tmp.text = "RECENT";
@@ -329,9 +390,12 @@ public class TaskListHUD : MonoBehaviour
         tmp.margin = new Vector4(8f, 0f, 0f, 0f);
     }
 
+    // Total height of the stacked active-row block (used to place RECENT below it).
+    private static float ActiveBlockHeight => MAX_ACTIVE * ACTIVE_H + (MAX_ACTIVE - 1) * ROW_GAP;
+
     private void BuildRecentRows()
     {
-        float baseY = -(ACTIVE_H + HEADER_GAP + HEADER_H + HEADER_GAP);
+        float baseY = -(ActiveBlockHeight + HEADER_GAP + HEADER_H + HEADER_GAP);
         for (int i = 0; i < recentRows.Length; i++)
         {
             float y = baseY - i * (RECENT_H + ROW_GAP);
@@ -339,7 +403,7 @@ public class TaskListHUD : MonoBehaviour
         }
     }
 
-    private Row BuildRow(string name, float y, float height, float iconSize, int stationFontSize, int taskFontSize)
+    private Row BuildRow(string name, float y, float height, float iconSize, int stationFontSize, int taskFontSize, bool active = false)
     {
         var row = new GameObject(name, typeof(RectTransform));
         row.transform.SetParent(transform, false);
@@ -413,18 +477,24 @@ public class TaskListHUD : MonoBehaviour
         tkTmp.text = "";
         tkTmp.raycastTarget = false;
 
-        return new Row { Root = rt, Pill = pillImg, Icon = iconImg, StationLabel = stTmp, ResultLabel = tkTmp, TimeBar = null };
+        Image frame = null, timeBar = null; TextMeshProUGUI tag = null;
+        if (active) (frame, timeBar, tag) = BuildActiveExtras(rt);
+
+        return new Row { Root = rt, Pill = pillImg, Icon = iconImg, StationLabel = stTmp, ResultLabel = tkTmp, TimeBar = timeBar, Frame = frame, Tag = tag };
     }
 
-    private void ClearActiveRow()
+    private void ClearActiveSlot(int i)
     {
-        currentTask = null;
-        if (activeRow.Pill != null) activeRow.Pill.color = ColorIdle;
-        if (activeRow.Icon != null) { activeRow.Icon.sprite = null; activeRow.Icon.color = new Color(1f, 1f, 1f, 0.18f); }
-        if (activeRow.StationLabel != null) { activeRow.StationLabel.text = "STANDBY"; activeRow.StationLabel.color = ColorTextSec; }
-        if (activeRow.ResultLabel != null) activeRow.ResultLabel.text = "Awaiting task...";
-        if (activeRow.TimeBar != null) { activeRow.TimeBar.fillAmount = 0f; activeRow.TimeBar.color = ColorIdle; }
-        if (activeFrameImg != null) activeFrameImg.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, 0.4f);
+        slotTask[i] = null;
+        var row = activeRows[i];
+        bool primary = i == 0; // only the top slot shows the STANDBY placeholder
+        if (row.Pill != null) row.Pill.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, primary ? 1f : 0.2f);
+        if (row.Icon != null) { row.Icon.sprite = null; row.Icon.color = new Color(1f, 1f, 1f, primary ? 0.18f : 0f); }
+        if (row.StationLabel != null) { row.StationLabel.text = primary ? "STANDBY" : ""; row.StationLabel.color = ColorTextSec; }
+        if (row.ResultLabel != null) row.ResultLabel.text = primary ? "Awaiting task..." : "";
+        if (row.TimeBar != null) { row.TimeBar.fillAmount = 0f; row.TimeBar.color = ColorIdle; }
+        if (row.Tag != null) row.Tag.text = "";
+        if (row.Frame != null) row.Frame.color = new Color(ColorIdle.r, ColorIdle.g, ColorIdle.b, primary ? 0.4f : 0.1f);
     }
 
     private void ClearRecentRow(int slot)
@@ -458,20 +528,14 @@ public class TaskListHUD : MonoBehaviour
     private void HandleSpawn(MissionTask task)
     {
         if (task == null) return;
-        currentTask = task;
-        Sprite icon = LookupIcon(task.StationName);
-        if (activeRow.Icon != null) { activeRow.Icon.sprite = icon; activeRow.Icon.color = Color.white; }
-        if (activeRow.Pill != null) activeRow.Pill.color = ColorActive;
-        if (activeRow.StationLabel != null) { activeRow.StationLabel.text = PrettyStation(task.StationName).ToUpperInvariant(); activeRow.StationLabel.color = ColorTextPri; }
-        if (activeRow.ResultLabel != null) activeRow.ResultLabel.text = task.TaskName != null ? task.TaskName : "Task";
-        if (activeRow.TimeBar != null) { activeRow.TimeBar.color = ColorActive; activeRow.TimeBar.fillAmount = 1f; }
-        if (activeFrameImg != null) activeFrameImg.color = new Color(ColorActive.r, ColorActive.g, ColorActive.b, 1f);
+        if (!activeTasks.Contains(task)) activeTasks.Add(task);
+        RefreshActiveDisplay(force: true);
     }
 
     private void HandleResolved(MissionTask task, TaskResult result, float reactionTime)
     {
         if (task == null) return;
-        bool isCurrent = ReferenceEquals(task, currentTask);
+        activeTasks.Remove(task);
         if (!_hasRecent)
         {
             // First resolved task: replace the empty-state placeholder before shifting.
@@ -480,7 +544,68 @@ public class TaskListHUD : MonoBehaviour
         }
         ShiftRecentsDown();
         WriteRecent(0, task, result, reactionTime);
-        if (isCurrent) { ClearActiveRow(); _urgencyActive = false; }
+        RefreshActiveDisplay(force: true);
+    }
+
+    // Shows EVERY live task in its own row (up to MAX_ACTIVE), each color-coded by
+    // priority tier so the player can compare and choose — no more hidden "+N MORE".
+    // Rows keep spawn order (stable, no flicker); the colors convey urgency.
+    private void RefreshActiveDisplay(bool force = false)
+    {
+        for (int i = activeTasks.Count - 1; i >= 0; i--)
+            if (activeTasks[i] == null || !activeTasks[i].IsActive) activeTasks.RemoveAt(i);
+
+        for (int i = 0; i < activeRows.Length; i++)
+        {
+            MissionTask t = i < activeTasks.Count ? activeTasks[i] : null;
+            if (t == null)
+            {
+                if (slotTask[i] != null || force) ClearActiveSlot(i);
+                continue;
+            }
+            if (!ReferenceEquals(t, slotTask[i]) || force) { PopulateActiveSlot(i, t); slotTask[i] = t; }
+            UpdateActiveSlot(i, t);
+        }
+    }
+
+    // Static parts of a row (icon, station, task name) — set only when the task
+    // occupying the slot changes.
+    private void PopulateActiveSlot(int i, MissionTask task)
+    {
+        var row = activeRows[i];
+        if (row.Icon != null) { row.Icon.sprite = LookupIcon(task.StationName); row.Icon.color = Color.white; }
+        if (row.StationLabel != null) { row.StationLabel.text = PrettyStation(task.StationName).ToUpperInvariant(); row.StationLabel.color = ColorTextPri; }
+        if (row.ResultLabel != null) row.ResultLabel.text = task.TaskName != null ? task.TaskName : "Task";
+    }
+
+    // Dynamic parts (priority color, countdown bar, tag) — refreshed every frame.
+    private void UpdateActiveSlot(int i, MissionTask task)
+    {
+        var row = activeRows[i];
+
+        // EF offer presentation: static tier color + deadline countdown + the
+        // player's chosen order badge (or "SET?" until they pick).
+        if (task.EfOffered)
+        {
+            Color ec = task.EfTier == 0 ? PriRed : task.EfTier == 1 ? PriYellow : PriGreen;
+            float dl = Mathf.Max(0.0001f, task.EfDeadline);
+            float rem = Mathf.Max(0f, dl - (Time.time - task.SpawnTime));
+            if (row.Pill != null) row.Pill.color = ec;
+            if (row.TimeBar != null) { row.TimeBar.color = ec; row.TimeBar.fillAmount = Mathf.Clamp01(rem / dl); }
+            if (row.Tag != null) { row.Tag.text = task.EfOrder > 0 ? "#" + task.EfOrder : "SET?"; row.Tag.color = ec; }
+            if (row.Frame != null) row.Frame.color = ec;
+            return;
+        }
+
+        // Baseline (routine) task: neutral presentation — no priority tier, no
+        // criticality tag, no alarm. It's just "a task to do". The window still
+        // exists (un-engaged -> NotInitiated, neutral) but we don't show a draining
+        // countdown that would create a time-race.
+        Color c = NeutralAccent;
+        if (row.Pill != null) row.Pill.color = c;
+        if (row.TimeBar != null) { row.TimeBar.color = c; row.TimeBar.fillAmount = 1f; }
+        if (row.Tag != null) row.Tag.text = "";
+        if (row.Frame != null) row.Frame.color = c;
     }
 
     private void ShiftRecentsDown()
@@ -501,7 +626,10 @@ public class TaskListHUD : MonoBehaviour
         if (slot < 0 || slot >= recentRows.Length) return;
         var r = recentRows[slot];
         bool ok = result == TaskResult.Success;
-        Color tint = ok ? ColorActive : ColorUrgent;
+        // NotInitiated is neutral (never engaged), not a red failure.
+        Color tint = ok ? ColorActive
+                   : result == TaskResult.NotInitiated ? ColorIdle
+                   : ColorUrgent;
         Sprite icon = LookupIcon(task.StationName);
         if (r.Icon != null) { r.Icon.sprite = icon; r.Icon.color = new Color(1f, 1f, 1f, 0.9f); }
         if (r.Pill != null) r.Pill.color = tint;
@@ -520,10 +648,11 @@ public class TaskListHUD : MonoBehaviour
     {
         switch (r)
         {
-            case TaskResult.Success:    return "PASS";
-            case TaskResult.Fail:       return "FAIL";
-            case TaskResult.Omission:   return "MISS";
-            case TaskResult.Commission: return "ERR";
+            case TaskResult.Success:     return "PASS";
+            case TaskResult.Fail:        return "FAIL";
+            case TaskResult.Omission:    return "MISS";
+            case TaskResult.Commission:  return "ERR";
+            case TaskResult.NotInitiated: return "SKIP";
         }
         return r.ToString().ToUpperInvariant();
     }
@@ -550,16 +679,17 @@ public class TaskListHUD : MonoBehaviour
 
     private void Update()
     {
-        if (currentTask == null || !currentTask.IsActive)
+        // Refresh all active rows (prune, repopulate on change, update colors/bars).
+        RefreshActiveDisplay();
+
+        // Urgency music when ANY live task is about to expire.
+        float minRemaining = float.MaxValue;
+        foreach (var t in activeTasks)
         {
-            if (_urgencyActive) _urgencyActive = false;
-            return;
+            if (t == null || !t.IsActive) continue;
+            minRemaining = Mathf.Min(minRemaining, t.timeLimit - (Time.time - t.SpawnTime));
         }
-        float elapsed = Time.time - currentTask.SpawnTime;
-        float remaining = Mathf.Max(0f, currentTask.timeLimit - elapsed);
-        float fill = Mathf.Clamp01(remaining / Mathf.Max(0.0001f, currentTask.timeLimit));
-        if (activeRow.TimeBar != null) activeRow.TimeBar.fillAmount = fill;
-        bool urgent = remaining < 5f;
+        bool urgent = activeTasks.Count > 0 && minRemaining < 5f;
         if (urgent && !_urgencyActive)
         {
             _urgencyActive = true;
@@ -568,15 +698,6 @@ public class TaskListHUD : MonoBehaviour
         else if (!urgent && _urgencyActive)
         {
             _urgencyActive = false;
-        }
-        Color c = urgent ? ColorUrgent : ColorActive;
-        if (activeRow.Pill != null) activeRow.Pill.color = c;
-        if (activeRow.TimeBar != null) activeRow.TimeBar.color = c;
-        if (activeFrameImg != null)
-        {
-            // Pulse the frame alpha while urgent so the panel reads as 'in danger'.
-            float a = urgent ? 0.55f + 0.45f * Mathf.PingPong(Time.time * 2f, 1f) : 1f;
-            activeFrameImg.color = new Color(c.r, c.g, c.b, a);
         }
     }
 }
