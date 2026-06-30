@@ -58,7 +58,12 @@ public class BatteryMissionHUD : MonoBehaviour
                 : new Color(1f, 0.32f, 0.26f);
         }
         if (powerLabel != null)
-            powerLabel.text = "LIFE SUPPORT POWER  " + Mathf.CeilToInt(frac01 * 100f) + "%";
+        {
+            int pct = Mathf.CeilToInt(frac01 * 100f);
+            powerLabel.text = frac01 <= 0.25f
+                ? "LIFE SUPPORT POWER  " + pct + "%  —  RESTORE NOW"
+                : "LIFE SUPPORT POWER  " + pct + "%";
+        }
     }
 
     private void Build()

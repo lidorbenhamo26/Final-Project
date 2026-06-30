@@ -27,6 +27,7 @@ public enum BriefScale
     WorkingMemory,
     PlanOrganize,
     TaskMonitor,
+    Shift,        // cognitive flexibility / task-switching — measured by EF events
     Unclassified
 }
 

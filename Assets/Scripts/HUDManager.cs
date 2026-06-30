@@ -24,6 +24,7 @@ public class HUDManager : MonoBehaviour
         if (Instance != null) { Destroy(gameObject); return; }
         Instance = this;
         reportController = gameObject.AddComponent<AssessmentReportController>();
+        ShipState.GetOrCreate(); // ship-systems status tracks from mission start
         EnsureLiveHud();
     }
 
@@ -33,7 +34,9 @@ public class HUDManager : MonoBehaviour
 
         bool active = GameManager.Instance.MissionActive;
         if (wasMissionActive && !active)
-            reportController.ShowMissionEnd();
+            // Player-facing summary first (closure in the game's language); its
+            // Continue button hands off to the clinical assessor report.
+            MissionSummaryPanel.GetOrCreate().Show(() => reportController.ShowMissionEnd());
         wasMissionActive = active;
 
         if (timerText != null)
@@ -245,6 +248,14 @@ public class HUDManager : MonoBehaviour
         SpawnMiniMap(canvasGO.transform);
         SpawnTaskListHUD(canvasGO.transform);
         SpawnNotificationFeed(canvasGO.transform);
+        SpawnStationStatus(canvasGO.transform);
+    }
+
+    private void SpawnStationStatus(Transform canvasParent)
+    {
+        var go = new GameObject("StationStatusHUD", typeof(RectTransform));
+        go.transform.SetParent(canvasParent, false);
+        go.AddComponent<StationStatusHUD>();
     }
 
     // Top-left stats panel: dark navy fill, corner-bracket frame overlay, and a

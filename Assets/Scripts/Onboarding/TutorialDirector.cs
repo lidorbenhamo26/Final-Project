@@ -47,7 +47,7 @@ public class TutorialDirector : MonoBehaviour
     private static readonly Color CheckDoneColor   = new Color(0.35f, 0.95f, 0.55f, 1f);
     private static readonly Color CheckPendColor   = new Color(0.55f, 0.62f, 0.72f, 0.7f);
 
-    private const float TourSecondsEach = 2.4f;
+    private const float TourSecondsEach = 1.8f;
 
     private struct Step
     {
@@ -57,17 +57,19 @@ public class TutorialDirector : MonoBehaviour
     }
 
     // Step indices (keep in sync with BuildSteps()).
-    private const int StepMove   = 0;
-    private const int StepSprint = 1;
-    private const int StepJump   = 2;
-    private const int StepTour   = 3;
-    private const int StepWalk1  = 4;
-    private const int StepDock1  = 5;
-    private const int StepTask1  = 6;
-    private const int StepWalk2  = 7;
-    private const int StepDock2  = 8;
-    private const int StepTask2  = 9;
-    private const int StepReturn = 10;
+    private const int StepMove        = 0;
+    private const int StepSprint      = 1;
+    private const int StepJump        = 2;
+    private const int StepTour        = 3;
+    private const int StepBatteryWalk = 4;
+    private const int StepBatteryGrab = 5;
+    private const int StepWalk1       = 6;
+    private const int StepDock1       = 7;
+    private const int StepTask1       = 8;
+    private const int StepWalk2       = 9;
+    private const int StepDock2       = 10;
+    private const int StepTask2       = 11;
+    private const int StepReturn      = 12;
 
     private AstronautController player;
     private Rigidbody playerRb;
@@ -87,8 +89,8 @@ public class TutorialDirector : MonoBehaviour
     private TMP_Text helperLbl;
     private TMP_Text progressLbl;
     private TMP_Text[] checklistLbls;
-    private readonly bool[] checklistDone = new bool[6];
-    private static readonly string[] ChecklistNames = { "WALK", "SPRINT", "JUMP", "STATION 1", "STATION 2", "RETURN" };
+    private readonly bool[] checklistDone = new bool[7];
+    private static readonly string[] ChecklistNames = { "WALK", "SPRINT", "JUMP", "BATTERY", "STATION 1", "STATION 2", "RETURN" };
     private TutorialHighlight highlight;
 
     private List<Step> steps;
@@ -106,6 +108,14 @@ public class TutorialDirector : MonoBehaviour
     private int tourIndex = -1;
     private bool finished;
 
+    // Battery teach-step state.
+    private Transform batteryMarker;     // marks the storage rack / cell location
+    private GameObject batteryCell;      // spawned practice cell
+    private CarryableBattery batteryCarryable;
+    private bool batteryGrabbed;
+    private bool batterySetupFailed;     // scene lacks rack/prefab -> auto-pass the steps
+    private float batteryArriveRadius = 2.6f;
+
     private void Start()
     {
         BuildOverlay();
@@ -121,6 +131,7 @@ public class TutorialDirector : MonoBehaviour
     private void OnDestroy()
     {
         MissionTask.OnTaskResolved -= HandleTaskResolved;
+        if (batteryCarryable != null) batteryCarryable.OnPickedUp -= HandleBatteryGrabbed;
     }
 
     private void EnsurePlayerAnimator()
@@ -137,6 +148,7 @@ public class TutorialDirector : MonoBehaviour
         TrackMovement();
         if (stepIndex == StepJump) TickJumpCount();
         if (stepIndex == StepTour) TickTour();
+        if (stepIndex == StepBatteryWalk) EnsureBatteryCell();
 
         if (steps[stepIndex].IsComplete(this)) Advance();
     }
@@ -216,48 +228,58 @@ public class TutorialDirector : MonoBehaviour
         steps = new List<Step>
         {
             new Step {
-                Prompt = "PRESS  W A S D  OR  ARROW KEYS  TO MOVE",
-                Helper = "Walk around the hub to get a feel for the controls.",
+                Prompt = "MOVE  —  PRESS  W A S D  OR  ARROW KEYS",
+                Helper = "Objective: walk around the hub to get used to the controls.",
                 IsComplete = d => d.walkAccum >= d.walkDistance,
             },
             new Step {
-                Prompt = "HOLD  SHIFT  TO SPRINT",
-                Helper = "Run across the hub.",
+                Prompt = "SPRINT  —  HOLD  SHIFT  WHILE MOVING",
+                Helper = "Objective: run across the hub.",
                 IsComplete = d => d.sprintAccum >= d.sprintDistance,
             },
             new Step {
-                Prompt = "PRESS  SPACE  TO JUMP",
-                Helper = "Hop a few times.",
+                Prompt = "JUMP  —  PRESS  SPACE",
+                Helper = "Objective: jump a few times.",
                 IsComplete = d => d.jumpCount >= d.requiredJumps,
             },
             new Step {
-                Prompt = "SHIP TOUR — YOUR FOUR STATIONS",
-                Helper = "Each doorway is labelled. Task list (top-left): RED = urgent (do first), YELLOW = running low, GREEN = routine.",
+                Prompt = "SHIP TOUR  —  LEARN YOUR FOUR STATIONS",
+                Helper = "Watch each doorway light up. These are the four stations tasks will route to.",
                 IsComplete = d => d.tourComplete,
             },
             new Step {
+                Prompt = "WALK TO THE LIFE SUPPORT POWER CELL",
+                Helper = "This is the Life Support battery, in central storage. Follow the marker to it.",
+                IsComplete = d => d.batterySetupFailed || d.DistanceToPoint(d.batteryMarker) < d.batteryArriveRadius,
+            },
+            new Step {
+                Prompt = "PRESS  E  TO TAKE THE POWER CELL",
+                Helper = "Grab a cell so you know how. In the mission, carry one here to Life Support when power runs low.",
+                IsComplete = d => d.batterySetupFailed || d.batteryGrabbed,
+            },
+            new Step {
                 Prompt = "WALK TO THE " + " STATION", // patched in Advance with station1Label
-                Helper = "Follow the marker through the doorway.",
+                Helper = "Objective: follow the marker through the doorway to the station.",
                 IsComplete = d => d.DistanceTo(d.station1) < d.stationArriveRadius,
             },
             new Step {
-                Prompt = "PRESS  E  TO DOCK",
-                Helper = "Stand at the console and engage.",
+                Prompt = "PRESS  E  TO DOCK AT THE CONSOLE",
+                Helper = "Stand at the console and press E to engage.",
                 IsComplete = d => d.EnsurePractice(d.station1, 0) && d.IsDockedAt(d.station1),
             },
             new Step {
                 Prompt = "COMPLETE THE PRACTICE TASK",
-                Helper = "Do the quick action on the console.",
+                Helper = "Do the quick action shown on the console.",
                 IsComplete = d => d.taskResolvedThisStep,
             },
             new Step {
                 Prompt = "WALK TO THE " + " STATION", // patched with station2Label
-                Helper = "Now head to the next station.",
+                Helper = "Objective: now head to the next station.",
                 IsComplete = d => d.DistanceTo(d.station2) < d.stationArriveRadius,
             },
             new Step {
-                Prompt = "PRESS  E  TO DOCK",
-                Helper = "Engage the second console.",
+                Prompt = "PRESS  E  TO DOCK AT THE CONSOLE",
+                Helper = "Engage the second console with E.",
                 IsComplete = d => d.EnsurePractice(d.station2, 1) && d.IsDockedAt(d.station2),
             },
             new Step {
@@ -266,8 +288,8 @@ public class TutorialDirector : MonoBehaviour
                 IsComplete = d => d.taskResolvedThisStep,
             },
             new Step {
-                Prompt = "RETURN TO THE CENTRAL ROOM TO FINISH",
-                Helper = "Head back to the hub in the middle of the ship.",
+                Prompt = "RETURN TO THE CENTRAL HUB TO FINISH",
+                Helper = "Objective: head back to the room in the middle of the ship.",
                 IsComplete = d => d.DistanceToHub() < d.hubReturnRadius,
             },
         };
@@ -306,12 +328,13 @@ public class TutorialDirector : MonoBehaviour
     {
         switch (completed)
         {
-            case StepMove:   SetCheck(0); break;
-            case StepSprint: SetCheck(1); break;
-            case StepJump:   SetCheck(2); break;
-            case StepTask1:  SetCheck(3); break;
-            case StepTask2:  SetCheck(4); break;
-            case StepReturn: SetCheck(5); break;
+            case StepMove:        SetCheck(0); break;
+            case StepSprint:      SetCheck(1); break;
+            case StepJump:        SetCheck(2); break;
+            case StepBatteryGrab: SetCheck(3); break;
+            case StepTask1:       SetCheck(4); break;
+            case StepTask2:       SetCheck(5); break;
+            case StepReturn:      SetCheck(6); break;
         }
     }
 
@@ -339,6 +362,13 @@ public class TutorialDirector : MonoBehaviour
         if (highlight == null) return;
         switch (stepIndex)
         {
+            case StepBatteryWalk:
+                EnsureBatteryCell();
+                if (batteryMarker != null) highlight.SetTarget(batteryMarker, "POWER CELL", "WALK HERE"); else highlight.Hide();
+                break;
+            case StepBatteryGrab:
+                if (batteryMarker != null) highlight.SetTarget(batteryMarker, "POWER CELL", "PRESS  E"); else highlight.Hide();
+                break;
             case StepWalk1:
                 if (station1 != null) highlight.SetTarget(station1.transform, station1Label, "WALK HERE"); else highlight.Hide();
                 break;
@@ -420,8 +450,56 @@ public class TutorialDirector : MonoBehaviour
             tourIndex = idx;
             var entry = tourStations[idx];
             highlight.SetTarget(entry.station.transform, entry.label, "STATION");
-            if (helperLbl != null) helperLbl.text = entry.label;
+            if (helperLbl != null) helperLbl.text = entry.label + "  —  " + TourPurpose(entry.label);
         }
+    }
+
+    // One-line purpose per station so the tour teaches what each is for, not just
+    // where it is.
+    private static string TourPurpose(string label)
+    {
+        switch (label)
+        {
+            case "ENGINE":        return "reactor & memory tasks";
+            case "NAVIGATION":    return "scanning & course tasks";
+            case "COMMS":         return "signal & attention tasks";
+            case "LIFE SUPPORT":  return "keep the crew's air & power up";
+        }
+        return "a mission station";
+    }
+
+    // Spawns the practice power cell at the central storage rack the first time the
+    // battery step is reached. If the scene has no rack or the cell prefab is
+    // missing, flags setupFailed so the two battery steps auto-pass (no soft-lock).
+    private void EnsureBatteryCell()
+    {
+        if (batteryCell != null || batterySetupFailed || batteryMarker != null) return;
+
+        var rack = FindAnyObjectByType<BatteryStorageRack>();
+        if (rack == null) { batterySetupFailed = true; return; }
+
+        Vector3 spawnPos = rack.SpawnPosition;
+        Quaternion spawnRot = rack.SpawnRotation;
+
+        var markerGo = new GameObject("TutorialBatteryMarker");
+        markerGo.transform.SetParent(transform, false);
+        markerGo.transform.position = spawnPos;
+        batteryMarker = markerGo.transform;
+
+        var prefab = Resources.Load<GameObject>("BatteryCell");
+        if (prefab == null) { batterySetupFailed = true; return; }
+
+        batteryCell = Instantiate(prefab, spawnPos, spawnRot);
+        batteryCell.name = "TutorialPowerCell";
+        batteryCarryable = batteryCell.GetComponent<CarryableBattery>();
+        if (batteryCarryable == null) batteryCarryable = batteryCell.AddComponent<CarryableBattery>();
+        batteryCarryable.OnPickedUp += HandleBatteryGrabbed;
+    }
+
+    private void HandleBatteryGrabbed(CarryableBattery b)
+    {
+        batteryGrabbed = true;
+        if (helperLbl != null) helperLbl.text = "Got it — that's the Life Support cell. Now back to the stations.";
     }
 
     // Create a trivial practice task on the station if it has none yet. Returns
@@ -493,6 +571,14 @@ public class TutorialDirector : MonoBehaviour
         if (playerT == null) return float.MaxValue;
         Vector3 a = playerT.position; a.y = 0f;
         return a.magnitude; // hub centre is world origin
+    }
+
+    private float DistanceToPoint(Transform t)
+    {
+        if (t == null || playerT == null) return float.MaxValue;
+        Vector3 a = playerT.position, b = t.position;
+        a.y = 0f; b.y = 0f;
+        return Vector3.Distance(a, b);
     }
 
     // -------------------------------------------------------------- overlay ---

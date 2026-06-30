@@ -39,6 +39,21 @@ public class GameManager : MonoBehaviour
     private int baselineMaxConcurrent = 1;
     [SerializeField, Range(0f, 1f), Tooltip("Chance to pick the Engine (Working Memory) station when it's eligible, so the ambient code task the player liked appears more often. 0 = pure rotation.")]
     private float engineSpawnBias = 0.4f;
+    [Header("EF redesign — events (Phase 1)")]
+    [SerializeField, Tooltip("Enable in-flow executive-function events (Triage etc.).")]
+    private bool efEnabled = true;
+    // EF events recur after a RANDOM 1-2 baseline tasks, so prioritization is a
+    // frequent, central part of play but the player can't predict exactly when the
+    // next one hits.
+    // Re-rolled after every event (see nextEfThreshold), so they stay spread across
+    // the whole mission. Code-driven (not SerializeField) so the cadence is
+    // consistent regardless of any older value serialized on the scene's GameManager.
+    private int efEventEveryMin = 1;
+    private int efEventEveryMax = 2;
+
+    private EFEventDirector efDirector;
+    private int baselineTasksSinceEf;
+    private int nextEfThreshold = 3;
 
     /// <summary>Current mission difficulty in 0..1 (0 during the calm intro). Read by the HUD and DistractionDirector.</summary>
     public float CurrentDifficulty { get; private set; }
@@ -61,6 +76,15 @@ public class GameManager : MonoBehaviour
 
     public float MissionTimeRemaining { get; private set; }
     public bool MissionActive { get; private set; }
+
+    private float missionTotalSeconds;
+    /// <summary>Fraction of the mission elapsed, 0..1.</summary>
+    public float MissionProgress01 => missionTotalSeconds > 0f
+        ? Mathf.Clamp01(1f - MissionTimeRemaining / missionTotalSeconds) : 0f;
+    /// <summary>The mission is split into thirds for a light sense of progress toward
+    /// rescue; CurrentSector is 1..TotalSectors.</summary>
+    public const int TotalSectors = 3;
+    public int CurrentSector => Mathf.Clamp(Mathf.FloorToInt(MissionProgress01 * TotalSectors) + 1, 1, TotalSectors);
 
     // F11 toggles this. When true: mission timer, task spawning, and every
     // MissionTask's internal timer freeze — so you can carry the cell and inspect
@@ -153,6 +177,8 @@ public class GameManager : MonoBehaviour
     {
         if (task == null || string.IsNullOrEmpty(task.StationName)) return;
         lastResolvedAt[task.StationName] = Time.time;
+        // Count only BASELINE tasks toward the EF-event cadence (EF offers don't).
+        if (!task.EfOffered) baselineTasksSinceEf++;
         // Log difficulty alongside the outcome so the report can plot performance
         // against how hard the mission was at that moment.
         if (SessionManager.Instance != null)
@@ -217,6 +243,7 @@ public class GameManager : MonoBehaviour
 
         if (quickTestMode) Application.runInBackground = true;
         MissionTimeRemaining = quickTestMode ? quickTestDuration : missionDuration;
+        missionTotalSeconds = MissionTimeRemaining;
         MissionActive = true;
         if (SessionManager.Instance != null)
             SessionManager.Instance.LogCustomEvent("Mission_Start", "System", "Begin");
@@ -224,6 +251,17 @@ public class GameManager : MonoBehaviour
         // (StationDockController), so free-roam is ambient-only — no global music here.
         AudioManager.Instance.PlayAmbient("station_hum");
         AudioManager.Instance.PlayVoice("mission_start");
+        NotificationFeed.Instance?.Push("Welcome aboard, Commander. Keep the ship stable until rescue.");
+        StartCoroutine(CoIntroNudges());
+
+        // Executive-function event scheduler.
+        efDirector = GetComponent<EFEventDirector>();
+        if (efDirector == null) efDirector = gameObject.AddComponent<EFEventDirector>();
+        nextEfThreshold = Random.Range(efEventEveryMin, efEventEveryMax + 1);
+
+        // Environmental atmosphere (crew chatter, alert warnings, red-alert vignette).
+        gameObject.AddComponent<AmbienceDirector>();
+
         StartCoroutine(MissionCountdown());
         StartCoroutine(TaskSpawnLoop());
     }
@@ -274,6 +312,14 @@ public class GameManager : MonoBehaviour
     {
         yield return new WaitForSeconds(delay);
         HUDManager.Instance?.ShowCodeBanner("1234", 4f);
+    }
+
+    // Light orientation during the calm intro so the opening minute isn't empty.
+    private System.Collections.IEnumerator CoIntroNudges()
+    {
+        yield return new WaitForSeconds(6f);
+        if (MissionActive)
+            NotificationFeed.Instance?.Push("Tasks will route to the stations — head over and handle each one.");
     }
 
     [ContextMenu("Debug: Force-spawn Engine Task")]
@@ -368,50 +414,55 @@ public class GameManager : MonoBehaviour
     private IEnumerator TaskSpawnLoop()
     {
         yield return new WaitForSeconds(3f);
+        float nextSpawnAt = Time.time;
+
+        // Tick on a short recheck interval (not a single long sleep) so the EF-event
+        // trigger is evaluated promptly the moment the deck clears and the cadence is
+        // due — this is what keeps priority beats frequent and spread across the run.
         while (MissionActive)
         {
-            if (IsDebugFrozen)
-            {
-                yield return new WaitForSeconds(spawnRecheckInterval);
-                continue;
-            }
-
-            // Don't spawn while the player is docked/occupied at a station: they
-            // can't see or act on a new task (especially the code-memory display
-            // that flashes on the main screen), which would be an unfair miss.
-            // Spawning resumes automatically on undock (next recheck).
-            if (StationDockController.Instance != null && StationDockController.Instance.IsDocked)
+            if (IsDebugFrozen
+                || (StationDockController.Instance != null && StationDockController.Instance.IsDocked))
             {
                 yield return new WaitForSeconds(spawnRecheckInterval);
                 continue;
             }
 
             CurrentDifficulty = ComputeDifficulty();
-            // Phase 0: strictly one active task at a time. Concurrency for the
-            // executive-function events is introduced later by EFEventDirector.
+
+            // Executive-function event: once enough baseline tasks have passed and the
+            // deck is clear, run a designed EF beat instead of the next single spawn.
+            if (efEnabled && efDirector != null && !efDirector.EventActive
+                && baselineTasksSinceEf >= nextEfThreshold && CountActiveTasks() == 0)
+            {
+                var efStations = BuildEligibleStationList();
+                if (efStations.Count >= 2)
+                {
+                    yield return StartCoroutine(efDirector.RunNextEvent(efStations));
+                    baselineTasksSinceEf = 0;
+                    nextEfThreshold = Random.Range(efEventEveryMin, efEventEveryMax + 1);
+                    nextSpawnAt = Time.time + spawnRecheckInterval;
+                    yield return new WaitForSeconds(spawnRecheckInterval);
+                    continue;
+                }
+            }
+
+            // Phase 0: strictly one active task at a time during baseline. Spawn only
+            // when the cadence timer is up; the cadence tightens as difficulty climbs.
             int maxConcurrent = Mathf.Max(1, baselineMaxConcurrent);
-
-            if (CountActiveTasks() >= maxConcurrent)
+            if (CountActiveTasks() < maxConcurrent && Time.time >= nextSpawnAt)
             {
-                yield return new WaitForSeconds(spawnRecheckInterval);
-                continue;
+                var eligible = BuildEligibleStationList();
+                if (eligible.Count > 0)
+                {
+                    SpawnTaskAt(PickStation(eligible));
+                    float min = Mathf.Lerp(spawnIntervalCalm.x, spawnIntervalIntense.x, CurrentDifficulty);
+                    float max = Mathf.Lerp(spawnIntervalCalm.y, spawnIntervalIntense.y, CurrentDifficulty);
+                    nextSpawnAt = Time.time + Random.Range(min, max);
+                }
             }
 
-            var eligible = BuildEligibleStationList();
-            if (eligible.Count == 0)
-            {
-                yield return new WaitForSeconds(spawnRecheckInterval);
-                continue;
-            }
-
-            TaskStation chosen = PickStation(eligible);
-            SpawnTaskAt(chosen);
-            lastSpawnedAt[chosen.stationName] = Time.time;
-
-            // Spawn cadence tightens as difficulty climbs (capped by the intense range).
-            float min = Mathf.Lerp(spawnIntervalCalm.x, spawnIntervalIntense.x, CurrentDifficulty);
-            float max = Mathf.Lerp(spawnIntervalCalm.y, spawnIntervalIntense.y, CurrentDifficulty);
-            yield return new WaitForSeconds(Random.Range(min, max));
+            yield return new WaitForSeconds(spawnRecheckInterval);
         }
     }
 
@@ -476,14 +527,26 @@ public class GameManager : MonoBehaviour
         return best;
     }
 
-    private void SpawnTaskAt(TaskStation station)
+    /// <summary>Spawn an executive-function offer at a station (part of an EF
+    /// event): generous window + EF presentation fields, returned to the director.</summary>
+    /// <summary>Spawn an EF offer. forceVariant >= 0 pins the task variant (e.g. 0
+    /// to guarantee the Working Memory task for the WM+Prioritization event).</summary>
+    public MissionTask SpawnEfOffer(TaskStation station, float deadline, int forceVariant = -1)
+        => SpawnTaskAt(station, true, deadline, forceVariant);
+
+    private MissionTask SpawnTaskAt(TaskStation station, bool efOffer = false, float efDeadline = 0f, int forceVariant = -1)
     {
         var go = new GameObject(station.stationName + "Task");
 
         // Alternate variants at stations that have two (each pair scores the same
         // BRIEF-A scale). The per-station counter gives strict A/B/A/B alternation.
+        // A forced variant (EF events that need a specific task) bypasses the counter.
         int variant = 0;
-        if (alternateTaskVariants)
+        if (forceVariant >= 0)
+        {
+            variant = forceVariant;
+        }
+        else if (alternateTaskVariants)
         {
             spawnCountByStation.TryGetValue(station.stationName, out int c);
             variant = c;
@@ -492,16 +555,31 @@ public class GameManager : MonoBehaviour
 
         var task = CognitiveTaskCatalog.CreateTaskForStation(go, station.stationName, variant);
         station.AssignTask(task);
+        lastSpawnedAt[station.stationName] = Time.time;
 
-        // Phase 0: travel/arrival is no longer the test, so we DON'T shorten the
-        // window with difficulty. The window is just a generous "engage" window:
-        // an un-engaged task that times out resolves as NotInitiated (neutral),
-        // not a cognitive Omission. Keep only the per-task floor as a safety.
-        float floor = Mathf.Max(minResponseWindow, task.MinResponseWindowSeconds);
-        task.timeLimit = Mathf.Max(floor, task.timeLimit);
+        if (efOffer)
+        {
+            task.EfOffered = true;
+            task.EfTier = task.Priority == TaskPriority.Critical ? 0 : 2; // red / green (medium added later)
+            task.EfDeadline = efDeadline;
+            // Don't let an offered task auto-NotInitiate during the event; the
+            // director ends the event (safety timeout) if it's never engaged.
+            task.timeLimit = Mathf.Max(task.timeLimit, 600f);
+        }
+        else
+        {
+            // Travel/arrival is not the test: DON'T shorten the window with
+            // difficulty. It's just a generous "engage" window — an un-engaged task
+            // resolves as NotInitiated (neutral), not a cognitive Omission. Keep
+            // only the per-task floor as a safety.
+            float floor = Mathf.Max(minResponseWindow, task.MinResponseWindowSeconds);
+            task.timeLimit = Mathf.Max(floor, task.timeLimit);
+        }
 
         if (SessionManager.Instance != null)
             SessionManager.Instance.LogCustomEvent("Task_Spawn", station.stationName,
-                "diff=" + CurrentDifficulty.ToString("F2"));
+                "diff=" + CurrentDifficulty.ToString("F2") + (efOffer ? " ef=1" : ""));
+
+        return task;
     }
 }

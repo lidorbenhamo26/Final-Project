@@ -112,6 +112,89 @@ scheduler+Triage -> 2 Shift scale+report -> 3 Interruption -> 4 WM+Prioritizatio
   `Tasks/{RadarScan,Stroop,WorkingMemory,Inhibit}Task.cs`, `Report/AssessmentResults.cs`,
   `UI/TaskListHUD.cs`, `GameManager.cs`.
 
+### ✅ Phase 1 — EF scheduler + Triage event  (DONE — verified; commit held)
+- New `EFEventDirector`: count-based scheduler (every `efEventEveryMin..Max` = 3-4
+  baseline tasks, deck clear) runs a Triage event instead of the next baseline
+  spawn; the GameManager loop yields on it (baseline suspended for the event).
+- Triage: 2-3 eligible stations spawned as concurrent OFFERS (`SpawnEfOffer`, EF
+  fields + generous non-expiring window so nothing is lost), shown on the existing
+  HUD rows (tier color + deadline countdown + `#1/#2/#3` order badge). A 4s
+  decision window; **keyboard 1-3 only** (click-to-select intentionally deferred).
+- Priority Protocol optimal = sort by (tier asc, deadline asc); option (a)
+  score-only. Logged SEPARATELY from cognition: `EF_TriageOffer` (options w/ tier+
+  deadline), `EF_TriageDecision` (chosen vs optimal order, chosenFirst, wasOptimal,
+  optScore 0-1 pairwise concordance, latency, changedMind, noChoice), `EF_TriageEnd`.
+- VERIFIED (quickTestMode, threshold=1, reverted): after a baseline task, 3 offers
+  spawned (`Navigation:low:55s|LifeSupport:critical:40s|Comms:critical:70s`),
+  optimal computed `LifeSupport>Comms>Navigation`, no-choice default + optScore=0.33
+  correct. Three separable log streams confirmed. Compiles clean.
+- Code: `EFEventDirector.cs` (new), `GameManager.cs`, `MissionTask.cs`, `UI/TaskListHUD.cs`.
+
+### ✅ Phase 2 — Shift scale + EF-behavior report section  (DONE — compile+runtime verified; commit held)
+- Added `BriefScale.Shift` (cognitive flexibility / task-switching) — populated by
+  the Interruption event in Phase 3; kept distinct from Plan/Organize.
+- New `EFResults` store (mirrors `AssessmentResults`) holding one `EFEventRecord`
+  per EF event (options, chosen vs optimal order, firstWasOptimal, optScore,
+  decision latency, changedMind, noChoice) + aggregates (optimal-first rate, mean
+  order quality, mean latency, no-choice rate). `EFEventDirector` records each
+  Triage to it; `SessionManager.ResetForNewMission` clears it per mission.
+- `ReportData` captures an `Executive` summary; rendered as an "EXECUTIVE FUNCTION
+  — PRIORITIZATION" section in all three report faces: on-screen view
+  (`AssessmentReportView`), HTML export (`ReportHtmlExporter`), and a NEW companion
+  `MissionFocus_EFEvents_*.csv` (`ReportCsvExporter`) — behavioral data kept
+  separate from the per-task cognitive summary.
+- VERIFIED: compiles clean; an EF event fires and records to EFResults with no
+  runtime errors. (Report visuals/exports are assessor-button-triggered, so they
+  need a human to view/export — not bot-verifiable.)
+- Code: `Report/AssessmentResults.cs` (enum), `Report/EFResults.cs` (new),
+  `EFEventDirector.cs`, `SessionManager.cs`, `Report/ReportData.cs`,
+  `Report/AssessmentReportView.cs`, `Report/ReportHtmlExporter.cs`,
+  `Report/ReportCsvExporter.cs`.
+
+### ✅ Phase 3 — Interruption event (Shift) + round-robin  (DONE — compile+smoke verified; commit held)
+- `EFEventDirector.RunNextEvent` round-robins Triage <-> Interruption (balanced data;
+  GameManager now calls RunNextEvent).
+- `RunInterruption`: spawns task A, waits for the player to engage it, then fires a
+  higher-visibility interrupt B (flash + chime + "PRIORITY TASK" banner) with a ~3s
+  switch window. DIEGETIC — "switch" = undock A and engage B (no special key);
+  "stay" = finish A first. Optimal = switch IFF B is strictly more critical than A.
+  Logs `EF_InterruptionOffer` / `EF_InterruptionDecision` (decision, optimalSwitch,
+  wasOptimal, switchLatency, resumedFirst, perseveration) and an EFResults record.
+  Safety: aborts (`EF_InterruptionAbort`) if A is never engaged.
+- Shift surfaced in the report: `EFResults` Shift aggregates (interruption count,
+  correct-switch rate, mean switch latency, perseveration count, resume rate),
+  shown as a "Shift — task-switching" sub-block in the on-screen view + HTML, and
+  added columns (Perseveration, Resumed) in the companion EF CSV. Per-event labels
+  generalized ("Player choice" / "Optimal choice") so both event types render.
+- VERIFIED: compiles clean; the EF flow runs via RunNextEvent with no runtime errors
+  (round-robin first event = Triage observed). The Interruption decision/Shift
+  measurement needs a human playtest (engage A -> switch to B) — not bot-verifiable
+  (no keyboard/dock injection). Known v1 limitation: precise resume accuracy/RT cost
+  deferred; `resumed` ~= A finished after switching.
+- Code: `EFEventDirector.cs`, `GameManager.cs`, `Report/EFResults.cs`,
+  `Report/ReportData.cs`, `Report/AssessmentReportView.cs`,
+  `Report/ReportHtmlExporter.cs`, `Report/ReportCsvExporter.cs`.
+
+### ✅ Phase 4 — WM + Prioritization event  (DONE — compile+smoke verified; commit held)
+- Round-robin now cycles 3 types (Triage / Interruption / WM+Prioritization).
+- `RunWmPrioritization`: shows a 4-digit code up front (HUD code banner, ~5s), then
+  offers the Engine Working-Memory task (forced variant 0) + one other task; the
+  player triages the order (shared 4s decision) and must still enter the code at
+  Engine after the interference. Measures WM under prioritization load.
+- `WorkingMemoryTask.SetExternalCode` (recall-only mode: skips its own reveal, uses
+  the up-front code) + `CodeCorrect` exposed; `GameManager.SpawnEfOffer` gained a
+  `forceVariant` arg so the event always gets a real WM task (not the Code-Memory
+  alternate). Extracted the shared `RunOrderDecision` helper (used by Triage + WM).
+- Logs `EF_WMPrioOffer/Tasks/Decision` (order vs optimal + `codeCorrect`); EFResults
+  gains WM-under-load aggregates (event count, code-recall rate). Report shows a
+  "Working memory under load" sub-block (view + HTML) + per-event "Code recalled"
+  row + a `CodeRecalledCorrect` column in the companion EF CSV.
+- VERIFIED: compiles clean; the refactored Triage (now via `RunOrderDecision`) fires
+  with correct optimal + no runtime errors. The WM+Prioritization (and Interruption)
+  decision/recall need a human playtest — not bot-verifiable (no keyboard/dock).
+- Code: `Tasks/WorkingMemoryTask.cs`, `EFEventDirector.cs`, `GameManager.cs`,
+  `Report/{EFResults,ReportData,AssessmentReportView,ReportHtmlExporter,ReportCsvExporter}.cs`.
+
 **Priority order:** Task 2 → Task 3 → Task 1 → Task 4, plus Task 5 & Task 6.
 
 **How the world is built:** the ship interior is generated procedurally by editor

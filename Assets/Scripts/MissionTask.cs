@@ -35,6 +35,20 @@ public abstract class MissionTask : MonoBehaviour
     public bool Engaged { get; private set; }
     protected void MarkEngaged() { Engaged = true; }
 
+    // --- Executive-function offer fields (set by EFEventDirector during an EF
+    // event). They change only how the task is PRESENTED/scored for prioritization;
+    // the task's own cognition is unchanged. EfTier: 0=critical(red), 1=medium
+    // (yellow), 2=low(green). EfDeadline: urgency seconds for the Priority Protocol
+    // + HUD countdown. EfOrder: player-assigned execution order (0 = unset).
+    public bool EfOffered;
+    public int EfTier;
+    public float EfDeadline;
+    public int EfOrder;
+    // Stated in-fiction reason for this task's tier (e.g. "Crew oxygen dropping"),
+    // shown on the Priority Beat card so the player's ordering is an INFORMED
+    // executive decision (the learnable Priority Protocol), not a color guess.
+    public string EfReason;
+
     protected StationUI StationUI { get; private set; }
 
     // Set by a task the moment its outcome is computed (metrics reported,

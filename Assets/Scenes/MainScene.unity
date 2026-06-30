@@ -21919,6 +21919,10 @@ MonoBehaviour:
   minResponseWindow: 7
   stationCooldownAfterResolve: 15
   spawnRecheckInterval: 1.5
+  alternateTaskVariants: 1
+  baselineMaxConcurrent: 1
+  engineSpawnBias: 0.4
+  efEnabled: 1
   tutorialMode: 0
   quickTestMode: 0
   quickTestDuration: 30
