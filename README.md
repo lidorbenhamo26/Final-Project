@@ -18,7 +18,7 @@ Traditional cognitive test batteries are controlled and measurable, but often ab
 
 - **Cognitive task suite** — sustained attention / vigilance (radar scan, CPT-style), working memory (code memory), response inhibition (Go/No-Go), plus operational tasks (comms, engine, navigation, life-support, battery delivery).
 - **In-flow executive-function events** — occasional high-workload moments where several tasks arrive at once, measuring planning, prioritization, and task-switching *inside* normal gameplay (no separate "test mode").
-- **Immersive station** — third-person astronaut character, interactive props (carry a battery, dock it in a socket), ambient crew/automation chatter, and procedurally-synthesized sound effects.
+- **Immersive station** — a third-person astronaut that switches to a first-person view when operating a console, interactive props (carry a battery, dock it in a socket), ambient crew/automation chatter, and procedurally-synthesized sound effects.
 - **Guided onboarding** — an interactive tutorial scene that teaches each mechanic hands-on before the mission begins.
 - **Assessor report** — a per-session report that maps task performance onto executive-function domains (BRIEF-A-inspired, e.g. Task-Monitor and Plan/Organize) and exports to **HTML** and **CSV** for further analysis.
 
