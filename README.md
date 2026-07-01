@@ -1,0 +1,89 @@
+# Mission: Focus
+
+**A Unity serious-game for assessing cognitive performance and executive function, framed as a single-player spaceship mission.**
+
+Mission: Focus turns a battery of cognitive and executive-function (EF) probes into one coherent, immersive experience: the player operates a space station, and everyday "ship duties" double as cognitive tasks. Performance is logged continuously and compiled into an assessor-facing report.
+
+> Final-year capstone project · 2026
+
+---
+
+## Overview
+
+Traditional cognitive test batteries are accurate but sterile and easy to disengage from. Mission: Focus embeds the same measurement ideas inside gameplay, so attention, working memory, inhibition, and prioritization are exercised *in flow* — while the player simply "runs the ship." One session produces both an engaging experience and structured, exportable assessment data.
+
+## Key features
+
+- **Cognitive task suite** — sustained attention / vigilance (radar scan, CPT-style), working memory (code memory), response inhibition (Go/No-Go), plus operational tasks (comms, engine, navigation, life-support, battery delivery).
+- **In-flow executive-function events** — occasional high-workload moments where several tasks arrive at once, measuring planning, prioritization, and task-switching *inside* normal gameplay (no separate "test mode").
+- **Immersive station** — first-person astronaut, interactive props (carry a battery, dock it in a socket), ambient crew/automation chatter, and procedurally-synthesized sound effects.
+- **Guided onboarding** — an interactive tutorial scene that teaches each mechanic hands-on before the mission begins.
+- **Assessor report** — a per-session report that maps task performance onto executive-function domains (BRIEF-A-inspired, e.g. Task-Monitor and Plan/Organize) and exports to **HTML** and **CSV** for further analysis.
+
+## Assessment & data
+
+Every trial records accuracy, reaction time, and commission/omission errors. At the end of a session the report summarizes results by cognitive domain and writes both a human-readable **HTML** report and a raw per-trial **CSV** for statistical analysis.
+
+## Tech stack
+
+- **Engine:** Unity **6000.4.3f1** (Unity 6.4), Universal Render Pipeline (URP)
+- **Language:** C# (100+ project scripts)
+- **UI / Text:** TextMeshPro
+- **Large assets:** Git LFS (textures, audio, 3D models, animations)
+
+## Getting started
+
+> **Important — this repository uses Git LFS.** Large assets (textures, audio, models, animations) are stored with Git LFS. Install Git LFS **before** cloning, otherwise those assets download as small pointer files and Unity will show them as missing.
+
+```bash
+# 1) Install Git LFS once per machine
+git lfs install
+
+# 2) Clone (LFS assets are fetched automatically)
+git clone <repository-url>
+cd Final-Project
+
+# If you cloned before installing LFS, fetch the assets now:
+git lfs pull
+```
+
+Then:
+
+1. Open the project in **Unity 6000.4.3f1** via Unity Hub (matching the version avoids import differences).
+2. Let Unity import and compile on first open (this regenerates the local `Library/`).
+3. Open **`Assets/Scenes/StartScene.unity`** and press **Play**.
+   - `TutorialScene` — hands-on onboarding
+   - `MainScene` — the full mission
+
+## Project structure
+
+```
+Assets/
+  Scripts/
+    Tasks/         cognitive & operational tasks (radar, code-memory, Go/No-Go, engine, …)
+    Onboarding/    interactive tutorial flow
+    Interaction/   carryable battery, sockets, station interaction
+    Report/        assessment results + HTML/CSV exporters
+    UI/            HUD, notifications, panels
+    Audio/         audio manager + procedural SFX
+    Editor/        scene-setup and asset tooling
+  Scenes/          StartScene, TutorialScene, MainScene
+  Resources/Audio/ ambient / music / SFX
+  Characters/, Models/, Prefabs/, Materials/   game art & assets
+Packages/          Unity package manifest (restored on open)
+ProjectSettings/   Unity project settings
+Poster/            A0 research poster (PDF + source)
+```
+
+## Research poster
+
+`Poster/` contains the A0 poster summarizing the project's motivation, design, and system architecture (rendered PDF and source file).
+
+## Authors
+
+- **Lidor Ben Hamo**
+- **Yahli Rapaport**
+
+## Acknowledgements
+
+Built with Unity and TextMeshPro. Includes third-party art packs (Minimal Sci-Fi, Vintage Controls) used under their respective licenses.

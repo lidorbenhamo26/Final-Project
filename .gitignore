@@ -108,7 +108,6 @@ InitTestScene*.unity*
 
 # Local dev artifacts
 /[Aa]ssets/[Ss]creenshots/
-/.claude/
 
 # Blender export intermediates — the .fbx is an intermediate from Unity → Blender.
 # The .blend is the deliverable. Skip the (large) FBX.
