@@ -74,7 +74,14 @@ Assets/
   Characters/, Models/, Prefabs/, Materials/   game art & assets
 Packages/          Unity package manifest (restored on open)
 ProjectSettings/   Unity project settings
+docs/              project books (Phase A & B) + research poster
 ```
+
+## Documentation
+
+- [`docs/MissionFocus_PhaseA_Book.docx`](docs/MissionFocus_PhaseA_Book.docx) — Phase A project book
+- [`docs/MissionFocus_PhaseB_Book.docx`](docs/MissionFocus_PhaseB_Book.docx) — Phase B project book
+- [`docs/MissionFocus_Poster_A0.pdf`](docs/MissionFocus_Poster_A0.pdf) — A0 research poster
 
 ## Authors
 
