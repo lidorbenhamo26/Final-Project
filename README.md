@@ -1,10 +1,12 @@
-# Mission Focus
+# Mission: Focus
 
-**A 3D game-based assessment for ADHD** — a Unity serious-game that observes attention and executive-function performance during an immersive spaceship mission.
+**A 3D Game-Based Assessment for ADHD**
+
+A Unity serious-game that observes attention and executive-function performance during an immersive spaceship mission.
 
 Mission Focus turns a battery of cognitive and executive-function (EF) probes into one coherent, immersive experience: the player operates a space station, and everyday "ship duties" double as cognitive tasks. Performance is logged continuously and compiled into an assessor-facing report.
 
-> Final-year capstone project · Braude College of Engineering · 2026
+> Software Engineering Department, Braude College of Engineering · Capstone Project 26-1-D-17
 
 ---
 
@@ -79,8 +81,8 @@ docs/              project books (Phase A & B) + research poster
 
 ## Documentation
 
-- [`docs/MissionFocus_PhaseA_Book.docx`](docs/MissionFocus_PhaseA_Book.docx) — Phase A project book
-- [`docs/MissionFocus_PhaseB_Book.docx`](docs/MissionFocus_PhaseB_Book.docx) — Phase B project book
+- [`docs/MissionFocus_PhaseA_Book.pdf`](docs/MissionFocus_PhaseA_Book.pdf) — Phase A project book
+- [`docs/MissionFocus_PhaseB_Book.pdf`](docs/MissionFocus_PhaseB_Book.pdf) — Phase B project book
 - [`docs/MissionFocus_Poster_A0.pdf`](docs/MissionFocus_Poster_A0.pdf) — A0 research poster
 
 ## Authors
@@ -88,7 +90,7 @@ docs/              project books (Phase A & B) + research poster
 - **Lidor Ben Hamo**
 - **Yahli Rapaport**
 
-**Advisor:** Dr. Moshe Sulamy — Department of Software Engineering & Information Systems, Braude College of Engineering
+**Advisor:** Dr. Moshe Sulamy — Software Engineering Department, Braude College of Engineering
 
 ## Acknowledgements
 
