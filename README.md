@@ -1,28 +1,30 @@
-# Mission: Focus
+# Mission Focus
 
-**A Unity serious-game for assessing cognitive performance and executive function, framed as a single-player spaceship mission.**
+**A 3D game-based assessment for ADHD** — a Unity serious-game that observes attention and executive-function performance during an immersive spaceship mission.
 
-Mission: Focus turns a battery of cognitive and executive-function (EF) probes into one coherent, immersive experience: the player operates a space station, and everyday "ship duties" double as cognitive tasks. Performance is logged continuously and compiled into an assessor-facing report.
+Mission Focus turns a battery of cognitive and executive-function (EF) probes into one coherent, immersive experience: the player operates a space station, and everyday "ship duties" double as cognitive tasks. Performance is logged continuously and compiled into an assessor-facing report.
 
-> Final-year capstone project · 2026
+> Final-year capstone project · Braude College of Engineering · 2026
 
 ---
 
 ## Overview
 
-Traditional cognitive test batteries are accurate but sterile and easy to disengage from. Mission: Focus embeds the same measurement ideas inside gameplay, so attention, working memory, inhibition, and prioritization are exercised *in flow* — while the player simply "runs the ship." One session produces both an engaging experience and structured, exportable assessment data.
+Traditional cognitive test batteries are controlled and measurable, but often abstract and easy to disengage from. Mission Focus embeds the same measurement ideas inside gameplay, so attention, working memory, inhibition, and prioritization are exercised *in flow* — while the player simply "runs the ship." One session produces both an engaging experience and structured, exportable data.
 
 ## Key features
 
 - **Cognitive task suite** — sustained attention / vigilance (radar scan, CPT-style), working memory (code memory), response inhibition (Go/No-Go), plus operational tasks (comms, engine, navigation, life-support, battery delivery).
 - **In-flow executive-function events** — occasional high-workload moments where several tasks arrive at once, measuring planning, prioritization, and task-switching *inside* normal gameplay (no separate "test mode").
-- **Immersive station** — first-person astronaut, interactive props (carry a battery, dock it in a socket), ambient crew/automation chatter, and procedurally-synthesized sound effects.
+- **Immersive station** — third-person astronaut character, interactive props (carry a battery, dock it in a socket), ambient crew/automation chatter, and procedurally-synthesized sound effects.
 - **Guided onboarding** — an interactive tutorial scene that teaches each mechanic hands-on before the mission begins.
 - **Assessor report** — a per-session report that maps task performance onto executive-function domains (BRIEF-A-inspired, e.g. Task-Monitor and Plan/Organize) and exports to **HTML** and **CSV** for further analysis.
 
 ## Assessment & data
 
 Every trial records accuracy, reaction time, and commission/omission errors. At the end of a session the report summarizes results by cognitive domain and writes both a human-readable **HTML** report and a raw per-trial **CSV** for statistical analysis.
+
+> **Note:** Mission Focus is a research and educational prototype. It is not intended to provide a clinical diagnosis on its own. Its results are designed to support interpretation alongside questionnaires, interviews, and professional judgment.
 
 ## Tech stack
 
@@ -72,17 +74,14 @@ Assets/
   Characters/, Models/, Prefabs/, Materials/   game art & assets
 Packages/          Unity package manifest (restored on open)
 ProjectSettings/   Unity project settings
-Poster/            A0 research poster (PDF + source)
 ```
-
-## Research poster
-
-`Poster/` contains the A0 poster summarizing the project's motivation, design, and system architecture (rendered PDF and source file).
 
 ## Authors
 
 - **Lidor Ben Hamo**
 - **Yahli Rapaport**
+
+**Advisor:** Dr. Moshe Sulamy — Department of Software Engineering & Information Systems, Braude College of Engineering
 
 ## Acknowledgements
 
