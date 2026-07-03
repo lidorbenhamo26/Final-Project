@@ -79,7 +79,9 @@ public class ReportData
             Scale = BriefScale.Inhibit,
             Title = "INHIBIT",
             Description = "Response inhibition — the ability to resist impulses and stop a prepotent response.",
-            TaskCaption = "Stroop Color-Word Task — Comms Station",
+            // Comms alternates two Inhibit-scale variants (Stroop and Go/No-Go),
+            // so the caption names both; each attempt's Protocol row says which ran.
+            TaskCaption = "Stroop Color-Word / Go-No-Go Task — Comms Station",
         },
         new ScaleMeta
         {
@@ -236,6 +238,7 @@ public static class ReportFormat
         { "puzzleTimeS",        "Planning time (s)" },
         { "panelOpens",         "Panel openings" },
         { "outcome",            "Outcome" },
+        { "timeLimitS",         "Time limit (s)" },
     };
 
     public static string LabelFor(string metricKey)
@@ -257,6 +260,21 @@ public static class ReportFormat
             if (raw == "False" || raw == "false") return "No";
         }
         return raw;
+    }
+
+    /// <summary>
+    /// Humanize the raw station ids embedded in EF decision strings (e.g.
+    /// "EngineStation:critical:25s") for the on-screen and HTML report only —
+    /// the CSV/log data keeps the raw ids.
+    /// </summary>
+    public static string PrettyStationsInline(string s)
+    {
+        if (string.IsNullOrEmpty(s)) return s;
+        return s
+            .Replace("EngineStation", "Engine")
+            .Replace("NavigationStation", "Navigation")
+            .Replace("CommsStation", "Comms")
+            .Replace("LifeSupportStation", "Life Support");
     }
 
     public static string ResultLabel(TaskResult? result)

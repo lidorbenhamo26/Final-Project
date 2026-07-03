@@ -37,7 +37,9 @@ public class PriorityBeatPanel : MonoBehaviour
     private const float CARD_H = 230f;
     private const float CARD_GAP = 28f;
 
-    private const string LEGEND =
+    // The one-line Priority Protocol, shared wherever the rule is (re)stated:
+    // the beat panel, its intro, the interruption card/intro, the ship briefing.
+    public const string LEGEND =
         "<color=#EF4444>● CRITICAL</color>   >   " +
         "<color=#FACC1A>● IMPORTANT</color>   >   " +
         "<color=#22C55E>● ROUTINE</color>      then soonest deadline";

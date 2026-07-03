@@ -105,7 +105,7 @@ public static class ReportCsvExporter
 
         var sb = new StringBuilder(2 * 1024);
         sb.Append("ParticipantId,FullName,SessionGuid,");
-        sb.AppendLine("EventType,NOptions,Options,ChosenOrder,OptimalOrder,ChosenFirst," +
+        sb.AppendLine("EventType,NOptions,Options,ChosenOrder,OptimalOrder,ChosenFirst,Switched," +
                       "FirstWasOptimal,WasOptimal,OptScore,DecisionLatencyS,ChangedMind,NoChoice,Perseveration,Resumed,CodeRecalledCorrect");
 
         string id = Csv(data.ParticipantId) + "," + Csv(data.FullName) + "," + Csv(data.SessionGuid);
@@ -118,6 +118,7 @@ public static class ReportCsvExporter
             sb.Append(',').Append(Csv(e.ChosenOrder));
             sb.Append(',').Append(Csv(e.OptimalOrder));
             sb.Append(',').Append(Csv(e.ChosenFirst));
+            sb.Append(',').Append(e.Switched);
             sb.Append(',').Append(e.FirstWasOptimal);
             sb.Append(',').Append(e.WasOptimal);
             sb.Append(',').Append(Num.F2(e.OptScore));

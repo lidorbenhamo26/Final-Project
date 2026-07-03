@@ -123,7 +123,8 @@ public class RoutePowerPuzzle : PlanningPuzzlePanel
         for (int i = 0; i < n; i++)
         {
             if (routeLbl[i] == null) continue;
-            routeLbl[i].text = assigned[i] < 0 ? "— UNROUTED" : "→ " + SourceNames[assigned[i]];
+            // ">" not "→": the static TMP atlas has no arrow glyph (renders as □).
+            routeLbl[i].text = assigned[i] < 0 ? "— UNROUTED" : "> " + SourceNames[assigned[i]];
             routeLbl[i].color = assigned[i] < 0 ? TextDim : OkColor;
         }
     }

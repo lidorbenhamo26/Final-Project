@@ -75,15 +75,26 @@ public class StationWaypointArrow : MonoBehaviour
     private TaskStation NearestActive()
     {
         TaskStation best = null;
+        TaskStation objective = null;
         float bestD = float.MaxValue;
         if (stations == null) return null;
         foreach (var s in stations)
         {
             if (s == null || !s.HasActiveTask()) continue;
+            // An unanswered interrupt wins over plain distance: the only reason to
+            // be undocked while one is pending is to go answer it, and nearest-
+            // active would otherwise point back at the station just undocked from.
+            // Guides execution only — the stay/switch decision happens while docked.
+            var t = s.CurrentTask;
+            if (t != null && t.EfInterrupt && !t.Engaged) return s;
+            // The player's declared #1 (a triage pick, or the interrupt they chose
+            // to SWITCH to) beats distance for the same reason: it's where they
+            // are heading, not where they just were.
+            if (objective == null && t != null && t.EfOrder == 1 && !t.Engaged) objective = s;
             float d = (s.transform.position - player.position).sqrMagnitude;
             if (d < bestD) { bestD = d; best = s; }
         }
-        return best;
+        return objective != null ? objective : best;
     }
 
     private void RescanStations()
@@ -142,17 +153,20 @@ public class StationWaypointArrow : MonoBehaviour
     }
 
     // 64x64 upward-pointing solid triangle so we don't depend on any art asset.
+    // Texture rows run bottom (y=0) to top (y=N-1), so the base must sit on the
+    // bottom row and the apex on the top row for the sprite to point UP at zero
+    // rotation — which the Update() math relies on ("ahead" => arrow up).
     private static Sprite BuildTriangleSprite()
     {
         const int N = 64;
         var px = new Color[N * N];
         for (int i = 0; i < px.Length; i++) px[i] = new Color(1, 1, 1, 0);
+        int cx = N / 2;
         for (int y = 0; y < N; y++)
         {
-            // Width grows from apex (top) to base (bottom).
-            float t = 1f - (y / (float)(N - 1)); // 0 at bottom, 1 at top
-            int halfW = Mathf.RoundToInt((1f - t) * (N * 0.5f));
-            int cx = N / 2;
+            // Full width at the base (bottom row), tapering to a point at the apex (top row).
+            float up = y / (float)(N - 1); // 0 at bottom, 1 at top
+            int halfW = Mathf.RoundToInt((1f - up) * (N * 0.5f));
             for (int x = cx - halfW; x <= cx + halfW; x++)
                 if (x >= 0 && x < N) px[y * N + x] = Color.white;
         }

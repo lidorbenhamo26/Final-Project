@@ -592,7 +592,18 @@ public class TaskListHUD : MonoBehaviour
             float rem = Mathf.Max(0f, dl - (Time.time - task.SpawnTime));
             if (row.Pill != null) row.Pill.color = ec;
             if (row.TimeBar != null) { row.TimeBar.color = ec; row.TimeBar.fillAmount = Mathf.Clamp01(rem / dl); }
-            if (row.Tag != null) { row.Tag.text = task.EfOrder > 0 ? "#" + task.EfOrder : "SET?"; row.Tag.color = ec; }
+            if (row.Tag != null)
+            {
+                // Interrupts read "NEW!" (an unresolved demand); ordered tasks show
+                // the player's chosen rank; un-picked beat offers ask "SET?". The
+                // remaining window rides along so the draining bar has a readable
+                // number — dropped once the deadline passes (a task can outlive
+                // its deadline after an event; "0s" would misread as expired).
+                string tag = task.EfInterrupt ? "NEW!" : task.EfOrder > 0 ? "#" + task.EfOrder : "SET?";
+                if (rem > 0f) tag += "  " + Mathf.CeilToInt(rem) + "s";
+                row.Tag.text = tag;
+                row.Tag.color = ec;
+            }
             if (row.Frame != null) row.Frame.color = ec;
             return;
         }

@@ -133,6 +133,14 @@ public class StationDockController : MonoBehaviour
         if (PlanningPuzzlePanel.AnyOpen)
             return;
 
+        // Same for any held/frozen beat (interruption choice, priority intro,
+        // F11): an E or ESC press must not dock or undock underneath the frozen
+        // card — ExitDock mid-freeze re-locks the cursor (making the card
+        // unclickable) and invalidates the controls snapshot the EF director
+        // restores when the freeze lifts.
+        if (GameManager.IsDebugFrozen)
+            return;
+
         bool interactPressed =
             (_interactAction != null && _interactAction.WasPressedThisFrame())
             || InteractInputBinding.InteractPressedThisFrame();

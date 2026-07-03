@@ -121,7 +121,9 @@ public class HUDManager : MonoBehaviour
         rt.anchorMax = new Vector2(0.5f, 1f);
         rt.pivot = new Vector2(0.5f, 1f);
         rt.sizeDelta = new Vector2(560f, 170f);
-        rt.anchoredPosition = new Vector2(0f, -120f);
+        // Below the alert-banner band AND the interruption card (bottom ≈ -166),
+        // so a code shown while either is up stacks cleanly instead of colliding.
+        rt.anchoredPosition = new Vector2(0f, -180f);
         var bg = codePanel.GetComponent<UnityEngine.UI.Image>();
         bg.color = new Color(0.02f, 0.05f, 0.08f, 0.92f);
         bg.raycastTarget = false;
@@ -208,11 +210,17 @@ public class HUDManager : MonoBehaviour
         rt.anchorMin = new Vector2(0.5f, 1f);
         rt.anchorMax = new Vector2(0.5f, 1f);
         rt.pivot = new Vector2(0.5f, 1f);
-        rt.sizeDelta = new Vector2(1400f, 80f);
+        // Narrow enough to clear the top-left stats panel and top-right status
+        // panel; auto-size + wrapping keep long lines readable inside the rect
+        // instead of spilling across the whole HUD.
+        rt.sizeDelta = new Vector2(1100f, 116f);
         rt.anchoredPosition = new Vector2(0f, -28f);
         alertBannerText = go.AddComponent<TextMeshProUGUI>();
         alertBannerText.alignment = TextAlignmentOptions.Center;
-        alertBannerText.fontSize = 48f;
+        alertBannerText.enableAutoSizing = true;
+        alertBannerText.fontSizeMin = 24f;
+        alertBannerText.fontSizeMax = 44f;
+        alertBannerText.textWrappingMode = TextWrappingModes.Normal;
         alertBannerText.fontStyle = FontStyles.Bold;
         alertBannerText.color = new Color(1f, 0.85f, 0.3f, 0f);
         alertBannerText.text = "";

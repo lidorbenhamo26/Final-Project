@@ -211,10 +211,14 @@ public class RadarScanTask : CognitiveTaskBase
             SessionManager.Instance?.LogCustomEvent("RADAR_TrialStart", "NavigationStation",
                 Fmt(("trialIdx", trialIdx), ("contactType", type), ("angle", angle.ToString("F1")), ("blockIdx", blockIdx)));
 
-            AudioManager.Instance?.PlaySfx("radar_sweep", 0.25f);
+            // Only sound the scan while the player is actually at the console. The
+            // scan intentionally keeps running when undocked (that's the measured
+            // attention lapse), but the sweep/contact pings must not leak across the
+            // whole ship after the player has walked away.
+            if (IsDocked) AudioManager.Instance?.PlaySfx("radar_sweep", 0.25f);
 
             PlaceContact(type, angle);
-            AudioManager.Instance?.PlaySfx("radar_contact");
+            if (IsDocked) AudioManager.Instance?.PlaySfx("radar_contact");
             StartCoroutine(FadeContact(ContactVisible));
 
             currentResponded = false;

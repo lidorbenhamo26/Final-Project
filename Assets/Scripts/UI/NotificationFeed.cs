@@ -51,7 +51,9 @@ public class NotificationFeed : MonoBehaviour
         Push(text);
     }
 
-    public void Push(string text)
+    /// <summary>Push a message. <paramref name="pillColor"/> tints the side pill
+    /// (e.g. the priority-tier color of an interrupt); default is the feed green.</summary>
+    public void Push(string text, Color? pillColor = null)
     {
         AudioManager.Instance.PlaySfx("notification_pop");
         foreach (var it in items)
@@ -70,12 +72,12 @@ public class NotificationFeed : MonoBehaviour
             if (oldest.Root != null) Destroy(oldest.Root.gameObject);
         }
 
-        var item = BuildItem(text, 0f);
+        var item = BuildItem(text, 0f, pillColor ?? ColorPill);
         items.Insert(0, item);
         item.FadeCo = StartCoroutine(FadeAndRemove(item));
     }
 
-    private Item BuildItem(string text, float yOffset)
+    private Item BuildItem(string text, float yOffset, Color pillColor)
     {
         var go = new GameObject("Notification", typeof(RectTransform), typeof(CanvasGroup));
         go.transform.SetParent(transform, false);
@@ -108,7 +110,7 @@ public class NotificationFeed : MonoBehaviour
         pillRt.anchoredPosition = new Vector2(0f, 0f);
         pillRt.sizeDelta = new Vector2(6f, -8f);
         var pillImg = pill.GetComponent<Image>();
-        pillImg.color = ColorPill;
+        pillImg.color = pillColor;
         pillImg.raycastTarget = false;
 
         var txt = new GameObject("Text", typeof(RectTransform));

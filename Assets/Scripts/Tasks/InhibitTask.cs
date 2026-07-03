@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
 
 /// <summary>
@@ -100,7 +101,7 @@ public class InhibitTask : CognitiveTaskBase
     {
         "Shapes flash one at a time in different colours.",
         "",
-        "Press EXECUTE ONLY for a " + TargetDesc + " (" + ShapeGlyphs[TargetShape] + ").",
+        "Press EXECUTE (or the SPACE bar) ONLY for a " + TargetDesc + " (" + ShapeGlyphs[TargetShape] + ").",
         "ANY other shape or colour = do NOT press, just wait.",
         "",
         "Watch both the shape AND the colour.",
@@ -136,7 +137,7 @@ public class InhibitTask : CognitiveTaskBase
         if (buttonsParent == null) return;
         ShowMessage("PRESS READY", new Color(0.9f, 0.95f, 1f));
         ClearButtons();
-        SpawnButton(new Vector2(0f, -200f), new Vector2(280f, 92f), "READY",
+        SpawnButton(new Vector2(0f, -200f), new Vector2(300f, 92f), "READY  (SPACE)",
             new Color(0.2f, 0.8f, 0.4f), OnStartReadyClicked);
     }
 
@@ -146,7 +147,7 @@ public class InhibitTask : CognitiveTaskBase
         ClearButtons();
         // EXECUTE is always visible for the rest of the task. The handler only
         // accepts presses during the signal window; outside that, it no-ops.
-        SpawnButton(new Vector2(0f, -200f), new Vector2(280f, 92f), "EXECUTE",
+        SpawnButton(new Vector2(0f, -200f), new Vector2(320f, 92f), "EXECUTE  (SPACE)",
             ExecGreen, OnExecutePressed);
         flowCo = StartCoroutine(CoRunTrials());
     }
@@ -412,6 +413,19 @@ public class InhibitTask : CognitiveTaskBase
         phase = Phase.Done;
         HideShape();
         ResolveTask();
+    }
+
+    // Keyboard alternative to clicking: SPACE starts the run at the READY gate and
+    // otherwise fires the EXECUTE press. Both targets are already guarded, so a SPACE
+    // tap outside a valid moment is a harmless no-op — exactly like clicking the button.
+    // base.Update() still runs so the mission time-limit tick is preserved.
+    protected override void Update()
+    {
+        base.Update();
+        if (Keyboard.current == null || !Keyboard.current.spaceKey.wasPressedThisFrame) return;
+        if (!IsActive || !IsDocked) return;
+        if (flowCo == null) { if (started) OnStartReadyClicked(); }
+        else OnExecutePressed();
     }
 
     private void OnExecutePressed()

@@ -24,6 +24,8 @@ public class EFEventRecord
     public DateTime When;
 
     // Interruption (Shift) specifics. For Triage events these stay at defaults.
+    public bool   Switched;         // the player chose SWITCH (stays default to STAY); latency alone
+                                    // can't tell — a stay decision has a latency too
     public bool   Perseveration;    // a more-critical task interrupted but the player didn't switch
     public bool   Resumed;          // after switching, the player came back and finished the first task
 
@@ -121,7 +123,7 @@ public class EFResults : MonoBehaviour
         {
             float sum = 0f; int n = 0;
             foreach (var e in events)
-                if (e.EventType == "Interruption" && e.DecisionLatencyS >= 0f) { sum += e.DecisionLatencyS; n++; }
+                if (e.EventType == "Interruption" && e.Switched && e.DecisionLatencyS >= 0f) { sum += e.DecisionLatencyS; n++; }
             return n == 0 ? -1f : sum / n;
         }
     }
@@ -139,7 +141,7 @@ public class EFResults : MonoBehaviour
         {
             int switched = 0, resumed = 0;
             foreach (var e in events)
-                if (e.EventType == "Interruption" && e.DecisionLatencyS >= 0f) { switched++; if (e.Resumed) resumed++; }
+                if (e.EventType == "Interruption" && e.Switched) { switched++; if (e.Resumed) resumed++; }
             return switched == 0 ? -1f : (float)resumed / switched;
         }
     }

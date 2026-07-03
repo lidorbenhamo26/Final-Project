@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
+using UnityEngine.InputSystem.UI;
 using UnityEngine.UI;
 
 /// <summary>
@@ -107,6 +109,8 @@ public class TutorialDirector : MonoBehaviour
     private float tourTimer;
     private int tourIndex = -1;
     private bool finished;
+    private GameObject introRoot; // full-screen "get ready" card; destroyed on START
+    private ThirdPersonCamera tpCam; // third-person camera; its mouse-look is paused while the card is up
 
     // Battery teach-step state.
     private Transform batteryMarker;     // marks the storage rack / cell location
@@ -125,7 +129,7 @@ public class TutorialDirector : MonoBehaviour
         EnsurePlayerAnimator();
         BuildSteps();
         MissionTask.OnTaskResolved += HandleTaskResolved;
-        Advance();
+        ShowIntroCard();
     }
 
     private void OnDestroy()
@@ -613,6 +617,126 @@ public class TutorialDirector : MonoBehaviour
 
         BuildChecklist(canvasGO.transform);
         BuildSkipButton(canvasGO.transform);
+    }
+
+    // ---------------------------------------------------------------- intro ---
+    // One-time "get ready" card shown the moment TutorialScene loads, so the jump
+    // from the registration form into hands-on onboarding isn't abrupt. The tutorial
+    // itself doesn't begin (Advance) until the player presses START TUTORIAL.
+    private void ShowIntroCard()
+    {
+        EnsureEventSystem(); // without this, START (and the Skip button) can't be clicked
+        var canvasGO = new GameObject("TutorialIntro_Canvas");
+        canvasGO.transform.SetParent(transform, false);
+        var canvas = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 120; // above the tutorial overlay (50) and its Skip button
+        var scaler = canvasGO.AddComponent<CanvasScaler>();
+        scaler.uiScaleMode = CanvasScaler.ScaleMode.ScaleWithScreenSize;
+        scaler.referenceResolution = new Vector2(1920f, 1080f);
+        canvasGO.AddComponent<GraphicRaycaster>();
+        introRoot = canvasGO;
+
+        // Full-screen dim that also blocks the Skip button while the card is up.
+        var dim = NewRect("Dim", canvasGO.transform, Vector2.zero, Vector2.zero);
+        dim.anchorMin = Vector2.zero; dim.anchorMax = Vector2.one;
+        dim.offsetMin = Vector2.zero; dim.offsetMax = Vector2.zero;
+        var dimImg = dim.gameObject.AddComponent<Image>();
+        dimImg.color = new Color(0.015f, 0.03f, 0.05f, 0.92f);
+        dimImg.raycastTarget = true;
+
+        var panel = UIChrome.BuildScifiPanel(canvasGO.transform, new Vector2(1080f, 460f), Vector2.zero);
+        panel.gameObject.name = "TutorialIntroCard";
+
+        SpawnLabel(panel, "TUTORIAL", 46, FontStyles.Bold, TextAlignmentOptions.Center,
+            new Vector2(0f, 150f), new Vector2(1000f, 64f), PromptColor);
+        SpawnLabel(panel,
+            "Before your mission, a short hands-on tutorial will teach you the controls and your four stations.",
+            24, FontStyles.Normal, TextAlignmentOptions.Center,
+            new Vector2(0f, 36f), new Vector2(940f, 130f), HelperColor);
+        SpawnLabel(panel, "Take your time — nothing here is timed.",
+            22, FontStyles.Italic, TextAlignmentOptions.Center,
+            new Vector2(0f, -66f), new Vector2(940f, 40f), ProgressColor);
+
+        BuildIntroStartButton(panel);
+
+        // Freeze roaming and free the cursor so START is clickable. The scene otherwise
+        // locks the mouse for camera look, which is why clicking first needed an ESC.
+        SetGameplayFrozen(true);
+    }
+
+    private void BuildIntroStartButton(Transform parent)
+    {
+        var rt = NewRect("StartButton", parent, new Vector2(340f, 64f), new Vector2(0f, -160f));
+        var img = rt.gameObject.AddComponent<Image>();
+        img.color = new Color(0.20f, 0.65f, 1.00f, 1f);
+        var btn = rt.gameObject.AddComponent<Button>();
+        btn.targetGraphic = img;
+        btn.onClick.AddListener(BeginTutorial);
+
+        var lblRT = NewRect("Label", rt, Vector2.zero, Vector2.zero);
+        lblRT.anchorMin = Vector2.zero; lblRT.anchorMax = Vector2.one;
+        lblRT.offsetMin = Vector2.zero; lblRT.offsetMax = Vector2.zero;
+        var lbl = lblRT.gameObject.AddComponent<TextMeshProUGUI>();
+        lbl.text = "START TUTORIAL";
+        lbl.fontSize = 24;
+        lbl.fontStyle = FontStyles.Bold;
+        lbl.color = Color.white;
+        lbl.alignment = TextAlignmentOptions.Center;
+    }
+
+    private void BeginTutorial()
+    {
+        if (introRoot != null) { Destroy(introRoot); introRoot = null; }
+        SetGameplayFrozen(false);
+        Advance(); // start step 0
+    }
+
+    // Freeze/unfreeze roaming while the intro card is up: stop the astronaut, pause the
+    // third-person camera's mouse-look, and free the cursor so the START button is clickable.
+    // Mirrors how StationDockController hands the cursor to UI while the player is docked.
+    private void SetGameplayFrozen(bool frozen)
+    {
+        if (tpCam == null && Camera.main != null) tpCam = Camera.main.GetComponent<ThirdPersonCamera>();
+        if (tpCam == null) tpCam = FindAnyObjectByType<ThirdPersonCamera>();
+
+        if (player != null) player.ControlsEnabled = !frozen;
+        if (tpCam != null) tpCam.enabled = !frozen; // disabled component can't run mouse-look or re-lock the cursor
+
+        if (frozen)
+        {
+            Cursor.lockState = CursorLockMode.None;
+            Cursor.visible = true;
+            // Drop the freed cursor at screen centre so it lands on the card, not a screen edge.
+            if (Mouse.current != null)
+                Mouse.current.WarpCursorPosition(new Vector2(Screen.width * 0.5f, Screen.height * 0.5f));
+        }
+        else
+        {
+            Cursor.lockState = CursorLockMode.Locked;
+            Cursor.visible = false;
+        }
+    }
+
+    // UGUI buttons (this card's START and the Skip button) only receive clicks if the
+    // scene has an EventSystem wired to the new Input System. TutorialScene (copied from
+    // MainScene) has none by default, so create/repair one — same pattern the task panels use.
+    private static void EnsureEventSystem()
+    {
+        if (EventSystem.current != null)
+        {
+            var es = EventSystem.current;
+            if (es.GetComponent<InputSystemUIInputModule>() == null)
+            {
+                var legacy = es.GetComponent<StandaloneInputModule>();
+                if (legacy != null) Destroy(legacy);
+                es.gameObject.AddComponent<InputSystemUIInputModule>();
+            }
+            return;
+        }
+        var go = new GameObject("EventSystem");
+        go.AddComponent<EventSystem>();
+        go.AddComponent<InputSystemUIInputModule>();
     }
 
     private void BuildChecklist(Transform parent)

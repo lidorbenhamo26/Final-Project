@@ -44,6 +44,10 @@ public abstract class MissionTask : MonoBehaviour
     public int EfTier;
     public float EfDeadline;
     public int EfOrder;
+    // True while this task is the un-answered interrupt of an Interruption event:
+    // the task list tags it "NEW!" instead of an order number, so the player sees
+    // an unresolved demand, not a pre-assigned rank. Cleared once they switch.
+    public bool EfInterrupt;
     // Stated in-fiction reason for this task's tier (e.g. "Crew oxygen dropping"),
     // shown on the Priority Beat card so the player's ordering is an INFORMED
     // executive decision (the learnable Priority Protocol), not a color guess.

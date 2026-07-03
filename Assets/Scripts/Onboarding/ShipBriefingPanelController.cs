@@ -82,6 +82,12 @@ public class ShipBriefingPanelController : MonoBehaviour
         BuildMap(panel, new Vector2(-260f, 30f), new Vector2(460f, 400f));
         BuildInfoCard(panel, new Vector2(250f, 30f), new Vector2(380f, 400f));
 
+        // The Priority Protocol, stated before the mission ever asks for it
+        // (shares the legend with the in-mission beat/interruption panels).
+        SpawnLabel(panel, "PRIORITY PROTOCOL   —   " + PriorityBeatPanel.LEGEND, 16,
+            FontStyles.Bold, TextAlignmentOptions.Center,
+            new Vector2(0f, -215f), new Vector2(1040f, 24f), SubColor);
+
         BuildButton(panel, "BACK", new Vector2(-420f, -290f), new Vector2(200f, 56f),
             BackColor, () => OnBack?.Invoke());
         BuildButton(panel, "BEGIN MISSION", new Vector2(380f, -290f), new Vector2(280f, 56f),

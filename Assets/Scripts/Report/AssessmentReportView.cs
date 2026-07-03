@@ -287,9 +287,9 @@ public static class AssessmentReportView
             var g = new VisualElement();
             g.AddToClassList("metric-grid");
             attempt.Add(g);
-            AddMetricRow(g, "Offered", e.OptionsDesc);
-            AddMetricRow(g, "Player choice", e.ChosenOrder);
-            AddMetricRow(g, "Optimal choice", e.OptimalOrder);
+            AddMetricRow(g, "Offered", ReportFormat.PrettyStationsInline(e.OptionsDesc));
+            AddMetricRow(g, "Player choice", ReportFormat.PrettyStationsInline(e.ChosenOrder));
+            AddMetricRow(g, "Optimal choice", ReportFormat.PrettyStationsInline(e.OptimalOrder));
             AddMetricRow(g, "Decision quality", Mathf.RoundToInt(e.OptScore * 100f) + "%");
             AddMetricRow(g, "Decision latency", e.DecisionLatencyS < 0f ? "no choice" : e.DecisionLatencyS.ToString("F1") + "s");
             if (e.CodeRecalledCorrect >= 0)

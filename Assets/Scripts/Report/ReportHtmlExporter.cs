@@ -244,9 +244,9 @@ public static class ReportHtmlExporter
                           "<span class=\"pill\" style=\"background:#" + (e.FirstWasOptimal ? "16A34A" : "D97706") + "\">" +
                           (e.FirstWasOptimal ? "OPTIMAL FIRST" : "SUBOPTIMAL") + "</span></div>");
             sb.AppendLine("    <table class=\"metrics\">");
-            sb.AppendLine("      <tr><td class=\"metric-label\">Offered</td><td class=\"metric-value\">" + Esc(e.OptionsDesc) + "</td></tr>");
-            sb.AppendLine("      <tr><td class=\"metric-label\">Player choice</td><td class=\"metric-value\">" + Esc(e.ChosenOrder) + "</td></tr>");
-            sb.AppendLine("      <tr><td class=\"metric-label\">Optimal choice</td><td class=\"metric-value\">" + Esc(e.OptimalOrder) + "</td></tr>");
+            sb.AppendLine("      <tr><td class=\"metric-label\">Offered</td><td class=\"metric-value\">" + Esc(ReportFormat.PrettyStationsInline(e.OptionsDesc)) + "</td></tr>");
+            sb.AppendLine("      <tr><td class=\"metric-label\">Player choice</td><td class=\"metric-value\">" + Esc(ReportFormat.PrettyStationsInline(e.ChosenOrder)) + "</td></tr>");
+            sb.AppendLine("      <tr><td class=\"metric-label\">Optimal choice</td><td class=\"metric-value\">" + Esc(ReportFormat.PrettyStationsInline(e.OptimalOrder)) + "</td></tr>");
             sb.AppendLine("      <tr><td class=\"metric-label\">Decision quality</td><td class=\"metric-value\">" + Mathf.RoundToInt(e.OptScore * 100f) + "%</td></tr>");
             sb.AppendLine("      <tr><td class=\"metric-label\">Decision latency</td><td class=\"metric-value\">" +
                           (e.DecisionLatencyS < 0f ? "no choice" : e.DecisionLatencyS.ToString("F1") + "s") + "</td></tr>");

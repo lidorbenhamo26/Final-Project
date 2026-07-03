@@ -29,9 +29,14 @@ public class EFEventDirector : MonoBehaviour
     private const float MicroWindow = 5f;
     [SerializeField, Tooltip("Safety: if offered tasks are never engaged, end the event after this long so the mission resumes. Kept short so an abandoned beat can't eat the mission.")]
     private float eventSafetyTimeout = 60f;
+    // Held stay-or-switch choice window for the Interruption event. The mission
+    // pauses while the card is up and the player picks STAY or SWITCH; no
+    // response inside the window defaults to STAY. 8s = time to reorient from
+    // the console task, read both blocks and click — latency is recorded
+    // regardless, so the length only sets when the STAY default fires.
+    // Code-driven (like BeatWindow) so older serialized values can't shrink it.
+    private const float ChoiceWindow = 8f;
     [Header("Interruption event")]
-    [SerializeField, Tooltip("Window (seconds) after the interrupt appears to count an undock+switch as a deliberate switch. The current task's own clock keeps running during this window — the interruption never pauses it. A later switch still counts; this is just the 'fast/deliberate' threshold and how long the prompt holds.")]
-    private float switchWindow = 6f;
     [SerializeField, Tooltip("Delay after the player engages the first task before the interrupt fires. Kept short so the interrupt reliably lands WHILE the first task is still in progress.")]
     private float interruptDelay = 1.5f;
     [SerializeField, Tooltip("How long to wait for the player to engage the first task before abandoning the interruption event.")]
@@ -42,6 +47,7 @@ public class EFEventDirector : MonoBehaviour
     private GameManager gm;
     private int typeCounter;
     private bool firstBeatExplained;
+    private bool firstInterruptionExplained;
 
     private void Awake() { gm = GetComponent<GameManager>(); }
 
@@ -141,6 +147,36 @@ public class EFEventDirector : MonoBehaviour
     private IEnumerator ShowFirstBeatIntro()
     {
         var panel = PriorityBeatPanel.GetOrCreate();
+        bool wasFrozen = GameManager.IsDebugFrozen;
+        if (!wasFrozen) GameManager.SetDebugFrozen(true);
+
+        var playerGo = GameObject.FindWithTag("Player");
+        var ac = playerGo != null ? playerGo.GetComponent<AstronautController>() : null;
+        bool priorControls = ac == null || ac.ControlsEnabled;
+        if (ac != null) ac.ControlsEnabled = false;
+        CursorLockMode prevLock = Cursor.lockState;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
+        AudioManager.Instance?.PlaySfx("alert_pulse", 0.5f);
+        AudioManager.Instance?.PlayVoice("priority_intro");
+        panel.ShowIntro();
+        float t0 = Time.time;
+        while (panel.IntroActive && Time.time - t0 < 30f) yield return null;
+        panel.HideIntro();
+
+        if (ac != null) ac.ControlsEnabled = priorControls;
+        Cursor.lockState = prevLock;
+        Cursor.visible = prevLock != CursorLockMode.Locked;
+        if (!wasFrozen) GameManager.SetDebugFrozen(false);
+    }
+
+    // One-time explanation shown before the player's first interruption. The
+    // player is normally docked at the first task when this fires (cursor already
+    // free); the controls/cursor dance still runs for the undocked edge case.
+    private IEnumerator ShowFirstInterruptIntro()
+    {
+        var panel = InterruptionPanel.GetOrCreate();
         bool wasFrozen = GameManager.IsDebugFrozen;
         if (!wasFrozen) GameManager.SetDebugFrozen(true);
 
@@ -285,8 +321,11 @@ public class EFEventDirector : MonoBehaviour
 
     // ------------------------------------------------------- Interruption event
     // A task is in progress; a second task barges in. Switching is OPTIMAL only if
-    // the interrupt is strictly more critical. Diegetic: "switch" = undock the
-    // first task and engage the interrupt (no special key). Measures Shift.
+    // the interrupt is strictly more critical. The mission PAUSES and the player
+    // makes the call explicitly on the card (STAY / SWITCH, ChoiceWindow seconds,
+    // no response = STAY), then acts on it once play resumes. The pause removes
+    // travel time from the latency, so DecisionLatencyS is pure decision speed.
+    // Measures Shift.
     public IEnumerator RunInterruption(List<TaskStation> eligible)
     {
         EventActive = true;
@@ -314,62 +353,153 @@ public class EFEventDirector : MonoBehaviour
             EventActive = false; yield break;
         }
 
+        // One-time explanation before the player's very first interruption, so
+        // the stay-or-switch card is understood before it is ever measured. Held
+        // (timers frozen) like the first-beat intro; the decision window only
+        // opens after the player confirms, so the measure itself stays clean.
+        if (!firstInterruptionExplained)
+        {
+            firstInterruptionExplained = true;
+            yield return ShowFirstInterruptIntro();
+            if (A == null || !A.IsActive) { EventActive = false; yield break; }
+        }
+
         // 3) Beat, then fire the interrupt B (if A is still going).
         yield return new WaitForSeconds(interruptDelay);
         if (A == null || !A.IsActive) { EventActive = false; yield break; }
         var B = gm.SpawnEfOffer(stationB, 40f);
         if (B == null) { EventActive = false; yield break; }
-        B.EfOrder = 2;
+        B.EfInterrupt = true; // task-list row shows "NEW!" — not a pre-assigned order
         AssignTierReason(B, stationB, Random.Range(0, 3)); // 0,1,2 — sometimes more critical than A
         AudioManager.Instance?.PlaySfx("alert_pulse", 0.7f);
         AudioManager.Instance?.PlayClip(ProceduralSfx.Get(ProceduralSfx.Kind.Beep, 2), AudioBus.Sfx, 0.6f);
         AudioManager.Instance?.PlayVoice("priority_event");
         string stationPretty = TaskListHUD.PrettyStation(stationB.stationName).ToUpperInvariant();
+        string stationAPretty = TaskListHUD.PrettyStation(stationA.stationName).ToUpperInvariant();
         string reasonB = string.IsNullOrEmpty(B.EfReason) ? "priority task" : B.EfReason;
-        // Explicit either/or, framed as the player's call. The current task's clock
-        // keeps draining underneath — switching costs time, so the decision matters.
-        // Held a little past the switch window so the prompt is still up while the
-        // player reacts and (optionally) walks over to switch.
-        HUDManager.Instance?.ShowAlertBanner(
-            "⚠ INTERRUPTION — " + stationPretty + ": " + reasonB +
-            "   |   STAY on current task, or GO to " + stationPretty + " to switch?",
-            switchWindow + 2.5f);
-        NotificationFeed.Instance?.Push("⚠ " + stationPretty + " — " + reasonB + ". Stay on task, or switch?");
+        // Structured decision card: what barged in (tier + reason), what you're
+        // on (tier), and the two responses as clickable options. The mission is
+        // held while the player chooses, so the card IS the decision — the
+        // physical walk happens after, once play resumes.
+        var interruptPanel = InterruptionPanel.GetOrCreate();
+        interruptPanel.Show(A, B, ChoiceWindow, ChoiceWindow + 3f);
+        NotificationFeed.Instance?.Push("▲ NEW TASK: " + stationPretty + " — " + reasonB,
+            PriorityBeatPanel.TierColor(B.EfTier));
 
         bool optimalSwitch = B.EfTier < A.EfTier; // B strictly more critical -> switch is optimal
         string optionsDesc = "A=" + Tag(A) + " | B=" + Tag(B);
         SessionManager.Instance?.LogCustomEvent("EF_InterruptionOffer", "System",
             optionsDesc + " optimalSwitch=" + optimalSwitch);
 
-        // 4) Decision window: did they undock A and engage B?
+        // 4) Held decision: pause the mission, free the cursor, and wait for an
+        //    explicit STAY / SWITCH click on the card (ChoiceWindow seconds).
+        //    No response defaults to STAY — an unanswered critical interrupt is
+        //    still perseveration, and NoChoice records that the default fired.
+        bool wasFrozenForChoice = GameManager.IsDebugFrozen;
+        if (!wasFrozenForChoice) GameManager.SetDebugFrozen(true);
+        var playerGo = GameObject.FindWithTag("Player");
+        var ac = playerGo != null ? playerGo.GetComponent<AstronautController>() : null;
+        bool priorControls = ac == null || ac.ControlsEnabled;
+        if (ac != null) ac.ControlsEnabled = false;
+        CursorLockMode prevLock = Cursor.lockState;
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+
         float ti = Time.time;
         bool switched = false;
-        float switchLatency = -1f;
-        while (Time.time - ti < switchWindow)
+        bool noResponse = true;
+        float choiceLatency = -1f;
+        while (Time.time - ti < ChoiceWindow)
         {
-            if (B != null && B.Engaged) { switched = true; switchLatency = Time.time - ti; break; }
-            if (A == null || !A.IsActive) break; // finished A first -> continued
+            int choice = interruptPanel.TakePendingChoice();
+            // The interact key mid-choice is the old "undock to switch" instinct
+            // — honor it as an explicit SWITCH. (The dock controller ignores E
+            // while frozen, so it can't double-fire an undock under the card.)
+            if (choice == 0 && InteractInputBinding.InteractPressedThisFrame())
+                choice = InterruptionPanel.ChoiceSwitch;
+            if (choice != 0)
+            {
+                switched = choice == InterruptionPanel.ChoiceSwitch;
+                noResponse = false;
+                choiceLatency = Time.time - ti;
+                break;
+            }
             yield return null;
         }
 
-        // 5) Wait for both to resolve; allow a late switch to still count for resume.
+        // Let the choosing frame end before lifting the freeze: the E press that
+        // just picked SWITCH must not reach StationDockController as a fresh
+        // WasPressedThisFrame once unfrozen (script order could otherwise turn
+        // it into an instant re-dock at the station we are about to leave).
+        yield return null;
+
+        if (ac != null) ac.ControlsEnabled = priorControls;
+        Cursor.lockState = prevLock;
+        Cursor.visible = prevLock != CursorLockMode.Locked;
+        if (!wasFrozenForChoice) GameManager.SetDebugFrozen(false);
+
+        // Reflect the (possibly defaulted) call on the HUD and confirm it on the
+        // card: SWITCH re-ranks B to #1; STAY keeps A #1 and queues B as #2.
+        if (switched) MarkSwitched(A, B);
+        else if (B != null) { B.EfInterrupt = false; B.EfOrder = 2; }
+        interruptPanel.ResolveChoice(switched,
+            switched ? stationPretty : null,
+            switched ? stationAPretty : stationPretty,
+            noResponse);
+
+        // Acting on SWITCH starts with leaving the console — do it for them, so
+        // a single E press (or click) flows straight into the walk to the new
+        // station. Runs after the restore above so ExitDock owns the final
+        // cursor/controls state.
+        if (switched && StationDockController.Instance != null && StationDockController.Instance.IsDocked)
+            StationDockController.Instance.ExitDock();
+
+        // 5) Execution: wait for both tasks to resolve (safety-capped). The
+        //    decision is already recorded — this loop only observes follow-
+        //    through: a "physical switch" means B was engaged while A was still
+        //    unfinished. Stated call vs actual behavior feeds ChangedMind.
         float te = Time.time;
+        bool behavioralSwitch = false;
         while (((A != null && A.IsActive) || (B != null && B.IsActive)) && Time.time - te < eventSafetyTimeout)
         {
-            if (!switched && B != null && B.Engaged) { switched = true; switchLatency = Time.time - ti; }
+            if (!behavioralSwitch && B != null && B.Engaged && A != null && A.IsActive)
+                behavioralSwitch = true;
             yield return null;
         }
+        interruptPanel.Hide();
         ReleaseAbandoned(new[] { A, B });
 
-        bool resumed = switched && (A == null || !A.IsActive); // came back / A finished after switching
+        // Keep the mission flowing: an engaged-but-unfinished offer would
+        // otherwise hold its 600s spawn-guard window and block all new tasks
+        // (one concurrent). ~90s of grace keeps "return to it" honest; after
+        // that an unfinished task resolves as an engaged Omission.
+        ClampEngagedWindow(A, 90f);
+        ClampEngagedWindow(B, 90f);
+
+        // Resumed = they truly went (not just said so) and A still got finished.
+        bool resumed = switched && behavioralSwitch && (A == null || !A.IsActive);
         bool wasOptimal = optimalSwitch ? switched : !switched;
         bool perseveration = optimalSwitch && !switched;
+        int changedMind = switched != behavioralSwitch ? 1 : 0;
+
+        // Close the loop like Triage's RewardGoodCall: acknowledge an optimal call
+        // (switching to the more critical task, or holding course when the
+        // interrupt wasn't). Suboptimal calls get no visible penalty.
+        if (wasOptimal)
+        {
+            NotificationFeed.Instance?.Push(switched
+                ? "Good call — switched to " + stationPretty
+                : "Good call — stayed on the higher priority");
+            AudioManager.Instance?.PlayVoice("priority_good");
+        }
 
         SessionManager.Instance?.LogCustomEvent("EF_InterruptionDecision", "System",
             "decision=" + (switched ? "switch" : "stay") +
             " optimalSwitch=" + optimalSwitch +
             " wasOptimal=" + wasOptimal +
-            " switchLatency=" + (switchLatency < 0f ? "NA" : Num.F2(switchLatency)) +
+            " latency=" + (choiceLatency < 0f ? "NA" : Num.F2(choiceLatency)) +
+            " noResponse=" + noResponse +
+            " followedThrough=" + (changedMind == 0) +
             " resumedFirst=" + resumed +
             " perseveration=" + perseveration);
 
@@ -378,14 +508,18 @@ public class EFEventDirector : MonoBehaviour
             EventType = "Interruption",
             NOptions = 2,
             OptionsDesc = optionsDesc,
-            ChosenOrder = switched ? ("SWITCHED" + (switchLatency >= 0f ? " @" + Num.F2(switchLatency) + "s" : "")) : "STAYED",
+            ChosenOrder = switched
+                ? "SWITCHED @" + Num.F2(choiceLatency) + "s"
+                : noResponse ? "STAYED (no response)" : "STAYED @" + Num.F2(choiceLatency) + "s",
             OptimalOrder = optimalSwitch ? "switch" : "stay",
             ChosenFirst = switched ? stationB.stationName : stationA.stationName,
+            Switched = switched,
             FirstWasOptimal = wasOptimal,
             WasOptimal = wasOptimal,
             OptScore = wasOptimal ? 1f : 0f,
-            DecisionLatencyS = switchLatency,
-            NoChoice = false,
+            DecisionLatencyS = choiceLatency,
+            ChangedMind = changedMind,
+            NoChoice = noResponse,
             Perseveration = perseveration,
             Resumed = resumed,
         });
@@ -397,6 +531,24 @@ public class EFEventDirector : MonoBehaviour
     {
         string tier = TierWord(t.EfTier);
         return t.StationName + ":" + tier;
+    }
+
+    // The player committed to the interrupt: flip the HUD ordering tags so the
+    // task list reflects the NEW priority they just set (B is now #1, A drops to
+    // #2). Presentation only — scoring reads the switch itself.
+    private static void MarkSwitched(MissionTask A, MissionTask B)
+    {
+        if (B != null) { B.EfInterrupt = false; B.EfOrder = 1; }
+        if (A != null && A.IsActive) A.EfOrder = 2;
+    }
+
+    // Bound how long an engaged-but-unfinished offer can outlive its event.
+    // Elapsed time is measured off SpawnTime, which pauses advance during
+    // freezes, so the grace is active-play seconds.
+    private static void ClampEngagedWindow(MissionTask t, float grace)
+    {
+        if (t != null && t.IsActive && t.Engaged)
+            t.timeLimit = Mathf.Min(t.timeLimit, (Time.time - t.SpawnTime) + grace);
     }
 
     private static string TierWord(int tier) => tier == 0 ? "critical" : tier == 1 ? "important" : "routine";
