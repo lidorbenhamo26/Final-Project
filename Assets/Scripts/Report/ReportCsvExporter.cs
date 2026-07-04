@@ -15,13 +15,14 @@ public static class ReportCsvExporter
     // these lands in the trailing ExtraMetrics column as k=v;k=v.
     private static readonly string[] MetricColumns =
     {
-        "correct", "typos", "totalTimeS", "recallTimeout",
+        "correct", "typos", "totalTimeS", "recallTimeout", "switchedAway", "reReads",
         "rounds", "answered", "accuracy", "rtMeanMs", "rtSdMs",
         "hits", "misses", "falseAlarms", "correctRejects",
         "hitRate", "faRate", "dPrime", "vigilanceSlope", "deltaDPrime", "mode",
         "commission", "omission", "hitRtMeanMs", "hitRtSdMs", "postErrorSlowingMs",
         "pickupLatencyS", "deliveredTimeS",
         "wiresTotal", "wireErrorsCount", "puzzleTimeS", "panelOpens",
+        "moveCount", "backtrackCount", "firstMoveLatencyS",
         "timeLimitS", "outcome",
     };
 
