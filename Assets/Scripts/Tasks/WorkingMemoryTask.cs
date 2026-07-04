@@ -30,12 +30,20 @@ public class WorkingMemoryTask : CognitiveTaskBase
     private const float AlertDuration   = 2.5f;
     private const float DisplayDuration = 4.5f; // shorter look at the code -> harder retention
     private const float RecallDeadline  = 25f;
-    private int CodeLength = 4; // varies 4-5 per instance for less rote repetition
-    // Longer interference between seeing the code and recalling it (more rounds +
-    // a brief settle after each tap) so the code must genuinely be HELD, not rehearsed.
-    private const int   DistractorRounds  = 5;
-    private const float DistractorPerRound = 2f;
-    private const float DistractorSettle  = 0.3f;
+    // Locked at exactly 4 digits in BOTH modes: 5-digit codes proved too hard /
+    // frustrating in playtests and made spans incomparable across participants.
+    private const int CodeDigits = 4;
+    private int CodeLength = CodeDigits; // still tracks an external EF code's length
+    // Interference between seeing the code and recalling it: quick equation
+    // verifications (YES/NO under time pressure) that tax working-memory gating
+    // without fully erasing the code — replaces the old "tap the lit pad".
+    private const int   DistractorRounds   = 3;
+    private const float DistractorPerRound = 3f;
+    private const float DistractorSettle   = 0.3f;
+    // Penalized re-read after an EF SWITCH pulled the player off this task: the
+    // code re-displays briefly on return, so a later miss is attributable to the
+    // switch decision rather than scored as an isolated WM failure.
+    private const float ReReadSeconds = 2.5f;
 
     private string code;
     private string input = "";
@@ -48,6 +56,23 @@ public class WorkingMemoryTask : CognitiveTaskBase
     private Mode mode = Mode.Ambient;
     private bool distractorAnswered;
     private int distractorHits;
+    private TMP_Text distractorLabel; // per-round equation text (not tracked by ClearButtons)
+
+    // EF-switch suspension state (see SuspendForSwitch / CoReRead).
+    private bool suspendedBySwitch;
+    private bool switchedAwayEver;
+    private int reReads;
+    private bool reReadRunning;
+
+    /// <summary>True while any Ambient-mode WM task is in flight (code flashed or
+    /// about to flash, not yet resolved) — i.e. the player is retaining a code in
+    /// their head. GameManager reads this to hold EF beats (mutual exclusion).</summary>
+    public static bool AmbientRetentionActive => ambientRetentionCount > 0;
+    private static int ambientRetentionCount;
+    private bool countedAmbientRetention;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStatics() { ambientRetentionCount = 0; }
 
     public void SetMode(Mode m) { mode = m; }
 
@@ -88,9 +113,8 @@ public class WorkingMemoryTask : CognitiveTaskBase
     {
         base.Activate();
 
-        // Vary the code length (4-5) per instance for variety / less practice effect.
-        CodeLength = Random.Range(0, 2) == 0 ? 4 : 5;
-        // Code: each digit independent 0-9.
+        // Code: each digit independent 0-9, always exactly CodeDigits long.
+        CodeLength = CodeDigits;
         char[] digits = new char[CodeLength];
         for (int i = 0; i < CodeLength; i++)
             digits[i] = (char)('0' + Random.Range(0, 10));
@@ -109,15 +133,22 @@ public class WorkingMemoryTask : CognitiveTaskBase
     private System.Collections.IEnumerator CoDeferredStart()
     {
         yield return null;
+        if (externalCode || flowStarted || !IsActive || mode != Mode.Ambient) yield break;
+
+        // Never flash the code under an EF beat / decision card (or a freeze):
+        // queue the deployment until the beat clears, so a Triage popping at the
+        // same moment can't collide with the memorize window and corrupt both.
+        while (IsActive && (EFEventDirector.AnyEventActive || GameManager.IsDebugFrozen))
+            yield return null;
         if (externalCode || flowStarted || !IsActive) yield break;
-        if (mode == Mode.Ambient)
-        {
-            flowStarted = true;
-            AudioManager.Instance.PlayVoice("wm_memorize");
-            ShowMessage("MEMORIZE THE CODE — ENTER IT AT ENGINE", new Color(0.7f, 0.85f, 1f));
-            StationUI?.SetInstruction("WORKING MEMORY: memorize it, then enter at Engine");
-            flowCo = StartCoroutine(CoFullFlow());
-        }
+
+        flowStarted = true;
+        ambientRetentionCount++;
+        countedAmbientRetention = true;
+        AudioManager.Instance.PlayVoice("wm_memorize");
+        ShowMessage("MEMORIZE THE CODE — ENTER IT AT ENGINE", new Color(0.7f, 0.85f, 1f));
+        StationUI?.SetInstruction("WORKING MEMORY: memorize it, then enter at Engine");
+        flowCo = StartCoroutine(CoFullFlow());
     }
 
     // DockDistractor mode: show the code on the console, run a short distractor
@@ -143,45 +174,71 @@ public class WorkingMemoryTask : CognitiveTaskBase
         StartRecall();
     }
 
-    // A brief attention task between seeing the code and recalling it: tap the lit
-    // pad a few times. Occupies attention so the code must be HELD, not rehearsed.
+    // Quick Math verification between seeing the code and recalling it: simple
+    // equations shown one at a time, YES/NO within DistractorPerRound each. This
+    // taxes working-memory gating (numbers compete with the held code) far more
+    // than the old "tap the lit pad", without fully erasing the code.
     private IEnumerator CoDistractor()
     {
         phase = Phase.Distractor;
         distractorHits = 0;
+        int answered = 0;
         for (int r = 0; r < DistractorRounds && IsActive; r++)
         {
             ClearButtons();
-            ShowMessage("HOLD THE CODE — quick check", new Color(1f, 0.85f, 0.3f));
-            int targetIdx = Random.Range(0, 3);
-            for (int i = 0; i < 3; i++)
+            if (distractorLabel != null) Destroy(distractorLabel.gameObject);
+            ShowMessage("HOLD THE CODE — QUICK CHECK " + (r + 1) + "/" + DistractorRounds,
+                new Color(1f, 0.85f, 0.3f));
+
+            // Simple a±b equation; half the time the shown result is off by 1-2.
+            int a = Random.Range(1, 10);
+            int b = Random.Range(1, 10);
+            bool addition = Random.value < 0.5f;
+            if (!addition && b > a) (a, b) = (b, a); // keep subtraction non-negative
+            int trueResult = addition ? a + b : a - b;
+            int shown = trueResult;
+            if (Random.value < 0.5f)
             {
-                bool isTarget = i == targetIdx;
-                Color col = isTarget ? new Color(0.30f, 0.85f, 0.45f) : new Color(0.28f, 0.32f, 0.40f);
-                SpawnButton(new Vector2(-130f + i * 130f, 0f), new Vector2(110f, 90f),
-                    isTarget ? "TAP" : "", col, () => OnDistractorTap(isTarget));
+                int off = Random.Range(1, 3) * (Random.value < 0.5f ? -1 : 1);
+                if (shown + off < 0) off = -off;
+                shown += off;
             }
+            bool isTrue = shown == trueResult;
+
+            distractorLabel = SpawnLabel(new Vector2(0f, 70f), new Vector2(560f, 90f),
+                a + (addition ? " + " : " - ") + b + " = " + shown + " ?", Color.white, 60f);
+            SpawnButton(new Vector2(-110f, -60f), new Vector2(170f, 90f), "YES",
+                new Color(0.25f, 0.62f, 0.38f), () => OnDistractorAnswer(true, isTrue));
+            SpawnButton(new Vector2(110f, -60f), new Vector2(170f, 90f), "NO",
+                new Color(0.62f, 0.28f, 0.26f), () => OnDistractorAnswer(false, isTrue));
+
             distractorAnswered = false;
             float t = 0f;
             while (IsActive && !distractorAnswered && t < DistractorPerRound)
             {
-                if (!GameManager.IsDebugFrozen) t += Time.deltaTime;
+                // Rounds only burn while the player is actually at the console
+                // (mirrors Stroop: undocked time doesn't consume trials).
+                if (!GameManager.IsDebugFrozen && IsDocked) t += Time.deltaTime;
                 yield return null;
             }
-            // Brief settle after a tap so the interference period doesn't collapse
-            // when the player answers instantly — keeps the retention delay honest.
+            if (distractorAnswered) answered++;
+            // Brief settle after an answer so the interference period doesn't
+            // collapse when the player answers instantly.
             if (IsActive) yield return FrozenWait(DistractorSettle);
         }
         ClearButtons();
-        SessionManager.Instance?.LogCustomEvent("WM_Distractor", "EngineStation", "hits=" + distractorHits);
+        if (distractorLabel != null) { Destroy(distractorLabel.gameObject); distractorLabel = null; }
+        SessionManager.Instance?.LogCustomEvent("WM_Distractor", "EngineStation",
+            "correct=" + distractorHits + "/" + DistractorRounds + " answered=" + answered);
     }
 
-    private void OnDistractorTap(bool correct)
+    private void OnDistractorAnswer(bool saidYes, bool isTrue)
     {
         StationDockController.Instance?.handsView?.TriggerPress();
-        if (phase != Phase.Distractor) return;
-        if (correct) distractorHits++;
+        if (phase != Phase.Distractor || distractorAnswered) return;
+        if (saidYes == isTrue) distractorHits++;
         distractorAnswered = true;
+        AudioManager.Instance.PlaySfx("button_click");
     }
 
     private IEnumerator CoFullFlow()
@@ -213,8 +270,69 @@ public class WorkingMemoryTask : CognitiveTaskBase
         }
     }
 
+    /// <summary>Called by the EF director when the player chose SWITCH away from
+    /// this task while it holds a code. Cleanly suspends the retention: the recall
+    /// deadline pauses while they are away, and on return the code re-displays
+    /// for a short, penalized re-read (logged + reported), so a later miss reads
+    /// as an expected consequence of the switch decision rather than an isolated
+    /// working-memory failure.</summary>
+    public void SuspendForSwitch()
+    {
+        if (!IsActive || phase == Phase.Done) return;
+        switchedAwayEver = true;
+        // Phases where the code is already hidden and being held: just flag the
+        // suspension — the deadline pauses and the re-read fires on return.
+        if (phase == Phase.HiddenWaitingForDock || phase == Phase.Recall)
+        {
+            suspendedBySwitch = true;
+        }
+        // Mid-reveal or mid-distractor: abort the console flow cleanly so it
+        // can't tick on behind the player's back; the code re-displays
+        // (penalized) on return and recall starts fresh from there.
+        else if (phase == Phase.Alert || phase == Phase.DisplayCode || phase == Phase.Distractor)
+        {
+            if (flowCo != null) { StopCoroutine(flowCo); flowCo = null; }
+            ClearButtons();
+            if (distractorLabel != null) { Destroy(distractorLabel.gameObject); distractorLabel = null; }
+            HUDManager.Instance?.HideCodeBanner();
+            phase = Phase.HiddenWaitingForDock;
+            suspendedBySwitch = true;
+        }
+        SessionManager.Instance?.LogCustomEvent("WM_SuspendedBySwitch", "EngineStation",
+            "phase=" + phase);
+        ShowMessage("SUSPENDED — CODE RE-DISPLAYS ON RETURN", new Color(1f, 0.85f, 0.3f));
+    }
+
+    // Penalized re-read on return after a SWITCH: brief code re-display, then
+    // recall resumes/starts. The re-read seconds run on the task clock — that IS
+    // the penalty — and reReads/switchedAway are reported for attribution.
+    private IEnumerator CoReRead()
+    {
+        reReadRunning = true;
+        reReads++;
+        SessionManager.Instance?.LogCustomEvent("WM_ReRead", "EngineStation",
+            "n=" + reReads + " phase=" + phase);
+        HUDManager.Instance?.ShowCodeBanner(code, ReReadSeconds);
+        ShowMessage("CODE RE-DISPLAY — RESUME WHEN IT HIDES", new Color(1f, 0.85f, 0.3f));
+        yield return FrozenWait(ReReadSeconds);
+        reReadRunning = false;
+        suspendedBySwitch = false;
+        if (!IsActive) yield break;
+        if (phase == Phase.HiddenWaitingForDock) StartRecall();
+        else if (phase == Phase.Recall)
+            ShowMessage("REPEAT THE " + CodeLength + "-DIGIT CODE  —  TYPE IT OR TAP", Color.white);
+    }
+
     protected override void OnDocked()
     {
+        // Returning after a SWITCH suspension: penalized re-read before anything
+        // else (recall resumes or starts once the code hides again).
+        if (suspendedBySwitch && !reReadRunning)
+        {
+            StartCoroutine(CoReRead());
+            return;
+        }
+
         // First dock: kick off the alert -> code -> recall reveal now that the
         // player is at the console. (The one-time instruction card, if any, has
         // already been dismissed before this runs.)
@@ -387,7 +505,9 @@ public class WorkingMemoryTask : CognitiveTaskBase
             ("correct", correct.ToString()),
             ("typos", wrongDigits.ToString()),
             ("totalTimeS", Num.F2(totalTime)),
-            ("recallTimeout", "false"));
+            ("recallTimeout", "false"),
+            ("switchedAway", switchedAwayEver ? "true" : "false"),
+            ("reReads", reReads.ToString()));
 
         phase = Phase.Done;
         ResolutionPending = true; // outcome computed — base expiry must not overwrite it
@@ -425,8 +545,10 @@ public class WorkingMemoryTask : CognitiveTaskBase
         if (!IsActive) return;
         if (phase != Phase.Recall) return;
         // Debug freeze (F11 / assessor report): the recall deadline pauses with
-        // the rest of the mission instead of expiring behind the overlay.
-        if (GameManager.IsDebugFrozen)
+        // the rest of the mission instead of expiring behind the overlay. The
+        // deadline also pauses while cleanly suspended by an EF SWITCH (away from
+        // the console) and during the penalized re-read itself.
+        if (GameManager.IsDebugFrozen || (suspendedBySwitch && !IsDocked) || reReadRunning)
         {
             recallStartTime += Time.deltaTime;
             return;
@@ -444,7 +566,9 @@ public class WorkingMemoryTask : CognitiveTaskBase
                 ("correct", "False"),
                 ("typos", wrongDigits.ToString()),
                 ("totalTimeS", Num.F2(Time.time - SpawnTime)),
-                ("recallTimeout", "true"));
+                ("recallTimeout", "true"),
+                ("switchedAway", switchedAwayEver ? "true" : "false"),
+                ("reReads", reReads.ToString()));
             StartCoroutine(CoFinish(TaskResult.Omission));
         }
     }
@@ -456,12 +580,19 @@ public class WorkingMemoryTask : CognitiveTaskBase
             AssessmentResults.Report(this,
                 ("correct", "False"),
                 ("typos", wrongDigits.ToString()),
-                ("phaseAtTimeout", phase.ToString()));
+                ("phaseAtTimeout", phase.ToString()),
+                ("switchedAway", switchedAwayEver ? "true" : "false"),
+                ("reReads", reReads.ToString()));
         base.HandleExpiry();
     }
 
     protected override void OnDestroy()
     {
+        if (countedAmbientRetention)
+        {
+            ambientRetentionCount = Mathf.Max(0, ambientRetentionCount - 1);
+            countedAmbientRetention = false;
+        }
         if (flowCo != null) { StopCoroutine(flowCo); flowCo = null; }
         HUDManager.Instance?.HideCodeBanner();
         base.OnDestroy();
