@@ -243,12 +243,14 @@ public class RadarScanTask : CognitiveTaskBase
                 if (type == ContactType.Asteroid)
                 {
                     blockMisses[blockIdx]++;
+                    lastTrialMissedAsteroid = true; // a very-early press on the NEXT contact belongs to this one
                     outcome = "miss";
                     ShowTrialFeedback("MISS", feedbackMissColor);
                 }
                 else
                 {
                     blockCRs[blockIdx]++;
+                    lastTrialMissedAsteroid = false;
                     outcome = "correctReject";
                     ShowTrialFeedback("OK", feedbackCrColor);
                 }
@@ -264,11 +266,32 @@ public class RadarScanTask : CognitiveTaskBase
         FinalizeAndResolve();
     }
 
+    // Presses faster than this after a contact's onset are physiologically a
+    // response to the PREVIOUS stimulus, not this one (standard CPT handling).
+    private const float LateAttributionMs = 200f;
+    private bool lastTrialMissedAsteroid;
+
     private void OnFlagPressed()
     {
         if (phase != Phase.Running || !IsDocked || currentResponded) return;
-        currentResponded = true;
         float rtMs = (Time.time - lastContactOnset) * 1000f;
+
+        // A press this soon after onset was aimed at the previous contact. If
+        // that contact was a just-missed asteroid, swallow the press instead of
+        // scoring a false alarm here — one slow response must not count twice
+        // (miss + false alarm). The miss itself stands; this trial stays open
+        // for a genuine response.
+        if (rtMs < LateAttributionMs && lastTrialMissedAsteroid)
+        {
+            lastTrialMissedAsteroid = false;
+            ShowTrialFeedback("LATE", feedbackCrColor);
+            SessionManager.Instance?.LogCustomEvent("RADAR_Response", "NavigationStation",
+                Fmt(("trialIdx", trialIdx), ("rtMs", rtMs.ToString("F0")), ("outcome", "lateForPrevious")));
+            return;
+        }
+
+        currentResponded = true;
+        lastTrialMissedAsteroid = false;
         ContactType type = schedule[trialIdx];
         string outcome;
         if (type == ContactType.Asteroid)
@@ -469,8 +492,10 @@ public class RadarScanTask : CognitiveTaskBase
         // Minimal progress readout above the disc (the full rule is taught by the
         // first-time instruction card; the old colored legend was clutter that
         // confused players, so it's gone).
+        // Diegetic wording: "SCAN ROUTE"/"SIGNAL", not the lab terms "block"/
+        // "trial" — those mean nothing to a participant and read as test anxiety.
         progressLabel = SpawnLabel(new Vector2(0f, 215f), new Vector2(720f, 26f),
-            string.Format("BLOCK 1/{0}   TRIAL 1/{1}", blockCount, nTrials),
+            string.Format("SCAN ROUTE 1/{0}   SIGNAL 1/{1}", blockCount, nTrials),
             new Color(0.7f, 0.92f, 1f), 22f);
 
         // Per-trial HIT/MISS feedback splash, overlaid near the disc centre
@@ -573,7 +598,7 @@ public class RadarScanTask : CognitiveTaskBase
     private void UpdateProgressLabel()
     {
         if (progressLabel != null)
-            progressLabel.text = string.Format("BLOCK {0}/{1}   TRIAL {2}/{3}",
+            progressLabel.text = string.Format("SCAN ROUTE {0}/{1}   SIGNAL {2}/{3}",
                 blockIdx + 1, blockCount, trialIdx + 1, nTrials);
     }
 
