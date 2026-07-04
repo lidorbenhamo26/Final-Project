@@ -155,6 +155,9 @@ public class GameManager : MonoBehaviour
     private readonly Dictionary<string, float> lastSpawnedAt = new Dictionary<string, float>();
     // How many times each station has spawned, used to alternate task variants.
     private readonly Dictionary<string, int> spawnCountByStation = new Dictionary<string, int>();
+    // Total spawns per station (baseline + EF offers), driving fair coverage:
+    // every task type must actually appear within a normal-length session.
+    private readonly Dictionary<string, int> spawnTally = new Dictionary<string, int>();
 
     private void Awake()
     {
@@ -432,8 +435,13 @@ public class GameManager : MonoBehaviour
 
             // Executive-function event: once enough baseline tasks have passed and the
             // deck is clear, run a designed EF beat instead of the next single spawn.
+            // Mutual exclusion: never start a beat while an Ambient WM retention is
+            // in flight (player holding a code in their head en route to Engine) —
+            // a triage on top of retention overloads and corrupts both measures.
             if (efEnabled && efDirector != null && !efDirector.EventActive
-                && baselineTasksSinceEf >= nextEfThreshold && CountActiveTasks() == 0)
+                && baselineTasksSinceEf >= nextEfThreshold && CountActiveTasks() == 0
+                && !WorkingMemoryTask.AmbientRetentionActive
+                && MissionTimeRemaining > 90f) // an EF beat needs room to play out
             {
                 var efStations = BuildEligibleStationList();
                 if (efStations.Count >= 2)
@@ -449,8 +457,12 @@ public class GameManager : MonoBehaviour
 
             // Phase 0: strictly one active task at a time during baseline. Spawn only
             // when the cadence timer is up; the cadence tightens as difficulty climbs.
+            // No new spawns in the final minute: a task that can't be finished
+            // before Mission_End is cut off mid-trial and pollutes the report
+            // with a half-administered row.
             int maxConcurrent = Mathf.Max(1, baselineMaxConcurrent);
-            if (CountActiveTasks() < maxConcurrent && Time.time >= nextSpawnAt)
+            if (CountActiveTasks() < maxConcurrent && Time.time >= nextSpawnAt
+                && MissionTimeRemaining > 60f)
             {
                 var eligible = BuildEligibleStationList();
                 if (eligible.Count > 0)
@@ -495,21 +507,32 @@ public class GameManager : MonoBehaviour
         list.Add(s);
     }
 
+    private int TallyOf(TaskStation s)
+        => s != null && spawnTally.TryGetValue(s.stationName, out int n) ? n : 0;
+
     private TaskStation PickStation(List<TaskStation> eligible)
     {
         if (eligible.Count == 1) return eligible[0];
 
-        // Bias toward Engine (Working Memory) — the "code pops up, walk over and
-        // enter it" loop we want to appear more often — while still rotating.
+        // 1) Coverage guarantee: while any eligible station has NEVER spawned,
+        //    pick among those first — all four task types appear in every
+        //    session instead of being left to the dice.
+        var never = eligible.FindAll(s => TallyOf(s) == 0);
+        if (never.Count > 0) return never[Random.Range(0, never.Count)];
+
+        // 2) Engine (Working Memory) bias — but self-limiting: it only applies
+        //    while Engine is NOT already ahead of the least-served eligible
+        //    station. A hard 40% bias starved short sessions of Comms' second
+        //    variant (Go/No-Go never appeared in a 10-min playtest).
+        int minTally = int.MaxValue;
+        foreach (var s in eligible) minTally = Mathf.Min(minTally, TallyOf(s));
         if (engineStation != null && engineSpawnBias > 0f && eligible.Contains(engineStation)
-            && Random.value < engineSpawnBias)
+            && TallyOf(engineStation) <= minTally && Random.value < engineSpawnBias)
             return engineStation;
 
-        // Pick the least-recently-spawned eligible station (never-spawned counts
-        // as oldest = 0). This rotates through all 4 task types before any repeats,
-        // so variety is present from the very first spawns, and an immediate repeat
-        // can't happen (the station just spawned has the newest timestamp).
-        // Shuffle first so ties (e.g. all never-spawned at start) break randomly.
+        // 3) Fewest-spawns-first (tie: least recently spawned) so both variants
+        //    of the two-variant stations surface before any third repeat.
+        //    Shuffle first so full ties break randomly.
         var shuffled = new List<TaskStation>(eligible);
         for (int i = shuffled.Count - 1; i > 0; i--)
         {
@@ -518,11 +541,13 @@ public class GameManager : MonoBehaviour
         }
 
         TaskStation best = shuffled[0];
+        int bestN = TallyOf(best);
         float bestT = lastSpawnedAt.TryGetValue(best.stationName, out float bt) ? bt : 0f;
         for (int i = 1; i < shuffled.Count; i++)
         {
+            int n = TallyOf(shuffled[i]);
             float t = lastSpawnedAt.TryGetValue(shuffled[i].stationName, out float v) ? v : 0f;
-            if (t < bestT) { bestT = t; best = shuffled[i]; }
+            if (n < bestN || (n == bestN && t < bestT)) { bestN = n; bestT = t; best = shuffled[i]; }
         }
         return best;
     }
@@ -546,6 +571,14 @@ public class GameManager : MonoBehaviour
         {
             variant = forceVariant;
         }
+        else if (efOffer && station == engineStation)
+        {
+            // EF offers at Engine pin the DockDistractor variant (1): an Ambient
+            // WM task would flash its code banner right under the beat/decision
+            // card at spawn — cognitive overload and corrupted data for both.
+            // DockDistractor reveals the code only on dock, after the beat clears.
+            variant = 1;
+        }
         else if (alternateTaskVariants)
         {
             spawnCountByStation.TryGetValue(station.stationName, out int c);
@@ -556,6 +589,8 @@ public class GameManager : MonoBehaviour
         var task = CognitiveTaskCatalog.CreateTaskForStation(go, station.stationName, variant);
         station.AssignTask(task);
         lastSpawnedAt[station.stationName] = Time.time;
+        spawnTally.TryGetValue(station.stationName, out int tally);
+        spawnTally[station.stationName] = tally + 1;
 
         if (efOffer)
         {

@@ -305,8 +305,9 @@ public class InhibitTask : CognitiveTaskBase
 
     private void BuildTrialLabel()
     {
+        // "Signal", not "Trial": lab terminology reads as test anxiety in-game.
         trialLabel = SpawnLabel(new Vector2(0f, 140f), new Vector2(360f, 28f),
-            "Trial 0 / " + TotalTrials, new Color(0.62f, 0.70f, 0.82f), 22f);
+            "Signal 0 / " + TotalTrials, new Color(0.62f, 0.70f, 0.82f), 22f);
     }
 
     // Always-visible RULE reminder (not the presented shape's name) so the player
@@ -395,7 +396,7 @@ public class InhibitTask : CognitiveTaskBase
             curSignalDur = signalDur[trialIdx];
             ShowShape(trial);
             if (trialLabel != null)
-                trialLabel.text = "Trial " + (trialIdx + 1) + " / " + schedule.Length;
+                trialLabel.text = "Signal " + (trialIdx + 1) + " / " + schedule.Length;
 
             while (IsActive && phase == Phase.Signal && !responded
                    && (Time.time - signalStartTime) < curSignalDur)

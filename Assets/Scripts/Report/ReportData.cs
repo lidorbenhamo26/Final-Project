@@ -210,6 +210,8 @@ public static class ReportFormat
         { "totalTimeS",         "Total time (s)" },
         { "recallTimeout",      "Recall timed out" },
         { "phaseAtTimeout",     "Phase at timeout" },
+        { "switchedAway",       "Switched away mid-task (EF interruption)" },
+        { "reReads",            "Code re-reads after returning" },
         { "rounds",             "Trials" },
         { "answered",           "Trials answered" },
         { "accuracy",           "Accuracy" },
@@ -237,6 +239,9 @@ public static class ReportFormat
         { "wireErrorsCount",    "Plan errors (wrong / out-of-order)" },
         { "puzzleTimeS",        "Planning time (s)" },
         { "panelOpens",         "Panel openings" },
+        { "moveCount",          "Moves (attempted placements)" },
+        { "backtrackCount",     "Backtracks (undone / changed actions)" },
+        { "firstMoveLatencyS",  "First-move latency (s)" },
         { "outcome",            "Outcome" },
         { "timeLimitS",         "Time limit (s)" },
     };
@@ -254,7 +259,7 @@ public static class ReportFormat
             && float.TryParse(raw, System.Globalization.NumberStyles.Float,
                 System.Globalization.CultureInfo.InvariantCulture, out float f))
             return Mathf.RoundToInt(f * 100f) + "%";
-        if (metricKey == "correct" || metricKey == "recallTimeout")
+        if (metricKey == "correct" || metricKey == "recallTimeout" || metricKey == "switchedAway")
         {
             if (raw == "True" || raw == "true") return "Yes";
             if (raw == "False" || raw == "false") return "No";

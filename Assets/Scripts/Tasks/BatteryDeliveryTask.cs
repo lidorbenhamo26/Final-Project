@@ -34,6 +34,10 @@ public class BatteryDeliveryTask : MissionTask
     private bool finished;
     private bool lowWarningPlayed;
 
+    // The delivery's minimum window IS its power drain — EF hand-back must
+    // never clamp the task below the drain it visibly promises the player.
+    public override float MinResponseWindowSeconds => PowerDrainSeconds;
+
     private void Awake()
     {
         TaskName = "Power Cell";
@@ -193,7 +197,9 @@ public class BatteryDeliveryTask : MissionTask
     {
         if (finished) return;
         SessionManager.Instance?.LogCustomEvent("Battery_PlanSolved", StationName,
-            "variant=" + puzzleVariant + " errors=" + puzzle.ErrorCount + " t=" + Num.F2(puzzle.ActiveTimeS));
+            "variant=" + puzzleVariant + " errors=" + puzzle.ErrorCount + " t=" + Num.F2(puzzle.ActiveTimeS) +
+            " moves=" + puzzle.MoveCount + " backtracks=" + puzzle.BacktrackCount +
+            " firstMove=" + (puzzle.FirstMoveLatencyS >= 0f ? Num.F2(puzzle.FirstMoveLatencyS) : "NA"));
         socket.CompleteInstall(); // -> OnBatteryInstalled -> HandleInstalled -> CoSucceed
     }
 
@@ -262,7 +268,14 @@ public class BatteryDeliveryTask : MissionTask
             ("wiresTotal", puzzle != null ? puzzle.StepCount.ToString() : "0"),
             ("wireErrorsCount", puzzle != null ? puzzle.ErrorCount.ToString() : "0"),
             ("puzzleTimeS", Num.F2(puzzle != null ? puzzle.ActiveTimeS : 0f)),
-            ("panelOpens", puzzle != null ? puzzle.OpenCount.ToString() : "0"));
+            ("panelOpens", puzzle != null ? puzzle.OpenCount.ToString() : "0"),
+            // Granular planning metrics: attempted placements, undone/changed
+            // actions (uncertainty), and open->first-click latency (proactive
+            // planning vs impulsive trial-and-error). NA = panel never interacted.
+            ("moveCount", puzzle != null ? puzzle.MoveCount.ToString() : "0"),
+            ("backtrackCount", puzzle != null ? puzzle.BacktrackCount.ToString() : "0"),
+            ("firstMoveLatencyS", puzzle != null && puzzle.FirstMoveLatencyS >= 0f
+                ? Num.F2(puzzle.FirstMoveLatencyS) : "NA"));
     }
 
     private void OnDestroy()

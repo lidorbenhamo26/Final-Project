@@ -22,6 +22,10 @@ public interface IPlanningPuzzle
     float ActiveTimeS { get; }  // freeze-aware time the panel was open
     int OpenCount { get; }      // how many times the player (re)opened it
     int StepCount { get; }      // wires / sequence steps (for the report)
+    int MoveCount { get; }      // attempted placements / adjustments (incl. wrong ones)
+    int BacktrackCount { get; } // undone or changed actions (planning uncertainty)
+    float FirstMoveLatencyS { get; } // open -> first interaction (<0 = never moved);
+                                     // proactive planning vs impulsive trial-and-error
     bool IsOpen { get; }
 
     void Show();

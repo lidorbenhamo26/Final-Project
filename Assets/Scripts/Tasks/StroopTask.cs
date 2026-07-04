@@ -38,6 +38,7 @@ public class StroopTask : CognitiveTaskBase
     private float roundStartTime;
     private int answeredCount;
     private readonly List<float> roundRtsMs = new List<float>();
+    private bool[] congruentSchedule; // balanced up front — never left to a coin flip
 
     private TMPro.TextMeshProUGUI stimulusText;
 
@@ -66,6 +67,7 @@ public class StroopTask : CognitiveTaskBase
         base.Activate();
         // Randomize which rule the first block uses so order effects average out.
         startMatchInk = Random.value < 0.5f;
+        BuildCongruencySchedule();
         StationUI?.SetInstruction("STROOP TASK: dock to respond");
         ShowMessage("DOCK TO BEGIN", new Color(0.7f, 0.85f, 1f));
         BuildStimulus();
@@ -73,6 +75,35 @@ public class StroopTask : CognitiveTaskBase
 
     // First block uses startMatchInk; the second block uses the opposite rule.
     private bool RuleForRound(int idx) => (idx < RoundsPerBlock) ? startMatchInk : !startMatchInk;
+
+    // Exactly half the rounds are incongruent, and EVERY block holds at least
+    // one incongruent and one congruent trial. A per-round 50/50 roll can (and
+    // in playtests did) draw all-congruent — a Stroop with zero interference
+    // trials measures reading speed, not inhibition.
+    private void BuildCongruencySchedule()
+    {
+        congruentSchedule = new bool[RoundCount];
+        int blocks = RoundCount / RoundsPerBlock;
+        int incongruentTotal = RoundCount / 2;
+        // Split the incongruent trials across blocks: each block gets at least
+        // one, the remainder is dealt out randomly (for 6/3 rounds: 1+2 or 2+1).
+        var perBlock = new int[blocks];
+        for (int b = 0; b < blocks; b++) perBlock[b] = 1;
+        for (int r = blocks; r < incongruentTotal; r++) perBlock[Random.Range(0, blocks)]++;
+        for (int b = 0; b < blocks; b++)
+        {
+            // Cap so each block also keeps at least one congruent trial.
+            perBlock[b] = Mathf.Min(perBlock[b], RoundsPerBlock - 1);
+            var slots = new List<int>();
+            for (int i = 0; i < RoundsPerBlock; i++) slots.Add(b * RoundsPerBlock + i);
+            for (int i = slots.Count - 1; i > 0; i--)
+            {
+                int j = Random.Range(0, i + 1);
+                (slots[i], slots[j]) = (slots[j], slots[i]);
+            }
+            for (int i = 0; i < RoundsPerBlock; i++) congruentSchedule[slots[i]] = i >= perBlock[b];
+        }
+    }
 
     // Rounds start on first dock (like Inhibit/Radar) so every presented trial
     // was actually seen by the player; never docking ends as a clean Omission
@@ -189,7 +220,9 @@ public class StroopTask : CognitiveTaskBase
         roundStartTime = Time.time;
 
         currentWordIdx = Random.Range(0, WordNames.Length);
-        currentInkIdx = Random.value < 0.5f
+        bool congruent = congruentSchedule == null || idx >= congruentSchedule.Length
+            || congruentSchedule[idx];
+        currentInkIdx = congruent
             ? currentWordIdx
             : (currentWordIdx + Random.Range(1, WordNames.Length)) % WordNames.Length;
 

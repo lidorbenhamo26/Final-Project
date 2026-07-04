@@ -36,6 +36,9 @@ public abstract class PlanningPuzzlePanel : MonoBehaviour, IPlanningPuzzle
     public float ActiveTimeS { get; private set; }
     public int OpenCount { get; private set; }
     public int StepCount { get; protected set; }
+    public int MoveCount { get; private set; }
+    public int BacktrackCount { get; private set; }
+    public float FirstMoveLatencyS { get; private set; } = -1f;
     public bool IsOpen => isOpen;
     public bool Solved { get; private set; }
 
@@ -163,6 +166,21 @@ public abstract class PlanningPuzzlePanel : MonoBehaviour, IPlanningPuzzle
         AudioManager.Instance?.PlaySfx("wire_error");
         OnError?.Invoke();
     }
+
+    /// <summary>Variants call this on EVERY interaction attempt (valid or not):
+    /// placements, +/- adjustments, confirms. First call stamps the first-move
+    /// latency off the freeze-aware open clock — time spent analyzing the puzzle
+    /// before acting (proactive planning vs impulsive trial-and-error).</summary>
+    protected void RegisterMove()
+    {
+        MoveCount++;
+        if (FirstMoveLatencyS < 0f) FirstMoveLatencyS = ActiveTimeS;
+    }
+
+    /// <summary>Variants call this when the player undoes or changes a previous
+    /// action (route removed/rerouted, allocation decremented) — a signal of
+    /// planning uncertainty. Counted on top of RegisterMove, never instead.</summary>
+    protected void RegisterBacktrack() { BacktrackCount++; }
 
     protected IEnumerator FlashColor(Image img, Color flash)
     {

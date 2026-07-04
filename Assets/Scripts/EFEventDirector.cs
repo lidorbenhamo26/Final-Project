@@ -44,12 +44,20 @@ public class EFEventDirector : MonoBehaviour
 
     public bool EventActive { get; private set; }
 
+    /// <summary>True while any EF event (beat, interruption, WM+Prio) is running.
+    /// Read by tasks that must not deploy attention-critical UI (e.g. the ambient
+    /// WM code banner) under a beat or decision card.</summary>
+    public static bool AnyEventActive => Instance != null && Instance.EventActive;
+    public static EFEventDirector Instance { get; private set; }
+
     private GameManager gm;
     private int typeCounter;
     private bool firstBeatExplained;
     private bool firstInterruptionExplained;
 
-    private void Awake() { gm = GetComponent<GameManager>(); }
+    private void Awake() { Instance = this; gm = GetComponent<GameManager>(); }
+
+    private void OnDestroy() { if (Instance == this) Instance = null; }
 
     // Round-robin across the enabled EF event types for balanced behavioral data.
     public IEnumerator RunNextEvent(List<TaskStation> eligible)
@@ -315,7 +323,16 @@ public class EFEventDirector : MonoBehaviour
         {
             var t = offers[i];
             if (t == null || !t.IsActive) continue;
-            t.timeLimit = (i == keepA || i == keepB) ? 60f : 0.05f;
+            if (i == keepA || i == keepB)
+            {
+                // Fair window measured FROM NOW, floored at the task's own
+                // minimum. A flat 60s-from-spawn expired an in-progress radar
+                // scan mid-block (a false "Omission" while the player was
+                // performing it) and silently cut the battery's power drain.
+                float grant = Mathf.Max(60f, t.MinResponseWindowSeconds + 20f);
+                t.timeLimit = (Time.time - t.SpawnTime) + grant;
+            }
+            else t.timeLimit = 0.05f;
         }
     }
 
@@ -332,6 +349,13 @@ public class EFEventDirector : MonoBehaviour
         var pick = new List<TaskStation>(eligible);
         Shuffle(pick);
         if (pick.Count < 2) { EventActive = false; yield break; }
+        // Never interrupt INTO a working-memory task: while the player holds a
+        // code, their cognitive processor is fully committed — a mid-retention
+        // interrupt corrupts both the WM measure and the Shift measure. Engine
+        // may still be the INCOMING task B (its code only reveals on dock,
+        // after the choice), just never the in-progress task A.
+        if (pick[0] == gm.EngineStation)
+            (pick[0], pick[1]) = (pick[1], pick[0]);
         var stationA = pick[0];
         var stationB = pick[1];
 
@@ -440,7 +464,14 @@ public class EFEventDirector : MonoBehaviour
 
         // Reflect the (possibly defaulted) call on the HUD and confirm it on the
         // card: SWITCH re-ranks B to #1; STAY keeps A #1 and queues B as #2.
-        if (switched) MarkSwitched(A, B);
+        if (switched)
+        {
+            MarkSwitched(A, B);
+            // Leaving a working-memory task mid-retention is a designed consequence
+            // of the switch, not a WM failure: suspend it cleanly (deadline pauses,
+            // code re-displays penalized on return, outcome tagged switchedAway).
+            if (A is WorkingMemoryTask wmA) wmA.SuspendForSwitch();
+        }
         else if (B != null) { B.EfInterrupt = false; B.EfOrder = 2; }
         interruptPanel.ResolveChoice(switched,
             switched ? stationPretty : null,
@@ -476,7 +507,10 @@ public class EFEventDirector : MonoBehaviour
         ClampEngagedWindow(A, 90f);
         ClampEngagedWindow(B, 90f);
 
-        // Resumed = they truly went (not just said so) and A still got finished.
+        // Provisional follow-through read at the observation cap; a detached
+        // finalizer below re-derives these once both offers truly resolve (a
+        // battery delivery can legitimately outlive the 60s window, which used
+        // to cost the player their "resumed" credit).
         bool resumed = switched && behavioralSwitch && (A == null || !A.IsActive);
         bool wasOptimal = optimalSwitch ? switched : !switched;
         bool perseveration = optimalSwitch && !switched;
@@ -503,7 +537,7 @@ public class EFEventDirector : MonoBehaviour
             " resumedFirst=" + resumed +
             " perseveration=" + perseveration);
 
-        EFResults.Instance?.Add(new EFEventRecord
+        var rec = new EFEventRecord
         {
             EventType = "Interruption",
             NOptions = 2,
@@ -522,9 +556,43 @@ public class EFEventDirector : MonoBehaviour
             NoChoice = noResponse,
             Perseveration = perseveration,
             Resumed = resumed,
-        });
+        };
+        EFResults.Instance?.Add(rec);
+
+        // Finish the follow-through scoring detached, so the next beat isn't
+        // held up while a long task (e.g. a battery run) plays out. Bounded:
+        // both offers' windows are clamped to ~90s of grace above.
+        StartCoroutine(CoFinalizeInterruption(rec, A, B, switched, behavioralSwitch));
 
         EventActive = false;
+    }
+
+    // Re-derives resumed / changed-mind once both interruption offers actually
+    // resolve, and updates the stored record in place (the report reads the
+    // record by reference, and its aggregates are recomputed at capture time).
+    private IEnumerator CoFinalizeInterruption(EFEventRecord rec, MissionTask A, MissionTask B,
+        bool switched, bool behavioralSwitch)
+    {
+        float cap = Time.time + 300f;
+        while (Time.time < cap)
+        {
+            bool aActive = A != null && A.IsActive;
+            bool bActive = B != null && B.IsActive;
+            if (!behavioralSwitch && B != null && B.Engaged && aActive)
+                behavioralSwitch = true;
+            if (!aActive && !bActive) break;
+            yield return null;
+        }
+
+        bool resumed = switched && behavioralSwitch && (A == null || !A.IsActive);
+        int changedMind = switched != behavioralSwitch ? 1 : 0;
+        if (rec != null)
+        {
+            rec.Resumed = resumed;
+            rec.ChangedMind = changedMind;
+        }
+        SessionManager.Instance?.LogCustomEvent("EF_InterruptionOutcome", "System",
+            "resumedFirst=" + resumed + " followedThrough=" + (changedMind == 0));
     }
 
     private static string Tag(MissionTask t)
@@ -720,8 +788,12 @@ public class EFEventDirector : MonoBehaviour
         bool deprioritizedCritical = critIdx >= 0 && chosenIdx != critIdx;
         if (deprioritizedCritical) TriggerCritical(offerStations[critIdx], offers[critIdx]);
 
-        // Only two offers here; keep both (one IS the WM task) with a fair window.
-        foreach (var t in offers) if (t != null && t.IsActive) t.timeLimit = 60f;
+        // Only two offers here; keep both (one IS the WM task) with a fair
+        // window from NOW, floored at each task's own minimum (see HandBackOffers).
+        foreach (var t in offers)
+            if (t != null && t.IsActive)
+                t.timeLimit = (Time.time - t.SpawnTime)
+                    + Mathf.Max(60f, t.MinResponseWindowSeconds + 20f);
 
         float execStart = Time.time;
         while (wmTask != null && wmTask.IsActive && Time.time - execStart < eventSafetyTimeout) yield return null;
