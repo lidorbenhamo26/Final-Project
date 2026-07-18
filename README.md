@@ -76,14 +76,24 @@ Assets/
   Characters/, Models/, Prefabs/, Materials/   game art & assets
 Packages/          Unity package manifest (restored on open)
 ProjectSettings/   Unity project settings
-docs/              project books (Phase A & B) + research poster
+docs/
+  PhaseA/          Phase A book + presentation
+  PhaseB/          Phase B book (with user & maintenance guides) + A0 poster
 ```
 
 ## Documentation
 
-- [`docs/MissionFocus_PhaseA_Book.pdf`](docs/MissionFocus_PhaseA_Book.pdf) — Phase A project book
-- [`docs/MissionFocus_PhaseB_Book.pdf`](docs/MissionFocus_PhaseB_Book.pdf) — Phase B project book
-- [`docs/MissionFocus_Poster_A0.pdf`](docs/MissionFocus_Poster_A0.pdf) — A0 research poster
+All project deliverables live under [`docs/`](docs/), organized by phase:
+
+**Phase A — [`docs/PhaseA/`](docs/PhaseA/)**
+
+- [`MissionFocus_PhaseA_Book.pdf`](docs/PhaseA/MissionFocus_PhaseA_Book.pdf) — Phase A project book
+- [`MissionFocus_PhaseA_Presentation.pdf`](docs/PhaseA/MissionFocus_PhaseA_Presentation.pdf) — Phase A presentation (PDF; editable [`.pptx`](docs/PhaseA/MissionFocus_PhaseA_Presentation.pptx) source alongside)
+
+**Phase B — [`docs/PhaseB/`](docs/PhaseB/)**
+
+- [`MissionFocus_PhaseB_Book.pdf`](docs/PhaseB/MissionFocus_PhaseB_Book.pdf) — Phase B project book (includes **Appendix A – User Guide** and **Appendix B – Maintenance Guide**)
+- [`MissionFocus_Poster_A0.pdf`](docs/PhaseB/MissionFocus_Poster_A0.pdf) — A0 research poster
 
 ## Authors
 

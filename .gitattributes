@@ -140,6 +140,8 @@ Packages/packages-lock.json linguist-generated
 *.exe                   lfs
 # Documents
 *.pdf                   lfs
+*.pptx                  lfs
+*.ppt                   lfs
 # ETC
 *.a                     lfs
 *.reason                lfs
