@@ -78,7 +78,7 @@ Packages/          Unity package manifest (restored on open)
 ProjectSettings/   Unity project settings
 docs/
   PhaseA/          Phase A book + presentation
-  PhaseB/          Phase B book (with user & maintenance guides) + A0 poster
+  PhaseB/          Phase B book (with user & maintenance guides) + A0 poster + demo video
 ```
 
 ## Documentation
@@ -94,6 +94,7 @@ All project deliverables live under [`docs/`](docs/), organized by phase:
 
 - [`MissionFocus_PhaseB_Book.pdf`](docs/PhaseB/MissionFocus_PhaseB_Book.pdf) — Phase B project book (includes **Appendix A – User Guide** and **Appendix B – Maintenance Guide**)
 - [`MissionFocus_Poster_A0.pdf`](docs/PhaseB/MissionFocus_Poster_A0.pdf) — A0 research poster
+- [`MissionFocus_Demo.mp4`](docs/PhaseB/MissionFocus_Demo.mp4) — **demo video** (~2 min): the four cognitive stations, executive-function events, and the end-of-mission assessment report
 
 ## Authors
 
